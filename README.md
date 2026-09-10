@@ -1,11 +1,11 @@
-<div align="center">
+# JJSAK Application
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+A system records and user management application built with React, TypeScript, and Tailwind CSS.
 
-  <h1>Built with AI Studio</h2>
-
-  <p>The fastest path from prompt to production with Gemini.</p>
-
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
+## Features
+- **System Records Management**: Create, update, cycle status, filter, search, and delete system records.
+- **Node Server & Sync Node**: Express API sync integration for `/api/health` and `/api/records`.
+- **Live Summary Metrics**: Real-time record counts, active sessions, verified completions, and total financial valuation.
+- **Data JSON Inspector**: Live JSON inspector for `data/records.json` and `data/users.json` payloads with one-click clipboard copying.
+- **User Management & Role Switching**: Manage user profiles, roles, and avatar identifiers.
+- **Persistent Storage**: Local storage synchronization preserving operational state.

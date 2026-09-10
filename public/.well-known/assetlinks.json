@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ke.ac.jjsak.assessment.cbe",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:44:C5:0F:55:17:2E:70:4E:9C:2F:5E:8F:D0:6E:9B:31:02:18:8E:76:85:4F:91:0A:88:6C:54:19:CE"
+      ]
+    }
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "name": "JJSAK Application",
+  "description": "JJSAK Junior School Assessment & CBE Platform with 27-Phase Master Architecture: System Owner & Governance, Intelligent Timetable & Assessment Timetable Engine with exclusive Director of Academics Access Control, Learner Welfare Hub, and Senior Pathway Finder.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

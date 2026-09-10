@@ -1,0 +1,41 @@
+{
+  "name": "JJSAK Junior School Assessment & CBE Platform",
+  "short_name": "JJSAK App",
+  "description": "Comprehensive Kenyan Junior School Assessment, CBC Competency Grading & Student Report Card System",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#C51E28",
+  "orientation": "any",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Enter Marks",
+      "short_name": "Marks",
+      "description": "Enter subject assessment scores",
+      "url": "/#enter-marks"
+    },
+    {
+      "name": "Students List",
+      "short_name": "Students",
+      "description": "View registered learners and classes",
+      "url": "/#students"
+    },
+    {
+      "name": "Report Cards",
+      "short_name": "Reports",
+      "description": "Generate and print termly report cards",
+      "url": "/#reports"
+    }
+  ]
+}
