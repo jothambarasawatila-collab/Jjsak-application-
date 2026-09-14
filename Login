@@ -1,0 +1,1 @@
+Use the recharts library to display a student's performance trends over time on their individual profile report screen.
