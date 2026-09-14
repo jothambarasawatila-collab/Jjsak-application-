@@ -473,7 +473,7 @@ export const AssessmentGeneratorScreen: React.FC<AssessmentGeneratorScreenProps>
               </div>
 
               <div className="text-right text-xs font-semibold text-slate-600">
-                <div>NGONYEK JUNIOR SCHOOL</div>
+                <div>{paper.schoolName || 'EXAMINATION PANEL'}</div>
                 <div className="text-[11px] text-slate-400">Examiner's Reference Copy</div>
               </div>
             </div>

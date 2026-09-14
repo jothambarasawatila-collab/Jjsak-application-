@@ -60,16 +60,16 @@ export const SchoolProfileScreen: React.FC<SchoolProfileScreenProps> = ({
   const [activeTab, setActiveTab] = useState<'IDENTITY' | 'THEME' | 'LOGOS' | 'BANNERS' | 'PREVIEW' | 'SUBSCRIPTIONS'>('THEME');
 
   // School Identity State
-  const [schoolName, setSchoolName] = useState(activeTenant?.schoolName || schoolProfile.schoolName || 'Ngonyek Junior School');
-  const [schoolCode, setSchoolCode] = useState(activeTenant?.schoolCode || 'NJS-30200');
-  const [county, setCounty] = useState(activeTenant?.county || schoolProfile.county || 'Trans Nzoia');
-  const [subCounty, setSubCounty] = useState(activeTenant?.subCounty || schoolProfile.subCounty || 'Kiminini');
-  const [ward, setWard] = useState(activeTenant?.ward || 'Sirende');
-  const [postalAddress, setPostalAddress] = useState(activeTenant?.postalAddress || schoolProfile.postalAddress || 'P.O. Box 450 - 30200, Kitale');
-  const [phoneNumber, setPhoneNumber] = useState(activeTenant?.phone || schoolProfile.phoneNumber || '+254 722 345 678');
-  const [emailAddress, setEmailAddress] = useState(activeTenant?.email || schoolProfile.emailAddress || 'info@ngonyekjuniorschool.sc.ke');
-  const [website, setWebsite] = useState(activeTenant?.website || schoolProfile.website || 'https://www.ngonyekjuniorschool.sc.ke');
-  const [headTeacherName, setHeadTeacherName] = useState(schoolProfile.headTeacherName || 'Mrs. J. Barasa');
+  const [schoolName, setSchoolName] = useState(activeTenant?.schoolName || schoolProfile.schoolName || 'JJSAK Educational Institution');
+  const [schoolCode, setSchoolCode] = useState(activeTenant?.schoolCode || 'JJSAK-001');
+  const [county, setCounty] = useState(activeTenant?.county || schoolProfile.county || 'Nairobi');
+  const [subCounty, setSubCounty] = useState(activeTenant?.subCounty || schoolProfile.subCounty || 'Central');
+  const [ward, setWard] = useState(activeTenant?.ward || 'Central');
+  const [postalAddress, setPostalAddress] = useState(activeTenant?.postalAddress || schoolProfile.postalAddress || 'P.O. Box 100 - 00100, Nairobi');
+  const [phoneNumber, setPhoneNumber] = useState(activeTenant?.phone || schoolProfile.phoneNumber || '+254 700 000 000');
+  const [emailAddress, setEmailAddress] = useState(activeTenant?.email || schoolProfile.emailAddress || 'info@jjsak.ac.ke');
+  const [website, setWebsite] = useState(activeTenant?.website || schoolProfile.website || 'https://jjsak.ac.ke');
+  const [headTeacherName, setHeadTeacherName] = useState(schoolProfile.headTeacherName || 'School Administrator');
 
   // Institution Mission & Values
   const branding = activeTenant?.schoolBranding;
@@ -318,7 +318,7 @@ export const SchoolProfileScreen: React.FC<SchoolProfileScreenProps> = ({
               {schoolName}
             </span>
             <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-white/20 border border-white/30">
-              ID: {activeTenant?.schoolId || 'sch-ngonyek-001'}
+              ID: {activeTenant?.schoolId || 'N/A'}
             </span>
           </div>
         </div>

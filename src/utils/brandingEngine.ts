@@ -383,7 +383,7 @@ export interface ResolvedSchoolTheme {
  */
 export function resolveSchoolTheme(
   tenant?: SchoolTenant | null,
-  fallbackSchoolName: string = 'Ngonyek Junior School'
+  fallbackSchoolName: string = 'JJSAK Educational Institution'
 ): ResolvedSchoolTheme {
   const schoolName = tenant?.schoolName || fallbackSchoolName;
   const schoolCode = tenant?.schoolCode || 'JJSAK';
@@ -401,17 +401,6 @@ export function resolveSchoolTheme(
       presetKey = match[0] as PortalThemePreset;
     } else {
       presetKey = 'custom';
-    }
-  }
-
-  // Fallback defaults based on school name for initial demo tenants
-  if (!branding?.primaryColor && !branding?.themePreset && tenant?.schoolId) {
-    if (tenant.schoolId.includes('ngonyek') || schoolName.toLowerCase().includes('ngonyek')) {
-      presetKey = 'crimson'; // School D – Maroon / Crimson
-    } else if (tenant.schoolId.includes('kitale') || schoolName.toLowerCase().includes('kitale')) {
-      presetKey = 'blue'; // School A – Blue Theme
-    } else if (tenant.schoolId.includes('chep') || schoolName.toLowerCase().includes('cheptiret')) {
-      presetKey = 'green'; // School B – Green Theme
     }
   }
 

@@ -107,7 +107,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   // Leadership & Staff Account Prerequisites Check (JJSAK Policy Sections 2, 3, 8)
   const currentSchoolId = schoolAuditSession
     ? schoolAuditSession.tenant.schoolId
-    : activeTenantId || currentUser?.schoolId || schoolInfo.address || 'sch-ngonyek-001';
+    : activeTenantId || currentUser?.schoolId || schoolInfo.address || '';
   const prerequisites = checkSchoolLeadershipPrerequisites(currentSchoolId, users);
   const currentTenant = schoolAuditSession
     ? schoolAuditSession.tenant
@@ -131,12 +131,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const currentTheme = resolveSchoolTheme(
     currentTenant || {
       schoolId: currentSchoolId,
-      schoolCode: 'NJS-30200',
-      schoolName: schoolInfo.name || 'Ngonyek Junior School',
-      address: schoolInfo.address || 'P.O. Box 450 - 30200, Kitale',
-      phone: schoolInfo.phone || '+254 722 345 678',
-      email: schoolInfo.email || 'info@ngonyekjuniorschool.sc.ke',
-      motto: schoolInfo.motto || 'Strive for Excellence and Integrity',
+      schoolCode: 'JJSAK-001',
+      schoolName: schoolInfo.name || 'JJSAK Educational Institution',
+      address: schoolInfo.address || 'P.O. Box 100 - 00100, Nairobi, Kenya',
+      phone: schoolInfo.phone || '+254 700 000 000',
+      email: schoolInfo.email || 'info@jjsak.ac.ke',
+      motto: schoolInfo.motto || 'Striving for Holistic Excellence and Integrity',
       category: 'JUNIOR',
       status: 'ACTIVE',
     }

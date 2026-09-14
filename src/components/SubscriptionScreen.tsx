@@ -74,10 +74,10 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
 
   // Determine current isolated school ID and Name
   const targetSchoolId =
-    currentUser.schoolId || activeTenantId || activeTenant?.schoolId || 'sch-ngonyek-001';
+    currentUser.schoolId || activeTenantId || activeTenant?.schoolId || '';
   const targetSchoolName =
-    activeTenant?.schoolName || subscription.schoolName || 'Ngonyek Junior School';
-  const targetSchoolCode = activeTenant?.schoolCode || 'NJS-30200';
+    activeTenant?.schoolName || subscription.schoolName || 'JJSAK Educational Institution';
+  const targetSchoolCode = activeTenant?.schoolCode || 'JJSAK-001';
 
   // Institutional Subscription Model State
   const [instSub, setInstSub] = useState<InstitutionalSubscription>(() => {

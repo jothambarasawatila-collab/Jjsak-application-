@@ -21,243 +21,11 @@ const STORAGE_KEY_AUDIT = 'jjsak_subscription_audit_v2';
 export const APPROVED_LEARNER_ANNUAL_RATE = 60; // KES 60 per learner per year
 export const FREE_TRIAL_TERM_DAYS = 120; // One School Term (120 days)
 
-// Seed default institutional subscriptions with tenant isolation
-const DEFAULT_INSTITUTIONAL_SUBSCRIPTIONS: Record<string, InstitutionalSubscription> = {
-  'sch-ngonyek-001': {
-    schoolId: 'sch-ngonyek-001',
-    schoolName: 'Ngonyek Junior School',
-    schoolCode: 'NJS-30200',
-    activeLearnerCount: 256,
-    billableLearnerCount: 0, // 0 during 1-term free trial
-    ratePerLearner: APPROVED_LEARNER_ANNUAL_RATE,
-    currentBillingPeriod: '2026 Academic Year (Term 1 - Term 3)',
-    status: 'TRIAL',
-    paymentStatus: 'TRIAL_EXEMPT',
-    amountDue: 0, // No charges during approved trial
-    amountPaid: 0,
-    outstandingBalance: 0,
-    nextDueDate: Date.now() + 90 * 86400000, // 90 days remaining in trial
-    installationDate: Date.now() - 30 * 86400000,
-    trialStartDate: Date.now() - 30 * 86400000,
-    trialEndDate: Date.now() + 90 * 86400000,
-    subscriptionStartDate: null,
-    subscriptionEndDate: null,
-    planOption: 'ANNUAL',
-    lastPaymentDate: null,
-    lastPaymentReference: null,
-    lastVerifiedBy: null,
-    notes: 'Newly onboarded school currently enjoying approved 1-term free trial with zero charges.',
-  },
-  'sch-bidii-002': {
-    schoolId: 'sch-bidii-002',
-    schoolName: 'Bidii Junior Academy',
-    schoolCode: 'BJA-30100',
-    activeLearnerCount: 320,
-    billableLearnerCount: 320,
-    ratePerLearner: APPROVED_LEARNER_ANNUAL_RATE,
-    currentBillingPeriod: '2026 Academic Year (Term 1 - Term 3)',
-    status: 'FULLY_PAID',
-    paymentStatus: 'FULLY_PAID',
-    amountDue: 19200, // 320 * 60
-    amountPaid: 19200,
-    outstandingBalance: 0,
-    nextDueDate: Date.now() + 310 * 86400000,
-    installationDate: Date.now() - 120 * 86400000,
-    trialStartDate: Date.now() - 120 * 86400000,
-    trialEndDate: Date.now() - 30 * 86400000,
-    subscriptionStartDate: Date.now() - 30 * 86400000,
-    subscriptionEndDate: Date.now() + 335 * 86400000,
-    planOption: 'ANNUAL',
-    lastPaymentDate: Date.now() - 30 * 86400000,
-    lastPaymentReference: 'NBK-77192801',
-    lastVerifiedBy: 'Jotham Barasa Watila (Platform Owner)',
-    notes: 'Annual license fully settled via National Bank capitation transfer.',
-  },
-  'sch-stmarys-003': {
-    schoolId: 'sch-stmarys-003',
-    schoolName: "St. Mary's Kitale Junior",
-    schoolCode: 'SMK-30202',
-    activeLearnerCount: 350,
-    billableLearnerCount: 350,
-    ratePerLearner: APPROVED_LEARNER_ANNUAL_RATE,
-    currentBillingPeriod: '2026 Academic Year (Term 1 - Term 3)',
-    status: 'PARTIALLY_PAID',
-    paymentStatus: 'PARTIALLY_PAID',
-    amountDue: 21000, // 350 * 60
-    amountPaid: 8400, // Term 1 (40% = 8400)
-    outstandingBalance: 12600, // Term 2 & 3 remaining
-    nextDueDate: Date.now() + 60 * 86400000,
-    installationDate: Date.now() - 140 * 86400000,
-    trialStartDate: Date.now() - 140 * 86400000,
-    trialEndDate: Date.now() - 20 * 86400000,
-    subscriptionStartDate: Date.now() - 20 * 86400000,
-    subscriptionEndDate: Date.now() + 90 * 86400000,
-    planOption: 'TERM_1',
-    lastPaymentDate: Date.now() - 20 * 86400000,
-    lastPaymentReference: 'RAB8910Q77',
-    lastVerifiedBy: 'Jotham Barasa Watila (Platform Owner)',
-    notes: 'Term 1 installment paid via M-Pesa Till. Term 2 balance pending.',
-  },
-};
-
-const DEFAULT_INVOICES: SubscriptionInvoice[] = [
-  {
-    id: 'INV-2026-NJS-001',
-    schoolId: 'sch-ngonyek-001',
-    schoolName: 'Ngonyek Junior School',
-    schoolCode: 'NJS-30200',
-    issueDate: Date.now() - 10 * 86400000,
-    dueDate: Date.now() + 90 * 86400000,
-    billingPeriod: '2026 Academic Year (Post-Trial Coverage)',
-    planType: 'ANNUAL',
-    planTitle: 'Full Annual Subscription (100%)',
-    activeLearnersSnapshot: 256,
-    billableLearnersSnapshot: 256,
-    ratePerLearner: 60,
-    subtotal: 15360,
-    trialCredit: 15360, // 100% discount during free trial
-    totalPayable: 0,
-    amountPaid: 0,
-    balanceDue: 0,
-    status: 'ISSUED',
-    paymentInstructions: [
-      {
-        channelName: 'Safaricom M-Pesa Paybill',
-        paybillOrAccount: '522123',
-        accountName: 'JJSAK Systems Ltd',
-        accountReference: 'NJS-30200',
-      },
-      {
-        channelName: 'National Bank of Kenya (NBK)',
-        paybillOrAccount: '01280771790100',
-        accountName: 'JJSAK Educational Technologies Ltd',
-        accountReference: 'NJS-30200',
-      },
-    ],
-    generatedBy: 'System Auto-Billing Engine',
-    generatedByRole: 'SYSTEM',
-    isImmutable: true,
-    createdAt: Date.now() - 10 * 86400000,
-  },
-  {
-    id: 'INV-2026-BJA-001',
-    schoolId: 'sch-bidii-002',
-    schoolName: 'Bidii Junior Academy',
-    schoolCode: 'BJA-30100',
-    issueDate: Date.now() - 35 * 86400000,
-    dueDate: Date.now() - 25 * 86400000,
-    billingPeriod: '2026 Academic Year (Term 1 - Term 3)',
-    planType: 'ANNUAL',
-    planTitle: 'Full Annual Subscription (100%)',
-    activeLearnersSnapshot: 320,
-    billableLearnersSnapshot: 320,
-    ratePerLearner: 60,
-    subtotal: 19200,
-    trialCredit: 0,
-    totalPayable: 19200,
-    amountPaid: 19200,
-    balanceDue: 0,
-    status: 'PAID',
-    paymentInstructions: [],
-    generatedBy: 'System Auto-Billing Engine',
-    generatedByRole: 'SYSTEM',
-    isImmutable: true,
-    createdAt: Date.now() - 35 * 86400000,
-  },
-  {
-    id: 'INV-2026-SMK-001',
-    schoolId: 'sch-stmarys-003',
-    schoolName: "St. Mary's Kitale Junior",
-    schoolCode: 'SMK-30202',
-    issueDate: Date.now() - 25 * 86400000,
-    dueDate: Date.now() + 60 * 86400000,
-    billingPeriod: '2026 Academic Year (Term 1 Installment)',
-    planType: 'TERM_1',
-    planTitle: 'Term 1 Installment (40%)',
-    activeLearnersSnapshot: 350,
-    billableLearnersSnapshot: 350,
-    ratePerLearner: 60,
-    subtotal: 21000,
-    trialCredit: 0,
-    totalPayable: 8400,
-    amountPaid: 8400,
-    balanceDue: 0,
-    status: 'PAID',
-    paymentInstructions: [],
-    generatedBy: 'System Auto-Billing Engine',
-    generatedByRole: 'SYSTEM',
-    isImmutable: true,
-    createdAt: Date.now() - 25 * 86400000,
-  },
-];
-
-const DEFAULT_RECEIPTS: SubscriptionReceipt[] = [
-  {
-    id: 'RCT-2026-BJA-001',
-    invoiceId: 'INV-2026-BJA-001',
-    schoolId: 'sch-bidii-002',
-    schoolName: 'Bidii Junior Academy',
-    schoolCode: 'BJA-30100',
-    transactionReference: 'NBK-77192801',
-    paymentMethod: 'BANK_TRANSFER',
-    channelSnapshot: 'National Bank 01280771790100 (JJSAK Educational Technologies Ltd)',
-    amountPaid: 19200,
-    currency: 'KES',
-    paymentDate: Date.now() - 30 * 86400000,
-    verifiedAt: Date.now() - 30 * 86400000 + 3600000,
-    verifiedBy: 'Jotham Barasa Watila (Platform Owner)',
-    bankSlipNumber: 'NBK-SLIP-0912804',
-    balanceRemaining: 0,
-    billingPeriod: '2026 Full Academic Year (320 Learners)',
-    planOptionTitle: 'Full Year (100%)',
-    status: 'RECONCILED',
-    receiptNotes: 'Payment verified and automatically reconciled against National Bank Kitale branch credit.',
-  },
-  {
-    id: 'RCT-2026-SMK-001',
-    invoiceId: 'INV-2026-SMK-001',
-    schoolId: 'sch-stmarys-003',
-    schoolName: "St. Mary's Kitale Junior",
-    schoolCode: 'SMK-30202',
-    transactionReference: 'RAB8910Q77',
-    paymentMethod: 'MPESA_TILL',
-    channelSnapshot: 'M-Pesa Buy Goods Till 882190 (JJSAK Systems Ltd)',
-    amountPaid: 8400,
-    currency: 'KES',
-    paymentDate: Date.now() - 20 * 86400000,
-    verifiedAt: Date.now() - 20 * 86400000 + 1800000,
-    verifiedBy: 'Jotham Barasa Watila (Platform Owner)',
-    darajaReceiptNumber: 'DAR-MPESA-8841920',
-    balanceRemaining: 12600,
-    billingPeriod: '2026 Academic Year (Term 1 Installment)',
-    planOptionTitle: 'Term 1 Installment (40%)',
-    status: 'RECONCILED',
-    receiptNotes: 'Term 1 installment verified via Safaricom Daraja API.',
-  },
-];
-
-const DEFAULT_AUDIT: SubscriptionAuditEntry[] = [
-  {
-    id: 'aud-sub-001',
-    schoolId: 'sch-ngonyek-001',
-    schoolName: 'Ngonyek Junior School',
-    action: 'SUBSCRIPTION_INITIALIZED',
-    performedBy: 'JJSAK Cloud Provisioning Engine',
-    performedByRole: 'SYSTEM',
-    timestamp: Date.now() - 30 * 86400000,
-    details: 'Initial institutional activation. Assigned approved 1-term free trial (120 days). Zero learner fees charged.',
-  },
-  {
-    id: 'aud-sub-002',
-    schoolId: 'sch-ngonyek-001',
-    schoolName: 'Ngonyek Junior School',
-    action: 'INVOICE_GENERATED',
-    performedBy: 'System Auto-Billing Engine',
-    performedByRole: 'SYSTEM',
-    timestamp: Date.now() - 10 * 86400000,
-    details: 'Generated formal invoice INV-2026-NJS-001 reflecting 256 learners with 1-term trial exemption applied.',
-  },
-];
+// Clean Zero-School Institutional Subscription State
+const DEFAULT_INSTITUTIONAL_SUBSCRIPTIONS: Record<string, InstitutionalSubscription> = {};
+const DEFAULT_INVOICES: SubscriptionInvoice[] = [];
+const DEFAULT_RECEIPTS: SubscriptionReceipt[] = [];
+const DEFAULT_AUDIT: SubscriptionAuditEntry[] = [];
 
 class InstitutionalSubscriptionService {
   private subscriptions: Record<string, InstitutionalSubscription> = {};
@@ -375,11 +143,40 @@ class InstitutionalSubscriptionService {
    */
   public getSchoolSubscription(
     schoolId: string,
-    schoolNameFallback = 'Ngonyek Junior School',
-    schoolCodeFallback = 'NJS-30200',
-    learnerCountFallback = 256
+    schoolNameFallback = 'JJSAK Educational Institution',
+    schoolCodeFallback = 'SCH-001',
+    learnerCountFallback = 0
   ): InstitutionalSubscription {
-    const targetId = schoolId || 'sch-ngonyek-001';
+    const targetId = schoolId || '';
+
+    if (!targetId) {
+      const now = Date.now();
+      return {
+        schoolId: '',
+        schoolName: schoolNameFallback,
+        schoolCode: schoolCodeFallback,
+        activeLearnerCount: 0,
+        billableLearnerCount: 0,
+        ratePerLearner: APPROVED_LEARNER_ANNUAL_RATE,
+        currentBillingPeriod: '2026 Academic Year',
+        status: 'TRIAL',
+        paymentStatus: 'TRIAL_EXEMPT',
+        amountDue: 0,
+        amountPaid: 0,
+        outstandingBalance: 0,
+        nextDueDate: now + FREE_TRIAL_TERM_DAYS * 86400000,
+        installationDate: now,
+        trialStartDate: now,
+        trialEndDate: now + FREE_TRIAL_TERM_DAYS * 86400000,
+        subscriptionStartDate: null,
+        subscriptionEndDate: null,
+        planOption: 'ANNUAL',
+        lastPaymentDate: null,
+        lastPaymentReference: null,
+        lastVerifiedBy: null,
+        notes: 'No active institutional subscription selected.',
+      };
+    }
 
     if (!this.subscriptions[targetId]) {
       // Auto initialize newly onboarded school with 1-term free trial
@@ -429,7 +226,8 @@ class InstitutionalSubscriptionService {
    * School A can NEVER view School B's invoices.
    */
   public getSchoolInvoices(schoolId: string): SubscriptionInvoice[] {
-    const targetId = schoolId || 'sch-ngonyek-001';
+    const targetId = schoolId || '';
+    if (!targetId) return [];
     return this.invoices
       .filter((inv) => inv.schoolId === targetId)
       .sort((a, b) => b.createdAt - a.createdAt);
@@ -440,7 +238,8 @@ class InstitutionalSubscriptionService {
    * School A can NEVER view School B's receipts.
    */
   public getSchoolReceipts(schoolId: string): SubscriptionReceipt[] {
-    const targetId = schoolId || 'sch-ngonyek-001';
+    const targetId = schoolId || '';
+    if (!targetId) return [];
     return this.receipts
       .filter((r) => r.schoolId === targetId)
       .sort((a, b) => b.paymentDate - a.paymentDate);
@@ -450,7 +249,8 @@ class InstitutionalSubscriptionService {
    * Retrieves audit logs strictly isolated to a single school.
    */
   public getSchoolAuditLogs(schoolId: string): SubscriptionAuditEntry[] {
-    const targetId = schoolId || 'sch-ngonyek-001';
+    const targetId = schoolId || '';
+    if (!targetId) return [];
     return this.auditLogs
       .filter((a) => a.schoolId === targetId)
       .sort((a, b) => b.timestamp - a.timestamp);

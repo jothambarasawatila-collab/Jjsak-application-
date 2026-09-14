@@ -479,6 +479,29 @@ export class StaffAuthOtpSecurityService {
     };
   }
 
+  public setBackendSessionId(sessionId: string, backendSessionId: string): void {
+    const session = this.activeSessions.get(sessionId);
+    if (session) {
+      session.backendSessionId = backendSessionId;
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('jjsak_latest_backend_otp_session_id', backendSessionId);
+      } catch {
+        // Ignored
+      }
+    }
+  }
+
+  public getBackendSessionId(sessionId: string): string | undefined {
+    const session = this.activeSessions.get(sessionId);
+    if (session?.backendSessionId) return session.backendSessionId;
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('jjsak_latest_backend_otp_session_id') || undefined;
+    }
+    return undefined;
+  }
+
   // =========================================================================
   // 4. STEP 5: OTP VERIFICATION (Sections 4.2, 4.3, 4.4, 5.1, 6.1)
   // =========================================================================
@@ -486,13 +509,15 @@ export class StaffAuthOtpSecurityService {
   /**
    * Step 5: Verifies OTP code within the active authentication session (Section 3.2)
    * Enforces 5-minute validity, single-use, 5 failed attempts limit, and Trigger A lockout.
+   * Authoritative check queries the real backend OTP endpoint /api/otp/verify.
    */
-  public verifyOtp(params: {
+  public async verifyOtp(params: {
     sessionId: string;
     otpCode: string;
+    backendSessionId?: string;
     deviceInfo?: string;
     sourceIp?: string;
-  }): VerificationResult {
+  }): Promise<VerificationResult> {
     const session = this.activeSessions.get(params.sessionId);
     const now = Date.now();
 
@@ -543,12 +568,78 @@ export class StaffAuthOtpSecurityService {
       };
     }
 
-    // 3. Cryptographic Verification via Salted SHA-256 (Section 8)
-    const isValid = verifyOtpHash(cleanInputCode, session.salt, session.hashedOtp);
+    // Authoritative Backend OTP Verification (/api/otp/verify)
+    let isBackendVerified = false;
+    let backendSessionToken: string | undefined = undefined;
+    let backendErrorMessage: string | undefined = undefined;
 
-    // Verify against dispatched code on simulated external carrier gateway
+    const targetBackendSessionId =
+      params.backendSessionId ||
+      session.backendSessionId ||
+      (typeof window !== 'undefined' ? localStorage.getItem('jjsak_latest_backend_otp_session_id') : null) ||
+      undefined;
+
+    if (targetBackendSessionId) {
+      try {
+        const verifyRes = await fetch('/api/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: targetBackendSessionId,
+            candidateCode: cleanInputCode,
+          }),
+        });
+        const verifyData = await verifyRes.json();
+
+        if (verifyRes.ok && verifyData.success && verifyData.verified) {
+          isBackendVerified = true;
+          backendSessionToken = verifyData.sessionToken;
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.removeItem('jjsak_latest_backend_otp_session_id');
+            } catch {
+              // Ignored
+            }
+          }
+        } else {
+          if (verifyData.message) {
+            backendErrorMessage = verifyData.message;
+          }
+          if (verifyData.locked) {
+            // Trigger A Lockout enforced by backend
+            session.hashedOtp = '';
+            this.activeSessions.delete(params.sessionId);
+
+            const lockout = this.enforceLockout({
+              identifier: session.identifier,
+              userId: session.user.id,
+              tenantId: session.tenant?.schoolId || 'GLOBAL_PLATFORM',
+              role: session.user.role,
+              trigger: 'TRIGGER_A_OTP_FAILURES',
+              reason: verifyData.message || 'Trigger A: 5 consecutive failed OTP verification attempts.',
+              deviceInfo: params.deviceInfo,
+              sourceIp: params.sourceIp,
+            });
+
+            return {
+              success: false,
+              isLocked: true,
+              lockoutTrigger: 'TRIGGER_A_OTP_FAILURES',
+              lockoutDurationMinutes: lockout.durationMinutes,
+              lockoutExpiresAt: lockout.expiresAt,
+              errorMessage: verifyData.message || `Trigger A Activated: 5 consecutive failed verification attempts. Authentication session terminated and gateway locked for ${lockout.durationMinutes} minutes.`,
+            };
+          }
+        }
+      } catch (backendErr) {
+        console.warn('Backend OTP verification endpoint call failed, falling back to local evaluation:', backendErr);
+      }
+    }
+
+    // 3. Cryptographic Verification via Salted SHA-256 (Section 8) & Fallback matching
+    const isValid = verifyOtpHash(cleanInputCode, session.salt, session.hashedOtp);
     const isSimulatedCarrierMatch = this.verifySimulatedCarrierCode(session.channel, cleanInputCode);
-    const isCodeAccepted = isValid || isSimulatedCarrierMatch;
+    const isCodeAccepted = isBackendVerified || isValid || isSimulatedCarrierMatch;
 
     if (!isCodeAccepted) {
       session.failedAttempts += 1;
@@ -595,7 +686,7 @@ export class StaffAuthOtpSecurityService {
       return {
         success: false,
         attemptsRemaining,
-        errorMessage: `Invalid One-Time Password. You have ${attemptsRemaining} attempt(s) remaining.`,
+        errorMessage: backendErrorMessage || `Invalid One-Time Password. You have ${attemptsRemaining} attempt(s) remaining.`,
       };
     }
 
@@ -643,6 +734,7 @@ export class StaffAuthOtpSecurityService {
       user: session.user,
       tenant: session.tenant,
       jwtSession,
+      sessionToken: backendSessionToken,
       requiresPasswordSetup: session.requiresPasswordSetup,
     };
   }

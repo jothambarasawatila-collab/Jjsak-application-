@@ -87,39 +87,6 @@ export const JJSAKLaunchFlowManager: React.FC<JJSAKLaunchFlowManagerProps> = ({
     return false;
   };
 
-  // Quick Install Sample School (Ngonyek Junior)
-  const handleQuickInstallSampleSchool = () => {
-    const sampleSchool: SchoolTenant = {
-      schoolId: 'sch-ngonyek-001',
-      schoolCode: 'NJS-30200',
-      schoolName: 'Ngonyek Junior School',
-      schoolType: 'Private',
-      category: 'JUNIOR',
-      registrationNumber: 'MOE/PRI/30200',
-      educationLevel: 'Junior School (Grade 7 - 9)',
-      country: 'Kenya',
-      county: 'Trans Nzoia',
-      subCounty: 'Kiminini',
-      ward: 'Sirende',
-      physicalAddress: 'P.O. Box 450 - 30200, Kitale',
-      postalAddress: 'P.O. Box 450 - 30200, Kitale',
-      address: 'P.O. Box 450 - 30200, Kitale, Kiminini Sub-County',
-      phone: '+254 722 345 678',
-      officialPhone: '+254 722 345 678',
-      email: 'info@ngonyekjuniorschool.sc.ke',
-      officialEmail: 'info@ngonyekjuniorschool.sc.ke',
-      motto: 'Every Learner Matters, Every Achievement Counts',
-      status: 'ACTIVE', // Activated
-      createdAt: '2024-01-10',
-    };
-
-    const updated = [sampleSchool, ...tenants.filter((t) => t.schoolId !== sampleSchool.schoolId)];
-    onUpdateTenants(updated);
-    onSelectTenant(sampleSchool.schoolId);
-    onLogAudit('RECORD_CREATE', `Owner registered & activated sample school [${sampleSchool.schoolName}].`);
-    setStage('STAGE_5_ORGANIZATIONAL_PROFILE');
-  };
-
   // Owner adds new school
   const handleAddSchool = (newSchool: SchoolTenant) => {
     const updated = [...tenants, newSchool];
@@ -165,7 +132,6 @@ export const JJSAKLaunchFlowManager: React.FC<JJSAKLaunchFlowManagerProps> = ({
       {stage === 'STAGE_2_NO_SCHOOL_REGISTERED' && (
         <SchoolNotRegisteredScreen
           onOwnerLogin={handleOwnerLogin}
-          onQuickInstallSampleSchool={handleQuickInstallSampleSchool}
           onOpenOwnerAuth={() => setStage('STAGE_3_OWNER_LOGIN')}
         />
       )}

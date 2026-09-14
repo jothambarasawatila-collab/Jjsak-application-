@@ -1049,7 +1049,7 @@ export function canEnterAssessmentForLearner(learnerStatus?: string): boolean {
 export function generateJWTSession(
   user: User,
   schoolId: string,
-  schoolName: string = 'Ngonyek Junior School',
+  schoolName: string = 'JJSAK Educational Institution',
   mfaMethod?: MfaMethod,
   ipAddress: string = '197.237.12.89'
 ): JWTSession {
@@ -1073,7 +1073,7 @@ export function generateJWTSession(
     sub: user.id,
     username: user.username,
     fullName: user.fullName,
-    schoolId: schoolId || user.schoolId || 'sch-ngonyek-001',
+    schoolId: schoolId || user.schoolId || '',
     schoolName,
     role: user.role,
     learnerId: user.learnerId,
@@ -1136,7 +1136,7 @@ export function createAuditLog(
 
   return {
     id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    schoolId: schoolId || 'sch-ngonyek-001',
+    schoolId: schoolId || '',
     userId,
     userName,
     userRole,
@@ -1165,7 +1165,7 @@ export function createRecycleBinItem(
 
   return {
     id: `bin-${now}-${Math.floor(Math.random() * 1000)}`,
-    schoolId: schoolId || 'sch-ngonyek-001',
+    schoolId: schoolId || '',
     itemType,
     itemTitle,
     deletedBy,

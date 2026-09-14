@@ -93,6 +93,7 @@ export function verifyLearnerPortalAccess(
 // 2. Server-side Authorized Data Retrieval
 export interface FetchLearnerDataOptions {
   previewStudentId?: string; // Only respected for administrative/teacher preview
+  currentTenant?: { schoolName?: string; schoolId?: string };
   simulatedWidgetFailures?: {
     attendance?: boolean;
     timetable?: boolean;
@@ -165,7 +166,7 @@ export function fetchAuthorizedLearnerData(
   }
 
   // Tenant Verification on the student record
-  const studentSchool = student.schoolId || 'sch-ngonyek-001';
+  const studentSchool = student.schoolId || '';
   if (user.role === 'STUDENT' && studentSchool !== currentSchoolId && currentSchoolId) {
     return {
       data: null,
@@ -195,7 +196,7 @@ export function fetchAuthorizedLearnerData(
     classArm: student.classArm,
     stream: student.stream || student.classArm,
     schoolId: studentSchool,
-    schoolName: 'Ngonyek Junior School',
+    schoolName: options.currentTenant?.schoolName || 'JJSAK Educational Institution',
     avatarInitials: student.avatarInitials || student.name.substring(0, 2).toUpperCase(),
     photoUrl: student.photoUrl,
     term: student.term || 'Term 2, 2024',
@@ -440,7 +441,7 @@ export function validateLearnerAccountCreation(
   }
 
   // Rule 2: The learner belongs to the current school/tenant
-  const studentSchool = student.schoolId || 'sch-ngonyek-001';
+  const studentSchool = student.schoolId || '';
   if (params.schoolId && studentSchool !== params.schoolId) {
     errors.push(
       `Tenant Isolation Violation: Learner '${student.name}' belongs to school '${studentSchool}', which does not match active school '${params.schoolId}'.`
@@ -509,7 +510,7 @@ export function reconcileLearnerAccounts(
 
   // Filter users to student accounts in this school
   const studentAccounts = users.filter((u) => u.role === 'STUDENT');
-  const schoolStudents = students.filter((s) => (s.schoolId || 'sch-ngonyek-001') === currentSchoolId);
+  const schoolStudents = students.filter((s) => (s.schoolId || '') === currentSchoolId);
 
   // Track which students have been matched to accounts
   const studentAccountMap = new Map<string, User[]>();
@@ -561,8 +562,8 @@ export function reconcileLearnerAccounts(
     }
 
     // Wrong Tenant: student or user belongs to another school
-    const studentSchool = matchedStudent.schoolId || 'sch-ngonyek-001';
-    const accountSchool = acc.schoolId || 'sch-ngonyek-001';
+    const studentSchool = matchedStudent.schoolId || '';
+    const accountSchool = acc.schoolId || '';
 
     if (studentSchool !== accountSchool || (currentSchoolId && accountSchool !== currentSchoolId)) {
       wrongTenantCount++;

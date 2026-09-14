@@ -77,79 +77,9 @@ const DEFAULT_HISTORY: PaymentChannelHistoryRecord[] = [
   },
 ];
 
-const DEFAULT_TRANSACTIONS: SubscriptionTransactionRecord[] = [
-  {
-    id: 'tx-2026-001',
-    schoolId: 'sch-stmarys-003',
-    schoolName: "St. Mary's Kitale Junior",
-    schoolCode: 'SMK-30202',
-    transactionReference: 'QKD8910499',
-    paymentReferenceNumber: 'PAY-2026-SMK-00101',
-    mpesaTransactionCode: 'QKD8910499',
-    paymentMethod: 'MPESA_BUSINESS',
-    channelId: 'pay-chan-verified-01',
-    channelSnapshot: 'Safaricom M-Pesa Business 0741478813 (JJSAK Educational Platform / System Owner)',
-    amount: 19200,
-    currency: 'KES',
-    timestamp: Date.now() - 2 * 86400000,
-    subscriptionPeriod: '2026 Academic Year (Full Term)',
-    invoiceId: 'INV-2026-SMK-001',
-    currentSubscriptionBalanceSnapshot: 19200,
-    submittedByUserId: 'usr-head-003',
-    submittedByUserName: 'Fr. Paul Njoroge',
-    submittedByUserRole: 'HEAD_OF_INSTITUTION',
-    verificationStatus: 'VALIDATED',
-    verifiedBy: 'Jotham Barasa Watila (Platform Owner)',
-    verifiedAt: Date.now() - 2 * 86400000 + 1800000,
-    validationDate: Date.now() - 2 * 86400000 + 1800000,
-    ownerRemarks: 'Verified against Safaricom M-Pesa Business Statement 0741478813. Full year subscription reconciled.',
-    darajaReceiptNumber: 'DAR-MPESA-9941029',
-  },
-  {
-    id: 'tx-2026-002',
-    schoolId: 'sch-ngonyek-001',
-    schoolName: 'Ngonyek Junior School',
-    schoolCode: 'NJS-30200',
-    transactionReference: 'SJB7811902',
-    paymentReferenceNumber: 'PAY-2026-NJS-08912',
-    mpesaTransactionCode: 'SJB7811902',
-    paymentMethod: 'MPESA_BUSINESS',
-    channelId: 'pay-chan-verified-01',
-    channelSnapshot: 'Safaricom M-Pesa Business 0741478813 (JJSAK Educational Platform / System Owner)',
-    amount: 15360,
-    currency: 'KES',
-    timestamp: Date.now() - 3 * 3600000,
-    subscriptionPeriod: '2026 Academic Year (Term 1 Capitation)',
-    invoiceId: 'INV-2026-NJS-001',
-    currentSubscriptionBalanceSnapshot: 15360,
-    submittedByUserId: 'usr-head-001',
-    submittedByUserName: 'Dr. Kennedy Wanyama',
-    submittedByUserRole: 'HEAD_OF_INSTITUTION',
-    verificationStatus: 'PENDING_VALIDATION',
-    ownerRemarks: 'Awaiting Owner validation against Mpesa Business Number 0741478813 statement.',
-  },
-];
+const DEFAULT_TRANSACTIONS: SubscriptionTransactionRecord[] = [];
 
-const DEFAULT_NOTIFICATIONS: OwnerPaymentNotification[] = [
-  {
-    id: 'notif-2026-002',
-    timestamp: Date.now() - 3 * 3600000,
-    schoolId: 'sch-ngonyek-001',
-    schoolName: 'Ngonyek Junior School',
-    schoolCode: 'NJS-30200',
-    amountPaid: 15360,
-    paymentReferenceNumber: 'PAY-2026-NJS-08912',
-    mpesaTransactionCode: 'SJB7811902',
-    dateTime: new Date(Date.now() - 3 * 3600000).toLocaleString(),
-    subscriptionInvoice: 'INV-2026-NJS-001',
-    subscriptionPeriod: '2026 Academic Year (Term 1 Capitation)',
-    currentSubscriptionBalance: 15360,
-    channelsDispatched: ['IN_APP', 'EMAIL', 'SMS', 'WHATSAPP'],
-    isRead: false,
-    status: 'PENDING_VALIDATION',
-    ownerRemarks: 'Awaiting Owner validation against Mpesa Business Number 0741478813 statement.',
-  },
-];
+const DEFAULT_NOTIFICATIONS: OwnerPaymentNotification[] = [];
 
 class SubscriptionPaymentService {
   private channels: SubscriptionPaymentChannel[] = [];

@@ -40,6 +40,7 @@ export interface LockoutRecord {
 
 export interface ActiveAuthSession {
   sessionId: string;
+  backendSessionId?: string; // Authoritative server-side session ID (SES-...)
   user: User;
   tenant?: SchoolTenant;
   identifier: string;
@@ -58,6 +59,7 @@ export interface ActiveAuthSession {
 
 export interface OtpDeliveryReceipt {
   sessionId: string;
+  backendSessionId?: string;
   channel: ApprovedOtpChannel;
   maskedDestination: string;
   generatedAt: number;
@@ -114,6 +116,7 @@ export interface VerificationResult {
   user?: User;
   tenant?: SchoolTenant;
   jwtSession?: any;
+  sessionToken?: string;
   requiresPasswordSetup?: boolean;
   attemptsRemaining?: number;
   isLocked?: boolean;

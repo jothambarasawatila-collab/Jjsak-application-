@@ -326,7 +326,7 @@ export function App() {
   });
   const [activeTenantId, setActiveTenantId] = useState<string>(() => {
     const saved = localStorage.getItem('jjsak_active_tenant_id');
-    return saved || 'sch-ngonyek-001';
+    return saved || (DEFAULT_TENANT_SCHOOLS[0]?.schoolId || '');
   });
 
   // JJSAK-AUTH-SEC-001: Hide Institution Identity Until Authentication
@@ -352,7 +352,16 @@ export function App() {
         // fallback
       }
     }
-    return generateJWTSession(INITIAL_USERS[0], 'sch-ngonyek-001', 'Ngonyek Junior School');
+    const initialUser = INITIAL_USERS[0] || {
+      id: 'usr-owner-001',
+      username: 'jotham',
+      role: 'SUPER_ADMIN',
+      fullName: 'Jotham Barasa Watila',
+      password: '',
+      email: 'jothambarasawatila@gmail.com',
+      schoolId: '',
+    };
+    return generateJWTSession(initialUser, '', 'JJSAK Educational Technologies');
   });
 
   // Code P2.10: 30-Day Recycle Bin State
@@ -365,17 +374,7 @@ export function App() {
         // fallback
       }
     }
-    return [
-      createRecycleBinItem(
-        'Assessment Record',
-        'Term 1 Diagnostic Social Studies (Archived Draft)',
-        { id: 'ass-archived-01', subject: 'Social Studies' },
-        'Mr. O. Kinyanjui',
-        'TEACHER',
-        'sch-ngonyek-001',
-        'Superseded by Term 1 End Term Summative Assessment.'
-      ),
-    ];
+    return [];
   });
 
   // Immutable Audit Logging Trail (Code P2.9)
@@ -388,38 +387,7 @@ export function App() {
         // fallback
       }
     }
-    return [
-      createAuditLog(
-        'sch-ngonyek-001',
-        'SUPER_ADMIN',
-        'System Administrator',
-        'LOGIN',
-        'System Administrator authenticated via Authenticator App 2FA. JWT Session issued.',
-        '197.237.12.89',
-        undefined,
-        'MFA: SUCCESS'
-      ),
-      createAuditLog(
-        'sch-ngonyek-001',
-        'HEAD',
-        'Mr. Jotham Watila',
-        'RECORD_EDIT',
-        'Updated school institutional profile crest and rubber stamp.',
-        '197.237.12.89',
-        'Logo: Default',
-        'Logo: Custom Crest'
-      ),
-      createAuditLog(
-        'sch-ngonyek-001',
-        'TEACHER',
-        'Mr. O. Kinyanjui',
-        'MARKS_SUBMIT',
-        'Submitted Term 2 G8 S Pretechnical Studies raw marks (/50).',
-        '197.237.12.89',
-        'Status: Draft',
-        'Status: Submitted'
-      ),
-    ];
+    return [];
   });
 
   // Helper to append audit logs with Before/After Diff
@@ -1633,7 +1601,7 @@ export function App() {
         : (newTeacher.name || 'teacher').toLowerCase().replace(/[^a-z0-9]/g, '.');
       const newUser: User = {
         id: newTeacher.userId || `usr-${Date.now()}`,
-        schoolId: activeTenantId || 'sch-ngonyek-001',
+        schoolId: activeTenantId || '',
         username,
         fullName: newTeacher.name,
         email: newTeacher.email,

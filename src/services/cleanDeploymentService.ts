@@ -120,6 +120,8 @@ export class CleanDeploymentService {
       localStorage.setItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.ATTENDANCE, JSON.stringify([]));
       localStorage.setItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.SCHOOL_INFO, JSON.stringify(CLEAN_PLATFORM_INFO));
       localStorage.removeItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.ACTIVE_TENANT);
+      localStorage.removeItem('jjsak_active_tenant_id');
+      localStorage.removeItem('jjsak_active_school_id');
 
       // Clean secondary operational keys
       localStorage.removeItem('jjsak_deadlines');
@@ -140,8 +142,123 @@ export class CleanDeploymentService {
       localStorage.removeItem('jjsak_teacher_subject_allocations');
       localStorage.removeItem('jjsak_class_teacher_allocations');
       localStorage.removeItem('jjsak_recycle_bin');
+      localStorage.removeItem('jjsak_institutional_subscriptions');
+      localStorage.removeItem('jjsak_subscription_invoices');
+      localStorage.removeItem('jjsak_subscription_transactions');
+      localStorage.removeItem('jjsak_owner_payment_notifications');
+      localStorage.removeItem('jjsak_owner_governance_state');
     } catch (e) {
       console.error('Failed to initialize zero school state:', e);
+    }
+  }
+
+  /**
+   * Purges all test schools (Ngonyek, Cheptiret, St. Mary's, Green Hill, Kitale Comprehensive)
+   * and associated mock users/records from the system and storage.
+   */
+  public purgeTestSchools(): void {
+    try {
+      const isTestSchoolIdentifier = (id?: string, name?: string): boolean => {
+        if (!id && !name) return false;
+        const lowerId = (id || '').toLowerCase();
+        const lowerName = (name || '').toLowerCase();
+        return (
+          lowerId === 'sch-ngonyek-001' ||
+          lowerId === 'sch-stmarys-004' ||
+          lowerId === 'sch-stmarys-003' ||
+          lowerId === 'sch-greenhill-005' ||
+          lowerId === 'sch-kitale-002' ||
+          lowerId === 'sch-chep-003' ||
+          lowerId.includes('ngonyek') ||
+          lowerId.includes('stmary') ||
+          lowerId.includes('greenhill') ||
+          lowerId.includes('chep') ||
+          lowerName.includes('ngonyek') ||
+          lowerName.includes('cheptiret') ||
+          lowerName.includes('st mary') ||
+          lowerName.includes('st. mary') ||
+          lowerName.includes('green hill') ||
+          lowerName.includes('greenhill') ||
+          lowerName.includes('kitale comprehensive')
+        );
+      };
+
+      // 1. Purge from tenants
+      const savedTenants = localStorage.getItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.TENANTS);
+      if (savedTenants) {
+        try {
+          const parsed = JSON.parse(savedTenants);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter((t: any) => !isTestSchoolIdentifier(t.schoolId, t.schoolName));
+            localStorage.setItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.TENANTS, JSON.stringify(cleaned));
+          }
+        } catch {
+          localStorage.setItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.TENANTS, JSON.stringify([]));
+        }
+      }
+
+      // 2. Purge test users
+      const savedUsers = localStorage.getItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.USERS);
+      if (savedUsers) {
+        try {
+          const parsed = JSON.parse(savedUsers);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter((u: any) => {
+              if (u.id === 'usr-001' || u.role === 'SUPER_ADMIN' || u.role === 'SYSTEM_ADMIN') return true;
+              return !isTestSchoolIdentifier(u.schoolId, u.schoolName);
+            });
+            localStorage.setItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.USERS, JSON.stringify(cleaned));
+          }
+        } catch {
+          localStorage.setItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.USERS, JSON.stringify([AUTHORIZED_PLATFORM_OWNER]));
+        }
+      }
+
+      // 3. Purge test students
+      const savedStudents = localStorage.getItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.STUDENTS);
+      if (savedStudents) {
+        try {
+          const parsed = JSON.parse(savedStudents);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter((s: any) => !isTestSchoolIdentifier(s.schoolId, s.schoolName));
+            localStorage.setItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.STUDENTS, JSON.stringify(cleaned));
+          }
+        } catch {
+          localStorage.setItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.STUDENTS, JSON.stringify([]));
+        }
+      }
+
+      // 4. Purge test teachers
+      const savedTeachers = localStorage.getItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.TEACHERS);
+      if (savedTeachers) {
+        try {
+          const parsed = JSON.parse(savedTeachers);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter((t: any) => !isTestSchoolIdentifier(t.schoolId));
+            localStorage.setItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.TEACHERS, JSON.stringify(cleaned));
+          }
+        } catch {
+          localStorage.setItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.TEACHERS, JSON.stringify([]));
+        }
+      }
+
+      // 5. Purge active tenant if it was a test school
+      const activeTenant = localStorage.getItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.ACTIVE_TENANT);
+      if (activeTenant && isTestSchoolIdentifier(activeTenant)) {
+        localStorage.removeItem(CLEAN_DEPLOYMENT_STORAGE_KEYS.ACTIVE_TENANT);
+      }
+      const activeTenantId = localStorage.getItem('jjsak_active_tenant_id');
+      if (activeTenantId && isTestSchoolIdentifier(activeTenantId)) {
+        localStorage.removeItem('jjsak_active_tenant_id');
+      }
+
+      // 6. Clean subscriptions and payment transactions
+      localStorage.removeItem('jjsak_institutional_subscriptions');
+      localStorage.removeItem('jjsak_subscription_invoices');
+      localStorage.removeItem('jjsak_subscription_transactions');
+      localStorage.removeItem('jjsak_owner_payment_notifications');
+    } catch (e) {
+      console.error('Failed to purge test schools:', e);
     }
   }
 
@@ -278,70 +395,32 @@ export class CleanDeploymentService {
   }
 
   /**
-   * Pre-configured Sample School Templates for Owner testing / evaluation.
-   * Can be onboarded through the official lifecycle with 1 click in Owner Console.
+   * Pre-configured Sample School Templates: Cleared for clean production deployment.
+   * Schools must be explicitly registered via the Stage 3 Onboarding Lifecycle.
    */
-  public getSampleSchoolTemplates() {
-    return [
-      {
-        id: 'ngonyek',
-        schoolName: 'Ngonyek Junior School',
-        schoolCode: 'NJS-30200',
-        subdomain: 'ngonyek',
-        category: 'JUNIOR' as const,
-        schoolType: 'Public',
-        county: 'Trans Nzoia',
-        subCounty: 'Kiminini',
-        ward: 'Sirende',
-        physicalAddress: 'Sirende Ward, Kiminini, Trans Nzoia County',
-        postalAddress: 'P.O. Box 450 - 30200, Kitale',
-        officialEmail: 'info@ngonyekjuniorschool.sc.ke',
-        officialPhone: '+254 722 345 678',
-        motto: 'Smart. Simple. Accurate. Assessment reporting made easy.',
-        adminFullName: 'Mrs. J. Barasa',
-        adminEmail: 'j.barasa@ngonyek.sc.ke',
-        adminPhone: '+254 722 345 678',
-      },
-      {
-        id: 'stmarys',
-        schoolName: "St. Mary's Junior School",
-        schoolCode: 'SMJ-30210',
-        subdomain: 'stmarys',
-        category: 'JUNIOR' as const,
-        schoolType: 'Faith-Based',
-        county: 'Nairobi',
-        subCounty: 'Westlands',
-        ward: 'Parklands',
-        physicalAddress: 'Msongari, Westlands, Nairobi',
-        postalAddress: 'P.O. Box 40562 - 00100, Nairobi',
-        officialEmail: 'admin@stmarys.sc.ke',
-        officialPhone: '+254 722 889 900',
-        motto: 'Bonitas, Disciplina, Scientia (Goodness, Discipline, Knowledge)',
-        adminFullName: 'Fr. Joseph Mwangi',
-        adminEmail: 'admin@stmarys.sc.ke',
-        adminPhone: '+254 722 889 900',
-      },
-      {
-        id: 'greenhill',
-        schoolName: 'Greenhill Junior Academy',
-        schoolCode: 'GHJ-30220',
-        subdomain: 'greenhill',
-        category: 'JUNIOR' as const,
-        schoolType: 'Private',
-        county: 'Kiambu',
-        subCounty: 'Ruiru',
-        ward: 'Kibichoi',
-        physicalAddress: 'Greenhill Campus, Ruiru-Githunguri Road',
-        postalAddress: 'P.O. Box 789 - 00232, Ruiru',
-        officialEmail: 'info@greenhillacademy.sc.ke',
-        officialPhone: '+254 733 445 566',
-        motto: 'Nurturing Global Minds Through Diligence',
-        adminFullName: 'Dr. Grace Njeri',
-        adminEmail: 'principal@greenhillacademy.sc.ke',
-        adminPhone: '+254 733 445 566',
-      },
-    ];
+  public getSampleSchoolTemplates(): SchoolTemplateDefinition[] {
+    return [];
   }
+}
+
+export interface SchoolTemplateDefinition {
+  id: string;
+  schoolName: string;
+  schoolCode: string;
+  subdomain?: string;
+  category: 'PRIMARY' | 'JUNIOR' | 'SECONDARY' | 'MIXED' | 'OTHER';
+  schoolType: string;
+  county: string;
+  subCounty: string;
+  ward: string;
+  physicalAddress: string;
+  postalAddress: string;
+  officialEmail: string;
+  officialPhone: string;
+  motto: string;
+  adminFullName: string;
+  adminEmail: string;
+  adminPhone: string;
 }
 
 export const cleanDeploymentService = CleanDeploymentService.getInstance();

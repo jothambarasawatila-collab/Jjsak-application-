@@ -540,8 +540,8 @@ export interface SchoolTenant {
   schoolId: string;
   schoolCode: string;
   schoolName: string;
-  subdomain?: string; // e.g. 'ngonyek', 'stmarys', 'greenhill'
-  tenantDomain?: string; // e.g. 'ngonyek.jjsak.com'
+  subdomain?: string; // e.g. 'institution', 'academy', 'campus'
+  tenantDomain?: string; // e.g. 'institution.jjsak.com'
   category: 'PRIMARY' | 'JUNIOR' | 'SECONDARY' | 'MIXED' | 'OTHER';
   schoolType?: 'Public' | 'Private' | 'Faith-Based' | 'International' | 'Community' | string;
   registrationNumber?: string;

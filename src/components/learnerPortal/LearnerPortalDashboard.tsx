@@ -186,8 +186,8 @@ export const LearnerPortalDashboard: React.FC<LearnerPortalDashboardProps> = ({
             </div>
             <div>
               <span className="text-slate-400 block text-[10px] font-bold uppercase">School / Tenant</span>
-              <strong className="text-slate-900">Ngonyek Junior School</strong>
-              <div className="text-[10px] text-slate-500 font-mono">{currentUser.schoolId || activeTenantId}</div>
+              <strong className="text-slate-900">{jwtSession?.payload?.schoolName || 'JJSAK Educational Institution'}</strong>
+              <div className="text-[10px] text-slate-500 font-mono">{currentUser.schoolId || activeTenantId || 'N/A'}</div>
             </div>
           </div>
 

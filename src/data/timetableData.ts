@@ -355,7 +355,7 @@ export const SCHEDULED_AFTERNOON_ACTIVITIES: Record<
 };
 
 export const DEFAULT_TIMETABLE_SETTINGS: TimetableSettings = {
-  schoolName: 'Ngonyek Junior School',
+  schoolName: 'JJSAK Educational Institution',
   term: 'Term 2, 2026',
   year: 2026,
   periodsPerDay: 11,

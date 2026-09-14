@@ -489,7 +489,7 @@ export function generateTemplateData(type: 'learners' | 'marks' | 'attendance' |
 JJSAK-2024-001,Faith,Achieng,Female,2012-04-15,G8,S,David Mwangi,+254 722 345 678,david.mwangi@example.com,None,None,St. Jude Academy
 JJSAK-2024-002,Brian,Kiprono,Male,2012-09-22,G8,S,Mary Kiprono,+254 723 456 789,mary.k@example.com,None,None,Eldoret Hills Junior
 JJSAK-2024-003,Kevin,Mutua,Male,2012-02-10,G8,S,Grace Mutua,+254 724 567 890,grace.m@example.com,None,None,Kitale Township Primary
-JJSAK-2024-004,Daniel,Otieno,Male,2012-07-30,G7,S,Peter Otieno,+254 725 678 901,peter.o@example.com,Hearing,Front Seating & Visual Scaffolding,Ngonyek Primary`;
+JJSAK-2024-004,Daniel,Otieno,Male,2012-07-30,G7,S,Peter Otieno,+254 725 678 901,peter.o@example.com,Hearing,Front Seating & Visual Scaffolding,Central Primary`;
   }
 
   if (type === 'marks') {

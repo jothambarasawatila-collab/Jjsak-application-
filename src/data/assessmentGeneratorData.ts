@@ -479,7 +479,7 @@ export const COMPREHENSIVE_QUESTION_BANK: Record<string, GeneratedQuestion[]> = 
       strand: 'Matter and Chemical Reactions',
       subStrand: 'Acids, Bases, Salts and Indicators',
       questionText:
-        'Learners in Ngonyek Junior School tested common household substances using red and blue litmus paper, and red cabbage indicator. The results are shown below:\n- Substance P: Turns blue litmus red, red cabbage turns red.\n- Substance Q: Turns red litmus blue, red cabbage turns greenish-yellow.\n- Substance R: No change on either litmus paper, red cabbage stays purple.\n\na) Classify substances P, Q, and R as Acid, Base, or Neutral. [3 Marks]\nb) Give one example of a household item for each substance P and Q. [2 Marks]\nc) State what happens when substance P is mixed with substance Q in equal strength. [1 Mark]',
+        'Learners during a science practical activity tested common household substances using red and blue litmus paper, and red cabbage indicator. The results are shown below:\n- Substance P: Turns blue litmus red, red cabbage turns red.\n- Substance Q: Turns red litmus blue, red cabbage turns greenish-yellow.\n- Substance R: No change on either litmus paper, red cabbage stays purple.\n\na) Classify substances P, Q, and R as Acid, Base, or Neutral. [3 Marks]\nb) Give one example of a household item for each substance P and Q. [2 Marks]\nc) State what happens when substance P is mixed with substance Q in equal strength. [1 Mark]',
       type: 'structured',
       marks: 6,
       modelAnswer:
@@ -805,7 +805,7 @@ export function generateCustomAssessmentPaper(params: {
   return {
     id: `paper-${Date.now()}`,
     title: `${params.grade} ${params.subject.toUpperCase()} ${params.assessmentType.toUpperCase()}`,
-    schoolName: params.schoolName || 'NGONYEK JUNIOR SCHOOL',
+    schoolName: params.schoolName || 'JJSAK JUNIOR SCHOOL',
     subject: params.subject,
     grade: params.grade,
     term: params.term,

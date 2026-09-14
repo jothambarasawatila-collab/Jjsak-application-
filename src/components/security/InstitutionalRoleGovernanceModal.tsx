@@ -51,7 +51,7 @@ export const InstitutionalRoleGovernanceModal: React.FC<
   onUserUpdated,
   onLogAudit,
 }) => {
-  const schoolId = (schoolInfo as any).id || (schoolInfo as any).schoolId || 'sch-ngonyek-001';
+  const schoolId = (schoolInfo as any).id || (schoolInfo as any).schoolId || '';
 
   const [activeTab, setActiveTab] = useState<
     'execute' | 'pending' | 'audit' | 'policy' | 'notifications'

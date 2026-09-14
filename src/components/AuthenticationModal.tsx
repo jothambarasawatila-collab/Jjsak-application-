@@ -22,8 +22,6 @@ import {
   validateJJSAKPassword,
   isMfaRequiredForRole,
   generateJWTSession,
-  generateEmailOtpCode,
-  verifyEmailOtpCode,
 } from '../utils/securityEngine';
 import {
   ownerOtpDeliveryService,
@@ -48,7 +46,7 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
   isOpen,
   users,
   tenants = [],
-  activeTenantId = 'sch-ngonyek-001',
+  activeTenantId = '',
   currentUser: _currentUser,
   onLoginSuccess,
   onClose,
@@ -68,7 +66,7 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
   const [ownerDeliveryChannel, setOwnerDeliveryChannel] = useState<OwnerDeliveryChannel>('EMAIL');
   const [ownerReceipt, setOwnerReceipt] = useState<OwnerDeliveryReceipt | null>(null);
   const [emailOtpInfo, setEmailOtpInfo] = useState<{
-    code: string;
+    sessionId: string;
     expiresAt: number;
     maskedEmail: string;
     fullEmail: string;
@@ -81,10 +79,73 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
   const [remainingLockSeconds, setRemainingLockSeconds] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isDispatchingOtp, setIsDispatchingOtp] = useState<boolean>(false);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
+  const [providerStatuses, setProviderStatuses] = useState<{
+    emailConfigured: boolean;
+    smsConfigured: boolean;
+    whatsappConfigured: boolean;
+    twilioConfigured: boolean;
+    emailProviderName: string;
+    smsProviderName: string;
+    whatsappProviderName: string;
+    lastFailureReason?: string | null;
+  }>({
+    emailConfigured: false,
+    smsConfigured: false,
+    whatsappConfigured: false,
+    twilioConfigured: false,
+    emailProviderName: 'RESEND',
+    smsProviderName: 'AFRICASTALKING',
+    whatsappProviderName: 'TWILIO',
+  });
 
   // Password reset testing modal (Code P2.5)
   const [isResetMode, setIsResetMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+
+  // Fetch safe provider status on modal open
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch('/api/otp/provider-status');
+        const data = await res.json();
+        if (data.success) {
+          const emailConfig =
+            data.email?.status === 'configured' ||
+            data.emailProvider?.status === 'configured';
+          const smsConfig =
+            Boolean(data.sms?.africasTalkingConfigured ||
+            data.sms?.twilioConfigured ||
+            data.sms?.status === 'configured' ||
+            data.smsProvider?.status === 'configured');
+          const twilioConfig =
+            Boolean(data.twilio?.status === 'configured' ||
+            data.twilioProvider?.status === 'configured' ||
+            data.status?.sms?.twilioConfigured);
+          const whatsappConfig =
+            Boolean(data.whatsapp?.status === 'configured' ||
+            data.status?.whatsapp?.twilioConfigured ||
+            data.status?.whatsapp?.metaCloudApiConfigured);
+
+          setProviderStatuses({
+            emailConfigured: emailConfig,
+            smsConfigured: smsConfig,
+            whatsappConfigured: whatsappConfig,
+            twilioConfigured: twilioConfig,
+            emailProviderName: data.email?.provider || data.emailProvider?.provider || 'RESEND',
+            smsProviderName: data.sms?.primaryProvider || (twilioConfig ? 'TWILIO' : 'AFRICASTALKING'),
+            whatsappProviderName: data.whatsapp?.provider || 'TWILIO',
+            lastFailureReason: data.email?.lastFailure || data.emailProvider?.lastFailure || data.sms?.lastFailure,
+          });
+        }
+      } catch {
+        // Non-blocking status check
+      }
+    };
+    fetchStatus();
+  }, [isOpen]);
 
   // Cooldown countdown
   useEffect(() => {
@@ -112,7 +173,7 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
 
   const isLocked = lockedUntil !== null && Date.now() < lockedUntil;
 
-  const handleSendOtp = async (targetUser: UserType, channelOverride?: OwnerDeliveryChannel) => {
+  const handleSendOtp = async (targetUser: UserType, channelOverride?: OwnerDeliveryChannel): Promise<boolean> => {
     const isOwner =
       targetUser.role === 'SUPER_ADMIN' ||
       targetUser.role === 'SYSTEM_ADMIN' ||
@@ -120,25 +181,67 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
       targetUser.username?.toLowerCase() === 'jotham watila';
 
     const channel = channelOverride || ownerDeliveryChannel;
+    setIsDispatchingOtp(true);
+    setDeliveryError(null);
 
     if (isOwner) {
       const res = await ownerOtpDeliveryService.dispatchOwnerOtp(channel, 'OWNER_LOGIN');
+      setIsDispatchingOtp(false);
       if (res.success && res.receipt) {
         setOwnerReceipt(res.receipt);
+        setDeliveryError(null);
         setResendCooldown(res.receipt.cooldownSeconds);
+        return true;
       } else {
-        setErrorMessage(res.errorMessage || 'Failed to dispatch Owner OTP.');
+        setOwnerReceipt(null);
+        const err = res.errorMessage || 'Failed to dispatch Owner OTP.';
+        setDeliveryError(err);
+        setErrorMessage(err);
+        return false;
       }
     } else {
       const userEmail = targetUser.email || `${targetUser.username}@jjsak.internal`;
-      const generated = generateEmailOtpCode(userEmail);
-      setEmailOtpInfo({
-        code: generated.code,
-        expiresAt: generated.expiresAt,
-        maskedEmail: generated.maskedEmail,
-        fullEmail: userEmail,
-      });
-      setResendCooldown(30);
+      try {
+        const response = await fetch('/api/otp/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: targetUser.id,
+            identifier: targetUser.username,
+            email: targetUser.email,
+            phone: targetUser.phoneNumber,
+            channel: 'EMAIL',
+            userType: 'INSTITUTIONAL',
+            purpose: 'Institutional Staff Authentication',
+          }),
+        });
+        const data = await response.json();
+        setIsDispatchingOtp(false);
+        if (response.ok && data.success) {
+          setEmailOtpInfo({
+            sessionId: data.sessionId,
+            expiresAt: data.expiresAt || (Date.now() + 300000),
+            maskedEmail: data.maskedDestination || userEmail,
+            fullEmail: userEmail,
+          });
+          setDeliveryError(null);
+          setResendCooldown(data.cooldownSeconds || 30);
+          return true;
+        } else {
+          setEmailOtpInfo(null);
+          const err = data.message || data.failureReason || 'Failed to deliver OTP via institutional mail provider.';
+          setDeliveryError(err);
+          setErrorMessage(err);
+          return false;
+        }
+      } catch {
+        setIsDispatchingOtp(false);
+        setEmailOtpInfo(null);
+        const msg = 'Network error communicating with authentication service.';
+        setDeliveryError(msg);
+        setErrorMessage(msg);
+        return false;
+      }
     }
   };
 
@@ -153,7 +256,7 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
     await handleSendOtp(pendingUser, newChannel);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLocked) {
       setErrorMessage(`Account temporarily locked. Please wait ${Math.ceil(remainingLockSeconds / 60)} minutes.`);
@@ -193,18 +296,35 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
 
       let isCodeValid = false;
       if (isOwner) {
-        const verifyRes = ownerOtpDeliveryService.verifyOwnerOtp(mfaCode);
+        const verifyRes = await ownerOtpDeliveryService.verifyOwnerOtp(mfaCode);
         if (!verifyRes.success) {
           setErrorMessage(verifyRes.errorMessage || 'Invalid 6-digit verification code. Please check your registered channel.');
           return;
         }
         isCodeValid = true;
       } else {
-        const userEmail = pendingUser.email || `${pendingUser.username}@jjsak.internal`;
-        const verifyResult = verifyEmailOtpCode(mfaCode, userEmail);
-        isCodeValid = verifyResult.valid;
-        if (!isCodeValid) {
-          setErrorMessage(verifyResult.message || 'Invalid 6-digit verification code. Please check your email.');
+        if (!emailOtpInfo?.sessionId) {
+          setErrorMessage('No active OTP verification session found. Please request a new code.');
+          return;
+        }
+        try {
+          const verifyResponse = await fetch('/api/otp/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: emailOtpInfo.sessionId,
+              candidateCode: mfaCode,
+            }),
+          });
+          const data = await verifyResponse.json();
+          if (verifyResponse.ok && data.success && data.verified) {
+            isCodeValid = true;
+          } else {
+            setErrorMessage(data.message || 'Invalid 6-digit verification code. Please check your registered email.');
+            return;
+          }
+        } catch {
+          setErrorMessage('Error connecting to OTP verification backend.');
           return;
         }
       }
@@ -214,7 +334,7 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
         const jwt = generateJWTSession(
           pendingUser,
           selectedSchoolId,
-          activeSchool?.schoolName || 'Ngonyek Junior School',
+          activeSchool?.schoolName || 'JJSAK Educational Institution',
           mfaMethod
         );
 
@@ -291,7 +411,7 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
       setPendingUser(matchedUser);
       setRequiresMfa(true);
       setErrorMessage(null);
-      handleSendOtp(matchedUser);
+      await handleSendOtp(matchedUser);
       return;
     }
 
@@ -300,7 +420,7 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
     const jwt = generateJWTSession(
       matchedUser,
       selectedSchoolId,
-      activeSchool?.schoolName || 'Ngonyek Junior School'
+      activeSchool?.schoolName || 'JJSAK Educational Institution'
     );
 
     onLogAudit(
@@ -503,7 +623,7 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                           type="button"
                           onClick={() => handleSwitchOwnerChannel('EMAIL')}
                           disabled={resendCooldown > 0}
-                          className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer ${
+                          className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer relative ${
                             ownerDeliveryChannel === 'EMAIL'
                               ? 'bg-red-600 text-white border-red-600 shadow-sm'
                               : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -511,12 +631,13 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                         >
                           <Mail className="w-3.5 h-3.5" />
                           <span>Email OTP</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${providerStatuses.emailConfigured ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleSwitchOwnerChannel('SMS')}
                           disabled={resendCooldown > 0}
-                          className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer ${
+                          className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer relative ${
                             ownerDeliveryChannel === 'SMS'
                               ? 'bg-red-600 text-white border-red-600 shadow-sm'
                               : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -524,12 +645,13 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                         >
                           <Smartphone className="w-3.5 h-3.5" />
                           <span>SMS OTP</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${providerStatuses.smsConfigured ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleSwitchOwnerChannel('WHATSAPP')}
                           disabled={resendCooldown > 0}
-                          className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer ${
+                          className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer relative ${
                             ownerDeliveryChannel === 'WHATSAPP'
                               ? 'bg-red-600 text-white border-red-600 shadow-sm'
                               : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -537,23 +659,65 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
                           <span>WhatsApp</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${providerStatuses.whatsappConfigured ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                         </button>
                       </div>
 
-                      {/* Zero-Exposure Delivery Status Badge */}
-                      <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+                      {/* Live Delivery Status Feedback (Zero-Exposure Policy) */}
+                      <div className={`p-3 rounded-xl space-y-2.5 border ${
+                        isDispatchingOtp
+                          ? 'bg-amber-50/80 border-amber-200'
+                          : ownerReceipt
+                          ? 'bg-emerald-50/70 border-emerald-200'
+                          : 'bg-amber-50/90 border-amber-300'
+                      }`}>
                         <div className="flex items-center justify-between text-[11px]">
-                          <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                          <div className="flex items-center gap-1.5 font-bold text-slate-900">
                             {ownerDeliveryChannel === 'EMAIL' ? (
-                              <Mail className="w-3.5 h-3.5 text-amber-700" />
+                              <Mail className="w-3.5 h-3.5 text-slate-700" />
                             ) : ownerDeliveryChannel === 'SMS' ? (
-                              <Smartphone className="w-3.5 h-3.5 text-amber-700" />
+                              <Smartphone className="w-3.5 h-3.5 text-slate-700" />
                             ) : (
-                              <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                              <MessageSquare className="w-3.5 h-3.5 text-slate-700" />
                             )}
-                            <span>Direct {ownerReceipt?.channel || ownerDeliveryChannel} OTP Dispatched</span>
+                            <span>
+                              {isDispatchingOtp
+                                ? `Contacting ${ownerDeliveryChannel} Gateway...`
+                                : ownerReceipt
+                                ? `Direct ${ownerReceipt.channel} OTP Dispatched`
+                                : `${ownerDeliveryChannel} Delivery Offline / Unconfigured`}
+                            </span>
                           </div>
-                          {ownerDeliveryChannel === 'EMAIL' && (
+
+                          {isDispatchingOtp ? (
+                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1 font-bold">
+                              <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                              DISPATCHING...
+                            </span>
+                          ) : ownerReceipt ? (
+                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold">
+                              GATEWAY ACCEPTED
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 font-bold">
+                              PROVIDER UNCONFIGURED
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="p-2 rounded-lg bg-white border border-slate-200 flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Destination</span>
+                            <span className="text-xs font-mono font-bold text-slate-800 truncate block">
+                              {ownerReceipt?.maskedDestination ||
+                                (ownerDeliveryChannel === 'EMAIL'
+                                  ? OWNER_REGISTERED_CREDENTIALS.email
+                                  : ownerDeliveryChannel === 'WHATSAPP'
+                                  ? `WhatsApp (${OWNER_REGISTERED_CREDENTIALS.mobile})`
+                                  : OWNER_REGISTERED_CREDENTIALS.mobile)}
+                            </span>
+                          </div>
+                          {ownerDeliveryChannel === 'EMAIL' && ownerReceipt && (
                             <a
                               href="https://mail.google.com/mail/u/0/#inbox"
                               target="_blank"
@@ -566,43 +730,94 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                           )}
                         </div>
 
-                        <div className="p-2 rounded-lg bg-white border border-amber-200 flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Destination</span>
-                            <span className="text-xs font-mono font-bold text-slate-800 truncate block">
-                              {ownerReceipt?.maskedDestination || OWNER_REGISTERED_CREDENTIALS.email}
-                            </span>
+                        {/* Unconfigured Provider Diagnostic / Instructions */}
+                        {!isDispatchingOtp && !ownerReceipt && (
+                          <div className="p-2.5 bg-amber-100/70 border border-amber-300 rounded-lg text-amber-950 text-[11px] space-y-1.5">
+                            <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                              <span>
+                                Live Delivery Offline (
+                                {ownerDeliveryChannel === 'EMAIL'
+                                  ? providerStatuses.emailProviderName
+                                  : ownerDeliveryChannel === 'SMS'
+                                  ? providerStatuses.smsProviderName
+                                  : providerStatuses.whatsappProviderName}
+                                )
+                              </span>
+                            </div>
+                            <p className="text-[10px] leading-relaxed text-amber-900">
+                              {deliveryError ||
+                                (ownerDeliveryChannel === 'EMAIL'
+                                  ? `The application is unconfigured for external transactional delivery because RESEND_API_KEY is not set in this container environment. Because no email gateway key exists, the backend rejected delivery and no email could reach ${OWNER_REGISTERED_CREDENTIALS.email}.`
+                                  : ownerDeliveryChannel === 'SMS'
+                                  ? `The SMS provider is unconfigured or rejected the dispatch to ${OWNER_REGISTERED_CREDENTIALS.mobile}. To enable live SMS delivery, provide Africa's Talking credentials (AFRICASTALKING_API_KEY) or Twilio credentials (TWILIO_API_KEY, or TWILIO_ACCOUNT_SID & TWILIO_AUTH_TOKEN).`
+                                  : `The WhatsApp provider is unconfigured or rejected the dispatch to ${OWNER_REGISTERED_CREDENTIALS.mobile}. To enable live WhatsApp delivery, provide Twilio credentials (TWILIO_API_KEY or TWILIO_ACCOUNT_SID & TWILIO_AUTH_TOKEN) with TWILIO_WHATSAPP_NUMBER, or Meta WhatsApp Cloud API credentials.`)}
+                            </p>
+                            <div className="text-[10px] bg-white/90 p-2 rounded border border-amber-200 text-slate-700 space-y-0.5">
+                              {ownerDeliveryChannel === 'EMAIL' ? (
+                                <>
+                                  <div className="font-bold text-slate-800">To enable real emails to your Gmail inbox:</div>
+                                  <div>1. Get a free API key from <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-bold">resend.com</a></div>
+                                  <div>2. Add <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">RESEND_API_KEY</code> in AI Studio Settings.</div>
+                                </>
+                              ) : ownerDeliveryChannel === 'SMS' ? (
+                                <>
+                                  <div className="font-bold text-slate-800">To enable real SMS to {OWNER_REGISTERED_CREDENTIALS.mobile}:</div>
+                                  <div>1. Twilio: Add <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">TWILIO_ACCOUNT_SID</code> and <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">TWILIO_AUTH_TOKEN</code> (or <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">TWILIO_API_KEY</code>) in AI Studio Settings.</div>
+                                  <div>2. Africa&apos;s Talking: Add <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">AFRICASTALKING_API_KEY</code> and <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">AFRICASTALKING_USERNAME</code>.</div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="font-bold text-slate-800">To enable real WhatsApp OTP to {OWNER_REGISTERED_CREDENTIALS.mobile}:</div>
+                                  <div>1. Twilio WhatsApp: Add <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">TWILIO_ACCOUNT_SID</code>, <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">TWILIO_AUTH_TOKEN</code>, and <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">TWILIO_WHATSAPP_NUMBER</code> (e.g., <code className="bg-slate-100 px-1 py-0.5 rounded font-mono">whatsapp:+14155238886</code>).</div>
+                                  <div>2. Alternatively, configure <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">WHATSAPP_BUSINESS_PHONE_ID</code> and <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-slate-900">WHATSAPP_BUSINESS_ACCESS_TOKEN</code>.</div>
+                                </>
+                              )}
+                            </div>
                           </div>
-                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            CONFIRMED DELIVERED
-                          </span>
-                        </div>
+                        )}
 
-                        <p className="text-[10px] text-amber-800 leading-snug flex items-start gap-1">
-                          <Lock className="w-3 h-3 shrink-0 mt-0.5 text-amber-600" />
-                          <span>
-                            Zero-Exposure Policy: OTP is never displayed on screen or logged. Retrieve the 6-digit code directly from your registered {ownerDeliveryChannel.toLowerCase()}.
-                          </span>
-                        </p>
+                        {ownerReceipt && (
+                          <p className="text-[10px] text-emerald-800 leading-snug flex items-start gap-1">
+                            <Lock className="w-3 h-3 shrink-0 mt-0.5 text-emerald-600" />
+                            <span>
+                              Zero-Exposure Policy: OTP is never displayed on screen or logged. Retrieve the 6-digit code directly from your registered {ownerDeliveryChannel.toLowerCase()}.
+                            </span>
+                          </p>
+                        )}
                       </div>
                     </div>
                   ) : (
                     /* Standard Staff MFA Flow (Institutional) */
-                    <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <div className={`p-2.5 rounded-xl space-y-2 border ${
+                      isDispatchingOtp
+                        ? 'bg-slate-50 border-slate-200'
+                        : emailOtpInfo
+                        ? 'bg-emerald-50/70 border-emerald-200'
+                        : 'bg-amber-50/90 border-amber-300'
+                    }`}>
                       <div className="flex items-center justify-between text-[11px]">
                         <div className="flex items-center gap-1.5 font-bold text-slate-900">
                           <Mail className="w-3.5 h-3.5 text-slate-700" />
-                          <span>Institutional Email Verification Dispatched</span>
+                          <span>
+                            {isDispatchingOtp
+                              ? 'Connecting to Institutional Mail Gateway...'
+                              : emailOtpInfo
+                              ? 'Institutional Email Verification Dispatched'
+                              : 'Institutional Mail Gateway Offline (RESEND_API_KEY Required)'}
+                          </span>
                         </div>
-                        <a
-                          href="https://mail.google.com/mail/u/0/#inbox"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-2 py-0.5 rounded-lg bg-red-600 hover:bg-red-700 text-[10px] font-bold text-white transition flex items-center gap-1 shrink-0"
-                        >
-                          <span>Open Webmail</span>
-                          <ArrowRight className="w-2.5 h-2.5" />
-                        </a>
+                        {emailOtpInfo && (
+                          <a
+                            href="https://mail.google.com/mail/u/0/#inbox"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-0.5 rounded-lg bg-red-600 hover:bg-red-700 text-[10px] font-bold text-white transition flex items-center gap-1 shrink-0"
+                          >
+                            <span>Open Webmail</span>
+                            <ArrowRight className="w-2.5 h-2.5" />
+                          </a>
+                        )}
                       </div>
                       <div className="p-2 rounded-lg bg-white border border-slate-200">
                         <span className="text-[10px] text-slate-400 block font-bold uppercase">Dispatched To:</span>
@@ -610,6 +825,11 @@ export const AuthenticationModal: React.FC<AuthenticationModalProps> = ({
                           {emailOtpInfo?.maskedEmail || pendingUser?.email || `${pendingUser?.username}@jjsak.internal`}
                         </span>
                       </div>
+                      {!emailOtpInfo && !isDispatchingOtp && (
+                        <p className="text-[10px] text-amber-800 leading-snug">
+                          Transactional email provider is unconfigured in this environment. Configure RESEND_API_KEY to enable live email delivery.
+                        </p>
+                      )}
                     </div>
                   )}
 

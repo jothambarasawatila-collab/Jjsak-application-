@@ -868,7 +868,7 @@ export const StaffDossierModal: React.FC<StaffDossierModalProps> = ({
         <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
           <div className="text-xs text-slate-500">
             Staff ID: <span className="font-mono font-bold text-slate-700">{teacher.id}</span> • School Tenant:{' '}
-            <span className="font-semibold text-slate-700">Ngonyek Junior Secondary</span>
+            <span className="font-semibold text-slate-700">{(teacher as any)?.schoolName || (teacher as any)?.schoolId || 'Active Institution'}</span>
           </div>
           <button
             type="button"

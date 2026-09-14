@@ -266,7 +266,7 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
 
       const jwt = generateJWTSession(
         activatedUser,
-        targetSchool?.schoolId || 'sch-ngonyek-001',
+        targetSchool?.schoolId || '',
         targetSchool?.schoolName || 'JJSAK School Portal'
       );
 
@@ -541,7 +541,7 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
     };
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -683,7 +683,7 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
         targetUser.username?.toLowerCase() === 'jotham watila';
 
       if (isOwner) {
-        const verifyRes = ownerOtpDeliveryService.verifyOwnerOtp(mfaCode);
+        const verifyRes = await ownerOtpDeliveryService.verifyOwnerOtp(mfaCode);
         if (!verifyRes.success) {
           setErrorMessage(verifyRes.errorMessage || 'Invalid confirmation code. Please check your registered channel.');
           return;
@@ -1023,7 +1023,7 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
                         type="text"
                         value={activationIdentifier}
                         onChange={(e) => setActivationIdentifier(e.target.value)}
-                        placeholder="e.g. sarah.chebet, +254712555666, sarah.chebet@ngonyek.sc.ke"
+                        placeholder="e.g. sarah.chebet, +254712555666, sarah.chebet@school.ac.ke"
                         required
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
                       />

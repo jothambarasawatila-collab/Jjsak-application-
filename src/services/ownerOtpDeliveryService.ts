@@ -20,22 +20,20 @@
  * API responses, application logs, error messages, debug screens, or test environments.
  */
 
-import {
-  generateSalt,
-  hashOtpWithSalt,
-  verifyOtpHash,
-  generateSecureOtpDigits,
-  maskAddress,
-} from '../utils/cryptoUtils';
+// Removed unused crypto imports (logic moved to backend per JJSAK-AUTH-OTP-004)
 
 export type OwnerDeliveryChannel = 'EMAIL' | 'SMS' | 'WHATSAPP';
 export type OwnerOtpPurpose = 'OWNER_LOGIN' | 'OWNER_RECOVERY' | 'OWNER_SECURITY_VERIFICATION';
 export type OwnerDeliveryStatus =
-  | 'QUEUED'
+  | 'REQUESTED'
+  | 'PROVIDER_ACCEPTED'
+  | 'DELIVERY_PENDING'
   | 'DELIVERED'
-  | 'FAILED'
   | 'VERIFIED'
+  | 'PROVIDER_REJECTED'
+  | 'DELIVERY_FAILED'
   | 'EXPIRED'
+  | 'CANCELLED'
   | 'INVALIDATED';
 
 export interface OwnerRegisteredCredentials {
@@ -94,6 +92,7 @@ export interface OwnerDeliveryReceipt {
   resendsRemaining: number;
   message: string;
   emailSearchUrl?: string;
+  deliveryStatus?: OwnerDeliveryStatus;
 }
 
 export interface OwnerOtpAuditRecord {
@@ -137,8 +136,13 @@ class OwnerOtpDeliveryService {
         const raw = localStorage.getItem(STORAGE_KEYS.ACTIVE_SESSION);
         if (raw) {
           const parsed: OwnerOtpSessionState = JSON.parse(raw);
-          // Check if session has expired
-          if (Date.now() <= parsed.expiresAt && parsed.deliveryStatus === 'DELIVERED') {
+          // Check if session has expired and is valid/accepted
+          if (
+            Date.now() <= parsed.expiresAt &&
+            (parsed.deliveryStatus === 'DELIVERED' ||
+              parsed.deliveryStatus === 'PROVIDER_ACCEPTED' ||
+              !parsed.deliveryStatus)
+          ) {
             this.activeSession = parsed;
           } else {
             localStorage.removeItem(STORAGE_KEYS.ACTIVE_SESSION);
@@ -290,90 +294,7 @@ class OwnerOtpDeliveryService {
     };
   }
 
-  /**
-   * Reliably delivers OTP to the selected registered owner contact channel.
-   * Zero-Exposure Directive: This method transmits to external carrier/relay without logging or returning the OTP.
-   */
-  private async deliverOtpToChannel(
-    channel: OwnerDeliveryChannel,
-    otpCode: string,
-    purpose: OwnerOtpPurpose
-  ): Promise<{ success: boolean; errorMessage?: string }> {
-    const { ownerName, email, internationalMobile } = OWNER_REGISTERED_CREDENTIALS;
-    const nowIso = new Date().toISOString();
 
-    try {
-      if (channel === 'EMAIL') {
-        // Dispatch to registered owner email via background HTTPS webhook relay
-        const payload = {
-          to: email,
-          ownerName,
-          subject: `[JJSAK System Security] Verification Code for ${purpose}`,
-          message: `Hello ${ownerName},\n\nYour One-Time Password (OTP) for JJSAK Platform Owner Authentication is: ${otpCode}\n\nOperation: ${purpose}\nValidity: 5 minutes (300 seconds).\nTimestamp: ${nowIso}\n\nIf you did not request this OTP, please lock down platform credentials immediately.`,
-          channel: 'EMAIL',
-          timestamp: nowIso,
-        };
-
-        if (typeof fetch !== 'undefined') {
-          fetch('https://formspree.io/f/xbjnvkzk', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify(payload),
-          }).catch(() => {
-            // Keep going - queue delivery logged
-          });
-        }
-        return { success: true };
-      }
-
-      if (channel === 'SMS') {
-        // Dispatch to registered mobile number (0741478813 / +254741478813)
-        // Record telecom queue transmission
-        const smsPayload = {
-          recipient: internationalMobile,
-          senderId: 'JJSAK-AUTH',
-          message: `[JJSAK Alert] Owner Auth OTP: ${otpCode}. Valid for 5 minutes. Do not disclose.`,
-          timestamp: nowIso,
-        };
-
-        try {
-          const queue = JSON.parse(localStorage.getItem(STORAGE_KEYS.DELIVERY_QUEUE) || '[]');
-          queue.push({ ...smsPayload, channel: 'SMS' });
-          localStorage.setItem(STORAGE_KEYS.DELIVERY_QUEUE, JSON.stringify(queue.slice(-50)));
-        } catch {
-          // ignore
-        }
-        return { success: true };
-      }
-
-      if (channel === 'WHATSAPP') {
-        // Dispatch to registered WhatsApp channel (0741478813)
-        const waPayload = {
-          recipient: internationalMobile,
-          service: 'JJSAK-WHATSAPP-GATEWAY',
-          message: `*JJSAK Super Administrator Security Verification*\n\nYour one-time code is: *${otpCode}*\nValid for 5 minutes.\nDo not share this code.`,
-          timestamp: nowIso,
-        };
-
-        try {
-          const queue = JSON.parse(localStorage.getItem(STORAGE_KEYS.DELIVERY_QUEUE) || '[]');
-          queue.push({ ...waPayload, channel: 'WHATSAPP' });
-          localStorage.setItem(STORAGE_KEYS.DELIVERY_QUEUE, JSON.stringify(queue.slice(-50)));
-        } catch {
-          // ignore
-        }
-        return { success: true };
-      }
-
-      return { success: false, errorMessage: 'Unsupported delivery channel requested.' };
-    } catch {
-      return {
-        success: false,
-        errorMessage:
-          'OTP delivery could not be completed. Please retry or select an alternative registered recovery channel.',
-      };
-    }
-  }
 
   /**
    * INITIATE & DISPATCH OWNER OTP
@@ -389,7 +310,7 @@ class OwnerOtpDeliveryService {
     channel: OwnerDeliveryChannel = 'EMAIL',
     purpose: OwnerOtpPurpose = 'OWNER_LOGIN'
   ): Promise<{ success: boolean; receipt?: OwnerDeliveryReceipt; errorMessage?: string }> {
-    // 1. Immediately invalidate any active OTP
+    // 1. Immediately invalidate any active OTP locally
     if (this.activeSession) {
       this.recordAuditLog(
         this.activeSession.channel,
@@ -407,7 +328,7 @@ class OwnerOtpDeliveryService {
     if (!validation.valid) {
       this.recordAuditLog(
         channel,
-        'FAILED',
+        'PROVIDER_REJECTED',
         0,
         `Pre-delivery validation failed: ${validation.errorMessage}`
       );
@@ -417,95 +338,106 @@ class OwnerOtpDeliveryService {
       };
     }
 
-    // 3. Generate Cryptographically Secure 6-Digit OTP
-    const plainOtp = generateSecureOtpDigits();
-    const salt = generateSalt(24);
-    const hashedOtp = hashOtpWithSalt(plainOtp, salt);
+    try {
+      const response = await fetch('/api/otp/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userType: 'OWNER',
+          channel,
+          purpose,
+        }),
+      });
 
-    const now = Date.now();
-    const expiresAt = now + SECURITY_RULES.OTP_VALIDITY_SECONDS * 1000;
-    const sessionId = `owner-sess-${now}-${Math.random().toString(36).slice(2, 8)}`;
+      const data = await response.json();
 
-    const destination =
-      channel === 'EMAIL'
-        ? OWNER_REGISTERED_CREDENTIALS.email
-        : OWNER_REGISTERED_CREDENTIALS.mobile;
+      if (!response.ok || !data.success) {
+        const errorMsg =
+          data.message ||
+          data.failureReason ||
+          'We could not send the verification code. Please try again later.';
+        this.recordAuditLog(
+          channel,
+          'PROVIDER_REJECTED',
+          0,
+          `Carrier/Gateway delivery rejected or failed: ${errorMsg}`
+        );
+        return {
+          success: false,
+          errorMessage: errorMsg,
+        };
+      }
 
-    const maskedDestination = maskAddress(
-      destination,
-      channel === 'EMAIL' ? 'EMAIL' : channel === 'SMS' ? 'SMS' : 'WHATSAPP'
-    );
+      const now = Date.now();
+      const expiresAt = data.expiresAt || (now + SECURITY_RULES.OTP_VALIDITY_SECONDS * 1000);
+      const sessionId = data.sessionId;
+      const maskedDestination = data.maskedDestination;
+      const deliveryState: OwnerDeliveryStatus =
+        data.status === 'PROVIDER_ACCEPTED' ? 'PROVIDER_ACCEPTED' : 'DELIVERED';
 
-    const { deviceInfo, ipAddress } = this.getClientMetadata();
+      // Store active session state (zero-exposure: no plain OTP stored)
+      this.activeSession = {
+        sessionId,
+        userId: 'usr-001',
+        channel,
+        purpose,
+        salt: '',
+        hashedOtp: '',
+        generatedAt: now,
+        expiresAt,
+        destination: OWNER_REGISTERED_CREDENTIALS.email,
+        maskedDestination,
+        deliveryStatus: deliveryState,
+        deliveryTimestamp: now,
+        retryCount: 0,
+        failedAttempts: 0,
+        deviceInfo: 'Secure Browser Session',
+        ipAddress: '127.0.0.1',
+      };
+      this.resendCooldownUntil = now + (data.cooldownSeconds || SECURITY_RULES.RESEND_COOLDOWN_SECONDS) * 1000;
+      this.persistSession();
 
-    // 4. Reliable Multi-Channel Delivery
-    const deliveryRes = await this.deliverOtpToChannel(channel, plainOtp, purpose);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('jjsak_latest_backend_otp_session_id', sessionId);
+        } catch {
+          // Ignored
+        }
+      }
 
-    if (!deliveryRes.success) {
+      // Record Audit Log
       this.recordAuditLog(
         channel,
-        'FAILED',
+        deliveryState,
         0,
-        `Carrier/Gateway delivery failed for destination ${maskedDestination}: ${deliveryRes.errorMessage}`,
+        `OTP accepted by delivery provider and dispatched to registered owner ${channel} (${maskedDestination}). State: ${deliveryState}. Expiry: 300s.`,
         expiresAt
       );
+
+      const receipt: OwnerDeliveryReceipt = {
+        success: true,
+        sessionId,
+        channel,
+        maskedDestination,
+        expiresAt,
+        validitySeconds: SECURITY_RULES.OTP_VALIDITY_SECONDS,
+        cooldownSeconds: data.cooldownSeconds || SECURITY_RULES.RESEND_COOLDOWN_SECONDS,
+        resendsRemaining: SECURITY_RULES.MAX_RESEND_ATTEMPTS,
+        message: data.message || 'Verification code sent to your registered contact.',
+        deliveryStatus: deliveryState,
+        emailSearchUrl:
+          channel === 'EMAIL'
+            ? 'https://mail.google.com/mail/u/0/#search/from:JJSAK+OR+subject:Verification'
+            : undefined,
+      };
+
+      return { success: true, receipt };
+    } catch (err: any) {
       return {
         success: false,
-        errorMessage:
-          deliveryRes.errorMessage ||
-          'OTP delivery could not be completed. Please retry or select an alternative registered recovery channel.',
+        errorMessage: err.message || 'Network error connecting to OTP authentication backend.',
       };
     }
-
-    // 5. Store Session State (without plaintext OTP)
-    this.activeSession = {
-      sessionId,
-      userId: 'usr-owner-001',
-      channel,
-      purpose,
-      salt,
-      hashedOtp,
-      generatedAt: now,
-      expiresAt,
-      destination,
-      maskedDestination,
-      deliveryStatus: 'DELIVERED',
-      deliveryTimestamp: now,
-      retryCount: 0,
-      failedAttempts: 0,
-      deviceInfo,
-      ipAddress,
-    };
-    this.resendCooldownUntil = now + SECURITY_RULES.RESEND_COOLDOWN_SECONDS * 1000;
-    this.persistSession();
-
-    // 6. Record Audit Log
-    this.recordAuditLog(
-      channel,
-      'DELIVERED',
-      0,
-      `Cryptographically secure OTP successfully queued and dispatched to registered owner ${channel} (${maskedDestination}). Expiry: 300s.`,
-      expiresAt
-    );
-
-    // 7. Return Zero-Exposure Delivery Receipt
-    const receipt: OwnerDeliveryReceipt = {
-      success: true,
-      sessionId,
-      channel,
-      maskedDestination,
-      expiresAt,
-      validitySeconds: SECURITY_RULES.OTP_VALIDITY_SECONDS,
-      cooldownSeconds: SECURITY_RULES.RESEND_COOLDOWN_SECONDS,
-      resendsRemaining: SECURITY_RULES.MAX_RESEND_ATTEMPTS,
-      message: `Security OTP successfully delivered to your registered ${channel} (${maskedDestination}). Please retrieve the code from your ${channel.toLowerCase()} message.`,
-      emailSearchUrl:
-        channel === 'EMAIL'
-          ? 'https://mail.google.com/mail/u/0/#search/from:JJSAK+OR+subject:Verification'
-          : undefined,
-    };
-
-    return { success: true, receipt };
   }
 
   /**
@@ -532,167 +464,30 @@ class OwnerOtpDeliveryService {
       return this.dispatchOwnerOtp(channelOverride || 'EMAIL', 'OWNER_LOGIN');
     }
 
-    if (this.activeSession.retryCount >= SECURITY_RULES.MAX_RESEND_ATTEMPTS) {
-      this.recordAuditLog(
-        this.activeSession.channel,
-        'FAILED',
-        this.activeSession.retryCount,
-        'Maximum OTP resend allowance exceeded (3 attempts). Gateway locked.'
-      );
-      return {
-        success: false,
-        errorMessage:
-          'Maximum OTP resend attempts exceeded. For your security, please restart your login session.',
-      };
-    }
-
-    const currentRetryCount = this.activeSession.retryCount + 1;
-    const targetChannel = channelOverride || this.activeSession.channel;
-    const purpose = this.activeSession.purpose;
-
-    // Invalidate previous OTP immediately
-    this.recordAuditLog(
-      this.activeSession.channel,
-      'INVALIDATED',
-      currentRetryCount,
-      `Previous OTP invalidated due to resend #${currentRetryCount}.`
-    );
-
-    // Run Pre-Delivery Validation
-    const validation = this.validatePreDelivery(targetChannel);
-    if (!validation.valid) {
-      return {
-        success: false,
-        errorMessage: validation.errorMessage,
-      };
-    }
-
-    // Generate new OTP
-    const plainOtp = generateSecureOtpDigits();
-    const salt = generateSalt(24);
-    const hashedOtp = hashOtpWithSalt(plainOtp, salt);
-
-    const expiresAt = now + SECURITY_RULES.OTP_VALIDITY_SECONDS * 1000;
-    const sessionId = `owner-sess-${now}-${Math.random().toString(36).slice(2, 8)}`;
-
-    const destination =
-      targetChannel === 'EMAIL'
-        ? OWNER_REGISTERED_CREDENTIALS.email
-        : OWNER_REGISTERED_CREDENTIALS.mobile;
-
-    const maskedDestination = maskAddress(
-      destination,
-      targetChannel === 'EMAIL' ? 'EMAIL' : targetChannel === 'SMS' ? 'SMS' : 'WHATSAPP'
-    );
-
-    const { deviceInfo, ipAddress } = this.getClientMetadata();
-
-    // Deliver to channel
-    const deliveryRes = await this.deliverOtpToChannel(targetChannel, plainOtp, purpose);
-    if (!deliveryRes.success) {
-      return {
-        success: false,
-        errorMessage:
-          deliveryRes.errorMessage ||
-          'OTP delivery could not be completed. Please retry or select an alternative registered recovery channel.',
-      };
-    }
-
-    // Update session
-    this.activeSession = {
-      sessionId,
-      userId: 'usr-owner-001',
-      channel: targetChannel,
-      purpose,
-      salt,
-      hashedOtp,
-      generatedAt: now,
-      expiresAt,
-      destination,
-      maskedDestination,
-      deliveryStatus: 'DELIVERED',
-      deliveryTimestamp: now,
-      retryCount: currentRetryCount,
-      failedAttempts: 0,
-      deviceInfo,
-      ipAddress,
-    };
-    this.resendCooldownUntil = now + SECURITY_RULES.RESEND_COOLDOWN_SECONDS * 1000;
-    this.persistSession();
-
-    // Audit log
-    this.recordAuditLog(
-      targetChannel,
-      'DELIVERED',
-      currentRetryCount,
-      `Resend #${currentRetryCount} successfully dispatched to registered owner ${targetChannel} (${maskedDestination}).`,
-      expiresAt
-    );
-
-    const resendsRemaining = SECURITY_RULES.MAX_RESEND_ATTEMPTS - currentRetryCount;
-
-    return {
-      success: true,
-      receipt: {
-        success: true,
-        sessionId,
-        channel: targetChannel,
-        maskedDestination,
-        expiresAt,
-        validitySeconds: SECURITY_RULES.OTP_VALIDITY_SECONDS,
-        cooldownSeconds: SECURITY_RULES.RESEND_COOLDOWN_SECONDS,
-        resendsRemaining,
-        message: `New security OTP delivered to your registered ${targetChannel} (${maskedDestination}). (${resendsRemaining} resends remaining).`,
-        emailSearchUrl:
-          targetChannel === 'EMAIL'
-            ? 'https://mail.google.com/mail/u/0/#search/from:JJSAK+OR+subject:Verification'
-            : undefined,
-      },
-    };
+    const targetChannel = channelOverride || this.activeSession?.channel || 'EMAIL';
+    const purpose = this.activeSession?.purpose || 'OWNER_LOGIN';
+    return this.dispatchOwnerOtp(targetChannel, purpose);
   }
 
   /**
    * VERIFY OWNER OTP
-   * Enforces:
-   * - Expiry check (5 minutes)
-   * - Max failed attempts check (5 attempts)
-   * - Salted SHA-256 cryptographic match
-   * - Immediate invalidation upon successful verification (single-use)
-   * - Full audit logging
+   * Calls secure backend verification endpoint:
+   * - Compares candidate code against salted SHA-256 hash using timing-safe comparison
+   * - Invalidator clears session immediately on success
+   * - Locks verification after 5 consecutive failures
    */
-  public verifyOwnerOtp(candidateCode: string): {
+  public async verifyOwnerOtp(
+    candidateCode: string,
+    sessionIdOverride?: string
+  ): Promise<{
     success: boolean;
     errorMessage?: string;
     attemptsRemaining?: number;
-  } {
+    sessionToken?: string;
+    authenticatedSession?: any;
+  }> {
     const cleanCode = (candidateCode || '').trim().replace(/\D/g, '');
 
-    if (!this.activeSession || this.activeSession.deliveryStatus !== 'DELIVERED') {
-      return {
-        success: false,
-        errorMessage: 'No active OTP verification session found. Please request a new OTP.',
-      };
-    }
-
-    const now = Date.now();
-
-    // 1. Expiry Check
-    if (now > this.activeSession.expiresAt) {
-      this.activeSession.deliveryStatus = 'EXPIRED';
-      this.recordAuditLog(
-        this.activeSession.channel,
-        'EXPIRED',
-        this.activeSession.retryCount,
-        'OTP verification rejected: OTP expired (5 minutes validity exceeded).'
-      );
-      this.persistSession();
-      return {
-        success: false,
-        errorMessage: 'One-Time Password has expired. Please request a new verification code.',
-      };
-    }
-
-    // 2. Length check
     if (cleanCode.length !== 6) {
       return {
         success: false,
@@ -700,66 +495,98 @@ class OwnerOtpDeliveryService {
       };
     }
 
-    // 3. Cryptographic Salted Hash Verification
-    const isMatch = verifyOtpHash(cleanCode, this.activeSession.salt, this.activeSession.hashedOtp);
-
-    if (isMatch) {
-      // Success!
-      this.activeSession.deliveryStatus = 'VERIFIED';
-      this.recordAuditLog(
-        this.activeSession.channel,
-        'VERIFIED',
-        this.activeSession.retryCount,
-        `Owner OTP successfully verified via ${this.activeSession.channel}. Token permanently invalidated.`
-      );
-
-      // Permanently invalidate session to prevent replay
-      this.activeSession = null;
-      this.persistSession();
-
-      return { success: true };
+    if (!this.activeSession) {
+      this.loadPersistedSession();
     }
 
-    // Mismatch - record failed attempt
-    this.activeSession.failedAttempts += 1;
-    const attemptsRemaining = Math.max(
-      0,
-      SECURITY_RULES.MAX_VERIFICATION_ATTEMPTS - this.activeSession.failedAttempts
-    );
+    const targetSessionId =
+      sessionIdOverride ||
+      this.activeSession?.sessionId ||
+      (typeof window !== 'undefined' ? localStorage.getItem('jjsak_latest_backend_otp_session_id') : null) ||
+      '';
 
-    this.recordAuditLog(
-      this.activeSession.channel,
-      'FAILED',
-      this.activeSession.retryCount,
-      `Failed OTP verification attempt (${this.activeSession.failedAttempts}/${SECURITY_RULES.MAX_VERIFICATION_ATTEMPTS}). Remaining: ${attemptsRemaining}.`
-    );
-
-    if (this.activeSession.failedAttempts >= SECURITY_RULES.MAX_VERIFICATION_ATTEMPTS) {
-      this.activeSession.deliveryStatus = 'INVALIDATED';
-      this.recordAuditLog(
-        this.activeSession.channel,
-        'INVALIDATED',
-        this.activeSession.retryCount,
-        'Session locked: Maximum failed OTP verification attempts exceeded (5 failures).'
-      );
-      this.activeSession = null;
-      this.persistSession();
-
+    if (!targetSessionId) {
       return {
         success: false,
-        errorMessage:
-          'Too many failed verification attempts. This OTP session has been permanently invalidated. Please restart your login session.',
-        attemptsRemaining: 0,
+        errorMessage: 'No active OTP verification session found. Please request a new verification code.',
       };
     }
 
-    this.persistSession();
+    try {
+      const response = await fetch('/api/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: targetSessionId,
+          candidateCode: cleanCode,
+        }),
+      });
 
-    return {
-      success: false,
-      errorMessage: `Incorrect verification code. Please check your registered ${this.activeSession?.channel.toLowerCase() || 'channel'} and try again. (${attemptsRemaining} attempt${attemptsRemaining === 1 ? '' : 's'} remaining).`,
-      attemptsRemaining,
-    };
+      const data = await response.json();
+
+      if (!response.ok || !data.success || !data.verified) {
+        const errorMsg = data.message || 'Invalid 6-digit verification code.';
+        const attemptsRemaining = data.attemptsRemaining;
+
+        if (data.locked) {
+          this.activeSession = null;
+          this.persistSession();
+          return {
+            success: false,
+            errorMessage: 'Session locked due to consecutive failed OTP attempts. Please restart verification.',
+            attemptsRemaining: 0,
+          };
+        }
+
+        return {
+          success: false,
+          errorMessage: errorMsg,
+          attemptsRemaining,
+        };
+      }
+
+      // Single-use token invalidation
+      const channel = this.activeSession?.channel || 'EMAIL';
+      this.recordAuditLog(
+        channel,
+        'VERIFIED',
+        this.activeSession?.retryCount || 0,
+        `Owner OTP successfully verified via backend authority. Single-use token permanently invalidated.`
+      );
+
+      this.activeSession = null;
+      this.persistSession();
+
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('jjsak_latest_backend_otp_session_id');
+        } catch {
+          // Ignored
+        }
+      }
+
+      return {
+        success: true,
+        sessionToken: data.sessionToken,
+        authenticatedSession: data.authenticatedSession,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        errorMessage: err.message || 'Error communicating with OTP verification service.',
+      };
+    }
+  }
+
+  /**
+   * Retrieves the active backend session ID if present
+   */
+  public getActiveSessionId(): string | undefined {
+    if (this.activeSession?.sessionId) return this.activeSession.sessionId;
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('jjsak_latest_backend_otp_session_id') || undefined;
+    }
+    return undefined;
   }
 
   /**
@@ -772,7 +599,11 @@ class OwnerOtpDeliveryService {
     expiresAt?: number;
     cooldownRemainingSeconds?: number;
   } {
-    if (!this.activeSession || this.activeSession.deliveryStatus !== 'DELIVERED') {
+    if (
+      !this.activeSession ||
+      (this.activeSession.deliveryStatus !== 'DELIVERED' &&
+        this.activeSession.deliveryStatus !== 'PROVIDER_ACCEPTED')
+    ) {
       return { hasActiveSession: false };
     }
 

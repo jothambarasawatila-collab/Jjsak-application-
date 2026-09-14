@@ -6,7 +6,6 @@ import {
   KeyRound,
   ArrowRight,
   AlertTriangle,
-  Sparkles,
   UserCheck,
   Mail,
   Smartphone,
@@ -25,13 +24,12 @@ import {
 
 interface SchoolNotRegisteredScreenProps {
   onOwnerLogin: (username: string, password: string) => boolean;
-  onQuickInstallSampleSchool: () => void;
+  onQuickInstallSampleSchool?: () => void;
   onOpenOwnerAuth?: () => void;
 }
 
 export const SchoolNotRegisteredScreen: React.FC<SchoolNotRegisteredScreenProps> = ({
   onOwnerLogin,
-  onQuickInstallSampleSchool,
 }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -100,7 +98,7 @@ export const SchoolNotRegisteredScreen: React.FC<SchoolNotRegisteredScreenProps>
     setSuccessNotice(dispatchRes.receipt.message);
   };
 
-  const handleOtpSubmit = (e: React.FormEvent) => {
+  const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -111,7 +109,7 @@ export const SchoolNotRegisteredScreen: React.FC<SchoolNotRegisteredScreenProps>
     }
 
     // Enforce JJSAK-AUTH-OTP-OWNER-004 verification
-    const verification = ownerOtpDeliveryService.verifyOwnerOtp(emailOtpCode);
+    const verification = await ownerOtpDeliveryService.verifyOwnerOtp(emailOtpCode);
     if (!verification.success) {
       setErrorMsg(verification.errorMessage || 'Incorrect verification code. Please check your registered channel.');
       return;
@@ -255,15 +253,6 @@ export const SchoolNotRegisteredScreen: React.FC<SchoolNotRegisteredScreenProps>
                 <KeyRound className="w-4 h-4" />
                 <span>Owner / Super Administrator Login</span>
                 <ArrowRight className="w-4 h-4 ml-1" />
-              </button>
-
-              <button
-                type="button"
-                onClick={onQuickInstallSampleSchool}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white font-medium text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Quick Setup: Install Verified Sample School (Ngonyek Junior)</span>
               </button>
             </div>
           ) : authStep === 'CREDENTIALS' ? (
@@ -443,7 +432,11 @@ export const SchoolNotRegisteredScreen: React.FC<SchoolNotRegisteredScreenProps>
                     <span>Direct {deliveryReceipt?.channel || selectedChannel} OTP Dispatched</span>
                   </div>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
-                    CONFIRMED DELIVERED
+                    {deliveryReceipt?.deliveryStatus === 'DELIVERED'
+                      ? 'CONFIRMED DELIVERED'
+                      : deliveryReceipt?.deliveryStatus === 'PROVIDER_ACCEPTED'
+                      ? 'GATEWAY ACCEPTED'
+                      : 'DISPATCH STATUS'}
                   </span>
                 </div>
 

@@ -96,6 +96,8 @@ export interface OtpDeliveryReceipt {
 
 export interface OtpVerificationResult {
   success: boolean;
+  verified?: boolean;
+  sessionToken?: string;
   message: string;
   sessionId?: string;
   userType?: OtpUserType;
@@ -344,99 +346,139 @@ class OtpDeliveryService {
     validitySeconds: number;
   }): Promise<OtpDeliveryReceipt> {
     const now = Date.now();
-    const sessionId = `jjsak-otp-${now}-${Math.random().toString(36).substring(2, 9)}`;
 
-    // 1. Generate 6-digit cryptographic OTP and Salt
-    const plainOtp = generateSecureOtpDigits();
-    const salt = generateSalt(32);
-    const hashedOtp = hashOtpWithSalt(plainOtp, salt);
+    try {
+      const response = await fetch('/api/otp/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: params.userId,
+          userType: params.userType,
+          identifier: params.userName || params.destination,
+          email: params.channel === 'EMAIL' ? params.destination : undefined,
+          phone: params.channel !== 'EMAIL' ? params.destination : undefined,
+          channel: params.channel,
+          purpose: params.purpose,
+        }),
+      });
 
-    const maskedDestination = maskAddress(params.destination, params.channel);
-    const expiresAt = now + params.validitySeconds * 1000;
-    const cooldownUntil = now + POLICY_RULES.RESEND_COOLDOWN_SECONDS * 1000;
+      const data = await response.json();
 
-    // 2. Select simulated carrier or SMTP gateway
-    const provider =
-      params.channel === 'EMAIL'
-        ? 'JJSAK Cloud SMTP Relay (Google Workspace API)'
-        : params.channel === 'SMS'
-        ? 'Safaricom SMS Gateway API (KESMS-Enterprise)'
-        : 'Meta WhatsApp Business API Cloud';
+      if (!response.ok || !data.success) {
+        const errorMsg = data.message || 'Carrier delivery provider rejected OTP dispatch.';
+        return {
+          success: false,
+          sessionId: data.sessionId || '',
+          userType: params.userType,
+          channel: params.channel,
+          maskedDestination: data.maskedDestination || maskAddress(params.destination, params.channel),
+          status: 'FAILED',
+          expiresAt: 0,
+          validitySeconds: 0,
+          cooldownSeconds: data.cooldownSeconds || 30,
+          retriesRemaining: 0,
+          provider: data.provider || 'JJSAK Cloud Gateway',
+          providerMessageId: '',
+          message: errorMsg,
+          errorMessage: errorMsg,
+        };
+      }
 
-    const providerMessageId = `MSG-${Date.now()}-${Math.floor(100000 + Math.random() * 900000)}`;
+      const sessionId = data.sessionId;
+      const maskedDestination = data.maskedDestination || maskAddress(params.destination, params.channel);
+      const expiresAt = data.expiresAt || (now + params.validitySeconds * 1000);
+      const cooldownUntil = now + (data.cooldownSeconds || POLICY_RULES.RESEND_COOLDOWN_SECONDS) * 1000;
+      const provider = data.provider || 'JJSAK Carrier Gateway';
+      const providerMessageId = data.providerMessageId || `MSG-${now}`;
 
-    // 3. Create Session (NO PLAINTEXT OTP STORED)
-    const session: OtpSession = {
-      sessionId,
-      userType: params.userType,
-      userId: params.userId,
-      userName: params.userName,
-      role: params.role,
-      channel: params.channel,
-      purpose: params.purpose,
-      destination: params.destination,
-      maskedDestination,
-      salt,
-      hashedOtp,
-      generatedAt: now,
-      expiresAt,
-      status: 'DISPATCHING',
-      retryCount: 0,
-      cooldownUntil,
-      failedVerificationAttempts: 0,
-      provider,
-      providerMessageId,
-      deviceInfo: this.getClientDeviceInfo(),
-      ipAddress: this.getClientIp(),
-    };
+      const session: OtpSession = {
+        sessionId,
+        userType: params.userType,
+        userId: params.userId,
+        userName: params.userName,
+        role: params.role,
+        channel: params.channel,
+        purpose: params.purpose,
+        destination: params.destination,
+        maskedDestination,
+        salt: '',
+        hashedOtp: '',
+        generatedAt: now,
+        expiresAt,
+        status: 'DELIVERED',
+        retryCount: 0,
+        cooldownUntil,
+        failedVerificationAttempts: 0,
+        provider,
+        providerMessageId,
+        deviceInfo: this.getClientDeviceInfo(),
+        ipAddress: this.getClientIp(),
+      };
 
-    // 4. Simulate real-world delivery latency and carrier acknowledgment
-    const latencyMs = Math.floor(120 + Math.random() * 200);
-    await new Promise((resolve) => setTimeout(resolve, latencyMs));
+      this.sessions.set(sessionId, session);
+      this.saveSessions();
 
-    // Zero-Exposure simulated delivery to real background relays without exposing code to UI/logs
-    this.transmitToRelayWithoutExposure(params.destination, plainOtp, params.channel, params.purpose);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('jjsak_latest_backend_otp_session_id', sessionId);
+        } catch {
+          // Ignored
+        }
+      }
 
-    session.status = 'DELIVERED';
-    this.sessions.set(sessionId, session);
-    this.saveSessions();
+      this.appendAuditLog({
+        sessionId,
+        userType: params.userType,
+        userId: params.userId,
+        userName: params.userName,
+        role: params.role,
+        channel: params.channel,
+        maskedDestination,
+        status: 'DELIVERED',
+        retryCount: 0,
+        provider,
+        providerMessageId,
+        latencyMs: 150,
+        deviceInfo: session.deviceInfo,
+        ipAddress: session.ipAddress,
+        expiryTime: new Date(expiresAt).toLocaleTimeString(),
+        purpose: params.purpose,
+        details: `Dispatched single-use security OTP to registered ${params.channel} endpoint (${maskedDestination}) via ${provider}.`,
+      });
 
-    // 5. Append delivery audit log (Strictly no plaintext OTP recorded)
-    this.appendAuditLog({
-      sessionId,
-      userType: params.userType,
-      userId: params.userId,
-      userName: params.userName,
-      role: params.role,
-      channel: params.channel,
-      maskedDestination,
-      status: 'DELIVERED',
-      retryCount: 0,
-      provider,
-      providerMessageId,
-      latencyMs,
-      deviceInfo: session.deviceInfo,
-      ipAddress: session.ipAddress,
-      expiryTime: new Date(expiresAt).toLocaleTimeString(),
-      purpose: params.purpose,
-      details: `Dispatched single-use security OTP to ${params.channel} endpoint (${maskedDestination}) via ${provider}.`,
-    });
-
-    return {
-      success: true,
-      sessionId,
-      userType: params.userType,
-      channel: params.channel,
-      maskedDestination,
-      status: 'DELIVERED',
-      expiresAt,
-      validitySeconds: params.validitySeconds,
-      cooldownSeconds: POLICY_RULES.RESEND_COOLDOWN_SECONDS,
-      retriesRemaining: POLICY_RULES.MAX_RETRIES,
-      provider,
-      providerMessageId,
-      message: `Single-use verification code successfully dispatched to registered ${params.channel.toLowerCase()} channel (${maskedDestination}).`,
-    };
+      return {
+        success: true,
+        sessionId,
+        userType: params.userType,
+        channel: params.channel,
+        maskedDestination,
+        status: 'DELIVERED',
+        expiresAt,
+        validitySeconds: params.validitySeconds,
+        cooldownSeconds: data.cooldownSeconds || POLICY_RULES.RESEND_COOLDOWN_SECONDS,
+        retriesRemaining: POLICY_RULES.MAX_RETRIES,
+        provider,
+        providerMessageId,
+        message: data.message || `Single-use verification code successfully dispatched to registered ${params.channel.toLowerCase()} channel (${maskedDestination}).`,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        sessionId: '',
+        userType: params.userType,
+        channel: params.channel,
+        maskedDestination: maskAddress(params.destination, params.channel),
+        status: 'FAILED',
+        expiresAt: 0,
+        validitySeconds: 0,
+        cooldownSeconds: 30,
+        retriesRemaining: 0,
+        provider: 'JJSAK Cloud Gateway',
+        providerMessageId: '',
+        message: err.message || 'Error connecting to authentication service.',
+        errorMessage: err.message || 'CONNECTION_FAILED',
+      };
+    }
   }
 
   /**
@@ -804,6 +846,75 @@ class OtpDeliveryService {
    * Unified OTP verification alias (JJSAK-AUTH-OTP-OWNER-004)
    */
   public verifyOTP(candidateCode: string, sessionId?: string): OtpVerificationResult {
+    return this.verifyOtp(candidateCode, sessionId);
+  }
+
+  /**
+   * Authoritative async OTP verification querying /api/otp/verify
+   */
+  public async verifyOtpAsync(candidateCode: string, sessionId?: string): Promise<OtpVerificationResult> {
+    const cleanCode = (candidateCode || '').trim().replace(/\D/g, '');
+    if (cleanCode.length !== 6) {
+      return {
+        success: false,
+        message: 'Please enter the complete 6-digit verification code.',
+      };
+    }
+
+    const targetSessionId =
+      sessionId ||
+      (typeof window !== 'undefined' ? localStorage.getItem('jjsak_latest_backend_otp_session_id') : null) ||
+      Array.from(this.sessions.keys()).reverse()[0];
+
+    if (targetSessionId) {
+      try {
+        const res = await fetch('/api/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: targetSessionId,
+            candidateCode: cleanCode,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.verified) {
+          const session = this.sessions.get(targetSessionId);
+          if (session) {
+            session.status = 'VERIFIED';
+            session.hashedOtp = '';
+            session.salt = '';
+            this.saveSessions();
+          }
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.removeItem('jjsak_latest_backend_otp_session_id');
+            } catch {
+              // Ignored
+            }
+          }
+          return {
+            success: true,
+            verified: true,
+            message: 'OTP verified successfully.',
+            sessionId: targetSessionId,
+            sessionToken: data.sessionToken,
+            userType: session?.userType || 'INSTITUTIONAL',
+            userId: session?.userId || 'usr-verified',
+            userName: session?.userName || 'Verified User',
+            role: session?.role || 'SUPER_ADMIN',
+          };
+        } else {
+          return {
+            success: false,
+            message: data.message || 'Invalid 6-digit verification code.',
+            attemptsRemaining: data.attemptsRemaining,
+          };
+        }
+      } catch (err: any) {
+        console.warn('Backend verify call failed, falling back to local:', err);
+      }
+    }
+
     return this.verifyOtp(candidateCode, sessionId);
   }
 

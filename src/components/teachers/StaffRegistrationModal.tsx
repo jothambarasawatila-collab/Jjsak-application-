@@ -422,7 +422,7 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
     setPolicyBlockedMessage(null);
 
     // Enforce Tenant Isolation & School Onboarding Governance (Section 2.1 & 2.2)
-    const targetSchool = editingTeacher?.schoolId || currentSchoolId || 'scl-stmarys-001';
+    const targetSchool = editingTeacher?.schoolId || currentSchoolId || '';
     const authCheck = staffAuthOtpSecurityService.canOnboardSchoolStaff(
       { role: currentUserRole, schoolId: currentSchoolId },
       targetSchool
@@ -472,7 +472,7 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
 
     const generatedEmail =
       email.trim() ||
-      `${fullName.toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.')}@ngonyek.ac.ke`;
+      `${fullName.toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.')}@jjsak.ac.ke`;
 
     const teacherData: Teacher = {
       ...(editingTeacher || {}),
@@ -746,7 +746,7 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="jotham.watila@ngonyek.ac.ke"
+                    placeholder="teacher.name@jjsak.ac.ke"
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500"
                   />
                 </div>

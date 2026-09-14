@@ -83,12 +83,12 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
 }) => {
   const currentTheme = resolveSchoolTheme(
     activeTenant || {
-      schoolId: 'sch-ngonyek-001',
-      schoolCode: 'NJS-30200',
-      schoolName: schoolProfile?.schoolName || 'Ngonyek Junior School',
-      address: schoolProfile?.postalAddress || 'P.O. Box 450 - 30200, Kitale',
-      phone: schoolProfile?.phoneNumber || '+254 722 345 678',
-      email: schoolProfile?.emailAddress || 'info@ngonyekjuniorschool.sc.ke',
+      schoolId: '',
+      schoolCode: 'JJSAK-001',
+      schoolName: schoolProfile?.schoolName || 'JJSAK Educational Institution',
+      address: schoolProfile?.postalAddress || 'P.O. Box 100 - 00100, Nairobi',
+      phone: schoolProfile?.phoneNumber || '+254 700 000 000',
+      email: schoolProfile?.emailAddress || 'info@jjsak.ac.ke',
       category: 'JUNIOR',
       status: 'ACTIVE',
     }
@@ -1387,18 +1387,18 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
               </span>
             </div>
 
-            {/* NGONYEK JUNIOR SCHOOL Official Stamp (Circular Red Stamp) */}
+            {/* Institution Official Stamp (Circular Red Stamp) */}
             <div className="flex flex-col items-center justify-center">
               <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full border-2 border-dashed border-[#C51E28] p-1 flex items-center justify-center rotate-[-6deg] bg-red-50/20 shadow-2xs">
                 <div className="w-full h-full rounded-full border-[1.5px] border-[#C51E28] flex flex-col items-center justify-center text-center p-1 relative">
-                  <span className="text-[7px] font-black text-[#C51E28] uppercase tracking-wider leading-none">
-                    NGONYEK
+                  <span className="text-[7px] font-black text-[#C51E28] uppercase tracking-wider leading-none truncate max-w-[70px]">
+                    {(activeTenant?.schoolName || schoolProfile?.schoolName || 'OFFICIAL').split(' ')[0]}
                   </span>
                   <div className="my-0.5 px-1 py-0.5 bg-[#C51E28] text-white rounded text-[6px] font-black tracking-widest leading-none">
                     OFFICIAL STAMP
                   </div>
                   <span className="text-[6px] font-bold text-[#C51E28] uppercase leading-none">
-                    ★ JUNIOR SCHOOL ★
+                    ★ VERIFIED CBC ★
                   </span>
                 </div>
               </div>

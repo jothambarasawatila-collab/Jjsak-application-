@@ -50,7 +50,7 @@ export const EmergencyAccessManagerModal: React.FC<EmergencyAccessManagerModalPr
   const [newDescription, setNewDescription] = useState('');
   const [newSeverity, setNewSeverity] = useState<EmergencySeverityLevel>('LEVEL_1_CRITICAL');
   const [newCategory, setNewCategory] = useState<EmergencyCategory>('CRITICAL_SYSTEM_FAILURE');
-  const [newSchoolId, setNewSchoolId] = useState<string>(tenants[0]?.schoolId || 'sch-ngonyek-001');
+  const [newSchoolId, setNewSchoolId] = useState<string>(tenants[0]?.schoolId || '');
 
   // Request State (Phase 2)
   const [justification, setJustification] = useState('');

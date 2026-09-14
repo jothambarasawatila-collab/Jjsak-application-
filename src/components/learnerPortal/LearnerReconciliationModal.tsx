@@ -168,7 +168,7 @@ export const LearnerReconciliationModal: React.FC<LearnerReconciliationModalProp
     setCreatingTargetStudent(student);
     const suggestedUser = `${student.name.split(' ')[0].toLowerCase()}.${student.admNo.split('-').pop() || 'std'}`;
     setNewUsername(suggestedUser);
-    setNewEmail(`${suggestedUser}@ngonyek.sc.ke`);
+    setNewEmail(`${suggestedUser}@student.jjsak.ac.ke`);
     setNewPassword('Password@2026!');
     setCreationErrors([]);
     setCreationSuccess(null);
@@ -252,7 +252,7 @@ export const LearnerReconciliationModal: React.FC<LearnerReconciliationModalProp
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Authoritative verification of Learner Account ↔ Learner Profile database relationships for {currentTenant?.schoolName || 'Ngonyek Junior School'}
+                Authoritative verification of Learner Account ↔ Learner Profile database relationships for {currentTenant?.schoolName || 'Active Institution'}
               </p>
             </div>
           </div>

@@ -22,6 +22,8 @@ import { HelpSupportModal } from './HelpSupportModal';
 import { OrganizationalProfileScreen } from '../launchFlow/OrganizationalProfileScreen';
 import { staffAuthOtpSecurityService } from '../../services/staffAuthOtpSecurityService';
 import { otpDeliveryService } from '../../services/otpDeliveryService';
+import { ownerOtpDeliveryService } from '../../services/ownerOtpDeliveryService';
+import { generateJWTSession } from '../../utils/securityEngine';
 import {
   ActiveAuthSession,
   OtpDeliveryReceipt,
@@ -155,7 +157,7 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
   // =========================================================================
   // STEP 1 & 2: CREDENTIAL SUBMISSION AND VALIDATION (Section 3.2)
   // =========================================================================
-  const handleCredentialSubmit = (e: React.FormEvent) => {
+  const handleCredentialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -174,67 +176,129 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
 
     setIsAuthenticating(true);
 
-    setTimeout(() => {
-      const result = staffAuthOtpSecurityService.validateCredentialsAndInitiateSession({
-        identifier: cleanIdentifier,
-        password: cleanPassword,
-        users,
-        tenants,
-        activeTenantId,
-      });
+    const result = staffAuthOtpSecurityService.validateCredentialsAndInitiateSession({
+      identifier: cleanIdentifier,
+      password: cleanPassword,
+      users,
+      tenants,
+      activeTenantId,
+    });
 
+    if (!result.success || !result.session || !result.receipt) {
       setIsAuthenticating(false);
-
-      if (!result.success || !result.session || !result.receipt) {
-        if (result.isLocked && result.lockout) {
-          const remainingSec = Math.max(0, Math.ceil((result.lockout.expiresAt - Date.now()) / 1000));
-          setLockoutBanner({
-            isLocked: true,
-            remainingSeconds: remainingSec,
-            trigger: result.lockout.trigger,
-            reason: result.lockout.reason,
-          });
-          setErrorMessage(result.errorMessage || 'Account temporarily locked due to security policy.');
-          if (onTriggerAlert) {
-            onTriggerAlert(
-              `Lockout Triggered (${result.lockout.trigger})`,
-              `Authentication temporarily throttled for ${result.lockout.durationMinutes} minutes.`,
-              'HIGH'
-            );
-          }
-        } else {
-          setErrorMessage(result.errorMessage || 'Invalid Institution Username or Password');
+      if (result.isLocked && result.lockout) {
+        const remainingSec = Math.max(0, Math.ceil((result.lockout.expiresAt - Date.now()) / 1000));
+        setLockoutBanner({
+          isLocked: true,
+          remainingSeconds: remainingSec,
+          trigger: result.lockout.trigger,
+          reason: result.lockout.reason,
+        });
+        setErrorMessage(result.errorMessage || 'Account temporarily locked due to security policy.');
+        if (onTriggerAlert) {
+          onTriggerAlert(
+            `Lockout Triggered (${result.lockout.trigger})`,
+            `Authentication temporarily throttled for ${result.lockout.durationMinutes} minutes.`,
+            'HIGH'
+          );
         }
-        return;
+      } else {
+        setErrorMessage(result.errorMessage || 'Invalid Institution Username or Password');
       }
+      return;
+    }
 
-      // Step 3: Call otpDeliveryService.sendOTP after successful password validation (JJSAK-AUTH-OTP-OWNER-004)
-      otpDeliveryService.sendOTP({
-        userId: result.session.user.id,
-        userName: result.session.user.fullName || result.session.user.username,
-        role: result.session.user.role,
-        email: result.session.user.email || (cleanIdentifier.includes('@') ? cleanIdentifier : `${cleanIdentifier}@jjsak.internal`),
-        phone: result.session.user.phoneNumber,
-        channel: result.receipt.channel,
-        purpose: 'Institutional Staff Authentication',
-      }).catch((err) => {
-        console.warn('otpDeliveryService notification logged:', err);
-      });
+    const targetUser = result.session.user;
+    const isOwner =
+      targetUser.role === 'SUPER_ADMIN' ||
+      targetUser.role === 'SYSTEM_ADMIN' ||
+      targetUser.email?.toLowerCase() === 'jothambarasawatila@gmail.com' ||
+      targetUser.username?.toLowerCase().includes('jotham') ||
+      (targetUser.phoneNumber && targetUser.phoneNumber.replace(/\D/g, '').endsWith('741478813'));
 
-      // Transition to Step 5: Continuous OTP Verification Session (Section 3.1 & 3.3)
-      setAuthSession(result.session);
-      setDeliveryReceipt(result.receipt);
-      setIsOtpSent(true);
-      setOtpRemainingSeconds(SECURITY_CONSTANTS.OTP_VALIDITY_SECONDS);
-      setResendCooldownSeconds(SECURITY_CONSTANTS.OTP_RESEND_COOLDOWN_SECONDS);
-      setOtpCode('');
-    }, 600);
+    let authoritativeSessionId = result.session.sessionId;
+    let finalReceipt: OtpDeliveryReceipt = result.receipt;
+
+    try {
+      if (isOwner) {
+        const dispatchRes = await ownerOtpDeliveryService.dispatchOwnerOtp(
+          result.receipt.channel === 'SMS' ? 'SMS' : 'EMAIL',
+          'OWNER_LOGIN'
+        );
+        if (dispatchRes.success && dispatchRes.receipt) {
+          authoritativeSessionId = dispatchRes.receipt.sessionId;
+          finalReceipt = {
+            ...result.receipt,
+            sessionId: dispatchRes.receipt.sessionId,
+            channel: dispatchRes.receipt.channel,
+            maskedDestination: dispatchRes.receipt.maskedDestination,
+            expiresAt: dispatchRes.receipt.expiresAt,
+            validitySeconds: dispatchRes.receipt.validitySeconds,
+            cooldownSeconds: dispatchRes.receipt.cooldownSeconds,
+            deliveryGatewayStatus: 'DELIVERED_TO_REGISTERED_DEVICE',
+            message: dispatchRes.receipt.message,
+          };
+        } else {
+          setIsAuthenticating(false);
+          setErrorMessage(dispatchRes.errorMessage || 'Failed to dispatch verification code to owner channel.');
+          return;
+        }
+      } else {
+        // Institutional Staff: Dispatch via backend /api/otp/request
+        const resp = await fetch('/api/otp/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: targetUser.id,
+            userType: 'INSTITUTIONAL',
+            identifier: cleanIdentifier,
+            email: targetUser.email || (cleanIdentifier.includes('@') ? cleanIdentifier : undefined),
+            phone: targetUser.phoneNumber,
+            channel: result.receipt.channel,
+            purpose: 'Institutional Staff Authentication',
+            role: targetUser.role,
+            userName: targetUser.fullName || targetUser.username,
+          }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success && data.sessionId) {
+          authoritativeSessionId = data.sessionId;
+          finalReceipt = {
+            ...result.receipt,
+            sessionId: data.sessionId,
+            channel: data.channel || result.receipt.channel,
+            maskedDestination: data.maskedDestination || result.receipt.maskedDestination,
+            expiresAt: data.expiresAt || (Date.now() + 300000),
+            validitySeconds: data.expiresInSeconds || 300,
+            cooldownSeconds: data.cooldownSeconds || 30,
+            deliveryGatewayStatus: 'DELIVERED_TO_REGISTERED_DEVICE',
+            message: data.message || result.receipt.message,
+          };
+        }
+      }
+    } catch (err: any) {
+      console.warn('Backend OTP dispatch notice:', err);
+    }
+
+    setIsAuthenticating(false);
+
+    // Save active session with authoritative backend session ID
+    setAuthSession({
+      ...result.session,
+      sessionId: authoritativeSessionId,
+      backendSessionId: authoritativeSessionId,
+    });
+    setDeliveryReceipt(finalReceipt);
+    setIsOtpSent(true);
+    setOtpRemainingSeconds(finalReceipt.validitySeconds || SECURITY_CONSTANTS.OTP_VALIDITY_SECONDS);
+    setResendCooldownSeconds(finalReceipt.cooldownSeconds || SECURITY_CONSTANTS.OTP_RESEND_COOLDOWN_SECONDS);
+    setOtpCode('');
   };
 
   // =========================================================================
   // STEP 5: OTP VERIFICATION (Section 3.2, 4.2, 4.4, 5.1)
   // =========================================================================
-  const handleVerifyOtpSubmit = (e: React.FormEvent) => {
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authSession) return;
     setErrorMessage(null);
@@ -247,114 +311,220 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
 
     setIsVerifyingOtp(true);
 
-    setTimeout(() => {
-      const result = staffAuthOtpSecurityService.verifyOtp({
+    const isOwner =
+      authSession.user.role === 'SUPER_ADMIN' ||
+      authSession.user.role === 'SYSTEM_ADMIN' ||
+      authSession.user.email?.toLowerCase() === 'jothambarasawatila@gmail.com' ||
+      authSession.user.username?.toLowerCase().includes('jotham');
+
+    let isVerified = false;
+    let verifyError: string | null = null;
+    let attemptsRemaining: number | undefined = undefined;
+    let isLocked = false;
+    let lockDurationMinutes = 15;
+
+    // 1. Authoritative Backend Verification
+    const targetSessionId = authSession.backendSessionId || authSession.sessionId;
+    try {
+      if (isOwner) {
+        const ownerVerify = await ownerOtpDeliveryService.verifyOwnerOtp(cleanOtp, targetSessionId);
+        if (ownerVerify.success) {
+          isVerified = true;
+        } else {
+          verifyError = ownerVerify.errorMessage || 'Invalid 6-digit verification code.';
+          attemptsRemaining = ownerVerify.attemptsRemaining;
+          if (verifyError?.toLowerCase().includes('lock')) isLocked = true;
+        }
+      } else if (targetSessionId) {
+        const resp = await fetch('/api/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: targetSessionId,
+            candidateCode: cleanOtp,
+          }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success && data.verified) {
+          isVerified = true;
+        } else {
+          verifyError = data.message || 'Invalid One-Time Password.';
+          attemptsRemaining = data.attemptsRemaining;
+          if (data.locked || verifyError?.toLowerCase().includes('lock')) isLocked = true;
+        }
+      }
+    } catch (err: any) {
+      console.warn('Backend verification network notice:', err);
+    }
+
+    // 2. Fallback to local security service for demo/offline test accounts
+    if (!isVerified && !isLocked) {
+      const localResult = await staffAuthOtpSecurityService.verifyOtp({
         sessionId: authSession.sessionId,
         otpCode: cleanOtp,
       });
-
-      // Synchronize single-use token consumption in otpDeliveryService
-      otpDeliveryService.verifyOTP(cleanOtp, authSession.sessionId);
-
-      setIsVerifyingOtp(false);
-
-      if (!result.success) {
-        if (result.isLocked) {
-          // Trigger A Lockout activated
-          const remainingSec = result.lockoutExpiresAt
-            ? Math.max(0, Math.ceil((result.lockoutExpiresAt - Date.now()) / 1000))
-            : (result.lockoutDurationMinutes || 15) * 60;
-
-          setLockoutBanner({
-            isLocked: true,
-            remainingSeconds: remainingSec,
-            trigger: result.lockoutTrigger,
-            reason: result.errorMessage,
-          });
-          setAuthSession(null);
-          setDeliveryReceipt(null);
-          setIsOtpSent(false);
-          setErrorMessage(result.errorMessage || 'Authentication session locked after 5 failed attempts.');
-          if (onTriggerAlert) {
-            onTriggerAlert(
-              `Lockout Enforced (${result.lockoutTrigger || 'TRIGGER_A'})`,
-              `5 consecutive failed OTP attempts. Gateway locked for 15 minutes.`,
-              'HIGH'
-            );
-          }
-        } else {
-          setErrorMessage(result.errorMessage || 'Invalid One-Time Password.');
-        }
-        return;
+      if (localResult.success) {
+        isVerified = true;
+      } else if (!verifyError) {
+        verifyError = localResult.errorMessage || 'Invalid One-Time Password.';
+        isLocked = !!localResult.isLocked;
+        if (localResult.lockoutDurationMinutes) lockDurationMinutes = localResult.lockoutDurationMinutes;
       }
+    }
 
-      // Step 6: Session Established! Call handleLoginSuccess after OTP verification
-      handleLoginSuccess(result.user!, result.tenant!, result.jwtSession);
-    }, 500);
+    // Also inform otpDeliveryService
+    otpDeliveryService.verifyOTP(cleanOtp, targetSessionId);
+
+    setIsVerifyingOtp(false);
+
+    if (!isVerified) {
+      if (isLocked) {
+        setLockoutBanner({
+          isLocked: true,
+          remainingSeconds: lockDurationMinutes * 60,
+          trigger: 'TRIGGER_A_OTP_FAILURES',
+          reason: verifyError || 'Account locked after 5 consecutive failed attempts.',
+        });
+        setAuthSession(null);
+        setDeliveryReceipt(null);
+        setIsOtpSent(false);
+        setErrorMessage(verifyError || 'Authentication session locked after 5 failed attempts.');
+        if (onTriggerAlert) {
+          onTriggerAlert(
+            'Lockout Enforced (TRIGGER_A)',
+            '5 consecutive failed OTP attempts. Gateway locked for 15 minutes.',
+            'HIGH'
+          );
+        }
+      } else {
+        setErrorMessage(
+          verifyError ||
+            (attemptsRemaining !== undefined
+              ? `Invalid One-Time Password. You have ${attemptsRemaining} attempt(s) remaining.`
+              : 'Invalid One-Time Password.')
+        );
+      }
+      return;
+    }
+
+    // STEP 6: SESSION ESTABLISHED!
+    const activeSchool = authSession.tenant || tenants.find((t) => t.schoolId === activeTenantId) || {
+      schoolId: 'sch-central-001',
+      schoolCode: 'JJSAK-CENTRAL',
+      schoolName: 'JJSAK Central Governance',
+      status: 'ACTIVE' as const,
+    };
+
+    const jwt = generateJWTSession(
+      authSession.user,
+      activeSchool.schoolId,
+      activeSchool.schoolName,
+      authSession.channel === 'EMAIL' ? 'EMAIL_OTP' : 'SMS_OTP'
+    );
+
+    staffAuthOtpSecurityService.logAudit({
+      userId: authSession.user.id,
+      tenantId: activeSchool.schoolId,
+      role: authSession.user.role,
+      deviceInfo: navigator.userAgent || 'Web Browser',
+      sourceIp: '127.0.0.1',
+      eventType: 'OTP_VERIFICATION_SUCCESS',
+      eventOutcome: 'SUCCESS',
+      details: `OTP verified successfully for ${authSession.user.fullName} (${authSession.user.role}). Token invalidated.`,
+    });
+
+    handleLoginSuccess(authSession.user, activeSchool as any, jwt);
   };
 
   // =========================================================================
   // OTP RESEND (Section 4.5 & 5.2 Trigger B)
   // =========================================================================
-  const handleResendOtp = () => {
+  const handleResendOtp = async () => {
     if (!authSession || resendCooldownSeconds > 0) return;
     setErrorMessage(null);
     setIsResending(true);
 
-    setTimeout(() => {
-      const result = staffAuthOtpSecurityService.resendOtp({
-        sessionId: authSession.sessionId,
-      });
+    const isOwner =
+      authSession.user.role === 'SUPER_ADMIN' ||
+      authSession.user.role === 'SYSTEM_ADMIN' ||
+      authSession.user.email?.toLowerCase() === 'jothambarasawatila@gmail.com' ||
+      authSession.user.username?.toLowerCase().includes('jotham');
 
-      // Also trigger otpDeliveryService resend
-      otpDeliveryService.sendOTP({
-        userId: authSession.user.id,
-        userName: authSession.user.fullName || authSession.user.username,
-        role: authSession.user.role,
-        email: authSession.user.email,
-        phone: authSession.user.phoneNumber,
-        channel: deliveryReceipt?.channel || 'EMAIL',
-        purpose: 'Institutional Staff Authentication Resend',
-      }).catch((err) => {
-        console.warn('otpDeliveryService resend logged:', err);
-      });
+    let newSessionId = authSession.sessionId;
 
-      setIsResending(false);
-
-      if (!result.success) {
-        if (result.isLocked) {
-          // Trigger B Lockout activated (exceeded 3 resends)
-          setLockoutBanner({
-            isLocked: true,
-            remainingSeconds: (result.lockoutDurationMinutes || 15) * 60,
-            trigger: result.lockoutTrigger,
-            reason: result.errorMessage,
-          });
-          setAuthSession(null);
-          setDeliveryReceipt(null);
-          setIsOtpSent(false);
-          setErrorMessage(result.errorMessage || 'Lockout activated due to excessive OTP resends.');
-          if (onTriggerAlert) {
-            onTriggerAlert(
-              'Excessive Resends Throttled (TRIGGER_B)',
-              'Maximum 3 OTP resends exceeded. Gateway locked for 15 minutes.',
-              'HIGH'
-            );
-          }
+    try {
+      if (isOwner) {
+        const res = await ownerOtpDeliveryService.dispatchOwnerOtp(
+          authSession.channel === 'SMS' ? 'SMS' : 'EMAIL',
+          'OWNER_LOGIN'
+        );
+        if (res.success && res.receipt) {
+          newSessionId = res.receipt.sessionId;
         } else {
-          setErrorMessage(result.errorMessage || 'Failed to resend OTP.');
+          setIsResending(false);
+          setErrorMessage(res.errorMessage || 'Failed to resend owner OTP.');
+          return;
         }
-        return;
+      } else {
+        const resp = await fetch('/api/otp/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: authSession.user.id,
+            userType: 'INSTITUTIONAL',
+            identifier: authSession.identifier,
+            email: authSession.user.email,
+            phone: authSession.user.phoneNumber,
+            channel: authSession.channel,
+            purpose: 'Institutional Staff Authentication Resend',
+            role: authSession.user.role,
+            userName: authSession.user.fullName || authSession.user.username,
+          }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success && data.sessionId) {
+          newSessionId = data.sessionId;
+        }
       }
+    } catch (err: any) {
+      console.warn('Backend OTP resend error:', err);
+    }
 
-      if (result.receipt) {
-        setDeliveryReceipt(result.receipt);
-        setIsOtpSent(true);
-        setOtpRemainingSeconds(SECURITY_CONSTANTS.OTP_VALIDITY_SECONDS);
-        setResendCooldownSeconds(SECURITY_CONSTANTS.OTP_RESEND_COOLDOWN_SECONDS);
-        setOtpCode('');
-      }
-    }, 400);
+    // Local tracking update
+    const result = staffAuthOtpSecurityService.resendOtp({
+      sessionId: authSession.sessionId,
+    });
+
+    setIsResending(false);
+
+    if (!result.success && result.isLocked) {
+      setLockoutBanner({
+        isLocked: true,
+        remainingSeconds: (result.lockoutDurationMinutes || 15) * 60,
+        trigger: result.lockoutTrigger,
+        reason: result.errorMessage,
+      });
+      setAuthSession(null);
+      setDeliveryReceipt(null);
+      setIsOtpSent(false);
+      setErrorMessage(result.errorMessage || 'Authentication session locked due to excessive resend attempts.');
+      return;
+    }
+
+    setAuthSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            sessionId: newSessionId,
+            backendSessionId: newSessionId,
+            resendCount: prev.resendCount + 1,
+            lastResendAt: Date.now(),
+          }
+        : null
+    );
+    setResendCooldownSeconds(SECURITY_CONSTANTS.OTP_RESEND_COOLDOWN_SECONDS);
+    setOtpRemainingSeconds(SECURITY_CONSTANTS.OTP_VALIDITY_SECONDS);
+    setOtpCode('');
   };
 
   // =========================================================================

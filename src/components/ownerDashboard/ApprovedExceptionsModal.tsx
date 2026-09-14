@@ -33,7 +33,7 @@ export const ApprovedExceptionsModal: React.FC<ApprovedExceptionsModalProps> = (
 
   // Form State
   const [category, setCategory] = useState<ExceptionCategory>('TECHNICAL_SUPPORT');
-  const [schoolId, setSchoolId] = useState<string>(tenants[0]?.schoolId || 'sch-ngonyek-001');
+  const [schoolId, setSchoolId] = useState<string>(tenants[0]?.schoolId || '');
   const [ticketRef, setTicketRef] = useState('');
   const [justification, setJustification] = useState('');
   const [authorizedBy, setAuthorizedBy] = useState('Institutional Head & Platform Security Board');
