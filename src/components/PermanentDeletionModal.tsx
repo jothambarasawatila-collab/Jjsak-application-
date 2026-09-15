@@ -16,7 +16,7 @@ interface PermanentDeletionModalProps {
   itemType: string; // e.g. "Learner Assessment Record", "Teacher Profile", "Assessment File"
   currentUserRole: UserRole | string;
   currentUserName: string;
-  onConfirm: (reason: string) => void;
+  onConfirm: (reason: string, mode?: 'PERMANENT' | 'RECYCLE') => void;
   onCancel: () => void;
 }
 
@@ -29,6 +29,7 @@ export const PermanentDeletionModal: React.FC<PermanentDeletionModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const [deleteMode, setDeleteMode] = useState<'PERMANENT' | 'RECYCLE'>('PERMANENT');
   const [confirmText, setConfirmText] = useState('');
   const [reasonText, setReasonText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +56,7 @@ export const PermanentDeletionModal: React.FC<PermanentDeletionModalProps> = ({
       return;
     }
 
-    onConfirm(reasonText.trim());
+    onConfirm(reasonText.trim(), deleteMode);
   };
 
   return (
@@ -115,21 +116,69 @@ export const PermanentDeletionModal: React.FC<PermanentDeletionModalProps> = ({
                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <div className="text-xs">
                   <span className="font-bold block text-amber-900">
-                    Target Record to be Permanently Purged:
+                    Target Record to be Purged:
                   </span>
                   <div className="font-mono text-[11px] font-bold text-slate-900 mt-1 bg-white/80 p-2 rounded-lg border border-amber-200">
                     [{itemType}] {itemTitle}
                   </div>
                   <p className="text-[10px] text-amber-800 mt-1.5 leading-tight">
-                    This action is irreversible. All linked historical CBC formative and summative metrics will be removed.
+                    Authorized executive action under JJSAK Security Protocol Code P1.10.
                   </p>
                 </div>
               </div>
 
-              {/* Step 1: Double Confirmation Text Input */}
+              {/* Deletion Scope Selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  1. Choose Deletion Mode <span className="text-red-600">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteMode('PERMANENT')}
+                    className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col gap-1 ${
+                      deleteMode === 'PERMANENT'
+                        ? 'border-red-600 bg-red-50/80 text-red-900 ring-2 ring-red-500/20 shadow-xs'
+                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-red-700">Permanent Purge</span>
+                      <span className="text-[9px] bg-red-200 text-red-900 font-extrabold px-1 rounded">
+                        Irreversible
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 leading-tight">
+                      Expunge immediately and permanently from portal & database.
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeleteMode('RECYCLE')}
+                    className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col gap-1 ${
+                      deleteMode === 'RECYCLE'
+                        ? 'border-amber-600 bg-amber-50/80 text-amber-900 ring-2 ring-amber-500/20 shadow-xs'
+                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-amber-800">Recycle Bin</span>
+                      <span className="text-[9px] bg-amber-200 text-amber-900 font-extrabold px-1 rounded">
+                        30-Day Safe
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 leading-tight">
+                      Soft-delete to 30-Day Bin with recovery option.
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Step 2: Double Confirmation Text Input */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  1. Double Confirmation <span className="text-red-600">*</span>
+                  2. Double Confirmation <span className="text-red-600">*</span>
                 </label>
                 <p className="text-[10px] text-slate-500 mb-1.5">
                   Type <span className="font-mono font-black text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">DELETE</span> in capital letters to verify your intention:
@@ -151,11 +200,11 @@ export const PermanentDeletionModal: React.FC<PermanentDeletionModalProps> = ({
                 />
               </div>
 
-              {/* Step 2: Mandatory Audit Reason */}
+              {/* Step 3: Mandatory Audit Reason */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-700">
-                    2. Mandatory Audit Reason <span className="text-red-600">*</span>
+                    3. Mandatory Audit Reason <span className="text-red-600">*</span>
                   </label>
                   <span className="text-[10px] text-slate-400 font-mono">
                     {reasonText.trim().length}/10 chars min
@@ -168,7 +217,7 @@ export const PermanentDeletionModal: React.FC<PermanentDeletionModalProps> = ({
                     setReasonText(e.target.value);
                     if (error) setError(null);
                   }}
-                  placeholder="e.g. Duplicate learner entry registered during manual term onboarding."
+                  placeholder="e.g. Duplicate teacher or retired record no longer required in school portal."
                   className={`w-full px-3 py-2 rounded-xl text-xs border transition focus:outline-none ${
                     isReasonValid
                       ? 'border-emerald-500 bg-white text-slate-900'
@@ -207,12 +256,16 @@ export const PermanentDeletionModal: React.FC<PermanentDeletionModalProps> = ({
                   disabled={!canSubmit}
                   className={`py-2.5 px-4 rounded-xl text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-md cursor-pointer ${
                     canSubmit
-                      ? 'bg-[#C51E28] hover:bg-red-700 active:scale-95'
+                      ? deleteMode === 'PERMANENT'
+                        ? 'bg-red-700 hover:bg-red-800 active:scale-95'
+                        : 'bg-amber-600 hover:bg-amber-700 active:scale-95'
                       : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                   }`}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Confirm Delete</span>
+                  <span>
+                    {deleteMode === 'PERMANENT' ? 'Confirm Permanent Purge' : 'Move to Recycle Bin'}
+                  </span>
                 </button>
               </div>
             </form>

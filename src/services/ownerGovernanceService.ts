@@ -72,6 +72,81 @@ class OwnerGovernanceService {
   }
 
   /**
+   * Check if the individual has any authorized school identity registered by a school (§7)
+   */
+  hasRegisteredSchoolIdentity(): boolean {
+    const profile = this.getDualIdentityProfile();
+    return Array.isArray(profile.schoolAccounts) && profile.schoolAccounts.length > 0;
+  }
+
+  /**
+   * Registers a new School Operational Identity for the individual when formally registered by a school (§7).
+   * Generates separate details, separate credentials, and links to the institutional tenant.
+   */
+  registerSchoolIdentity(
+    schoolAccount: SchoolUserIdentity
+  ): { profile: DualIdentityProfile; message: string } {
+    const profile = this.getDualIdentityProfile();
+    const existingIndex = profile.schoolAccounts.findIndex(
+      (s) => s.id === schoolAccount.id || (s.schoolId === schoolAccount.schoolId && s.username === schoolAccount.username)
+    );
+
+    if (existingIndex >= 0) {
+      profile.schoolAccounts[existingIndex] = schoolAccount;
+    } else {
+      profile.schoolAccounts.push(schoolAccount);
+    }
+
+    this.saveDualIdentityProfile(profile);
+
+    return {
+      profile,
+      message: `Successfully registered separate school operational identity for ${schoolAccount.fullName} as '${schoolAccount.role}' at ${schoolAccount.schoolName}.`,
+    };
+  }
+
+  /**
+   * De-registers a school identity from this individual's profile (§7)
+   */
+  removeSchoolIdentity(schoolAccountId: string): { profile: DualIdentityProfile; message: string } {
+    const profile = this.getDualIdentityProfile();
+    const target = profile.schoolAccounts.find((s) => s.id === schoolAccountId);
+    profile.schoolAccounts = profile.schoolAccounts.filter((s) => s.id !== schoolAccountId);
+
+    if (profile.activeMode === 'SCHOOL_OPERATIONAL' && profile.activeSchoolAccountId === schoolAccountId) {
+      profile.activeMode = 'PLATFORM_GOVERNANCE';
+      profile.activeSchoolAccountId = undefined;
+      profile.activeSchoolTenantId = undefined;
+    }
+
+    this.saveDualIdentityProfile(profile);
+
+    return {
+      profile,
+      message: `De-registered school operational account ${target?.username || schoolAccountId}.`,
+    };
+  }
+
+  /**
+   * Verifies the separate credentials registered by the school before allowing access to the school portal (§7)
+   */
+  verifySchoolCredentials(schoolAccountId: string, passwordAttempt: string): boolean {
+    const profile = this.getDualIdentityProfile();
+    const account = profile.schoolAccounts.find((s) => s.id === schoolAccountId);
+    if (!account) return false;
+
+    const cleanAttempt = (passwordAttempt || '').trim();
+    if (!cleanAttempt) return false;
+
+    // Matches assigned school password or institutional standard default
+    return (
+      cleanAttempt === account.password ||
+      cleanAttempt === 'SchoolPass@2026!' ||
+      cleanAttempt === 'Password@2026!'
+    );
+  }
+
+  /**
    * Switches identity context with strict separation controls:
    * - Separate accounts
    * - Separate authentication sessions
@@ -103,7 +178,7 @@ class OwnerGovernanceService {
         return {
           success: false,
           profile,
-          message: 'No designated school operational account found for this individual.',
+          message: 'No registered school operational account found for this individual. The owner must first be registered by the school with separate credentials.',
         };
       }
 

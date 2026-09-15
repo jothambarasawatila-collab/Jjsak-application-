@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import {
   ShieldAlert,
   Building2,
-  Users,
-  GraduationCap,
   CreditCard,
   Activity,
   Layers,
@@ -72,10 +70,6 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
   const activeSchools = tenants.filter((t) => t.status === 'ACTIVE').length;
   const trialOrPendingSchools = tenants.filter((t) => t.status === 'PENDING').length;
   const suspendedSchools = tenants.filter((t) => t.status === 'SUSPENDED' || t.status === 'DISABLED').length;
-
-  // Aggregated system-wide counts (JJSAK-DEPLOY-001 Zero-School state compliant)
-  const systemTotalLearners = totalSchools > 0 ? 1420 : 0;
-  const systemTotalStaff = totalSchools > 0 ? 118 : 0;
 
   // Subscription & Revenue Metrics
   const activeChannels = subscriptionPaymentService.getPublicActivePaymentChannels();
@@ -256,7 +250,7 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
               Registered Schools: 0 • Platform Registration Ready
             </h3>
             <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-              The platform is cleanly deployed with 0 institutions, 0 active tenants, 0 learners, and 0 teachers. As the Platform Owner &amp; Super Administrator, you are the authorized authority to register institutions through the mandatory 5-stage lifecycle.
+              The platform is cleanly deployed with 0 institutions and 0 active tenants. As the Platform Owner &amp; Super Administrator, you are the authorized authority to register institutions through the mandatory 5-stage lifecycle.
             </p>
           </div>
           <button
@@ -319,47 +313,47 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
           </div>
         </div>
 
-        {/* Metric Grid 2: System-Wide Registered Population & Revenue */}
+        {/* Metric Grid 2: Registered Schools & Privacy Boundary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
-                  <GraduationCap className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-red-100 text-red-700 flex items-center justify-center">
+                  <Building2 className="w-4 h-4" />
                 </div>
                 <div>
                   <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight block">
-                    System-Wide Learners
+                    Registered School Accounts
                   </span>
-                  <span className="text-[10px] text-slate-400">Aggregated Cross-School Total</span>
+                  <span className="text-[10px] text-slate-400">Institutional Tenants Directory</span>
                 </div>
               </div>
             </div>
-            <div className="text-2xl font-black text-sky-900">{systemTotalLearners.toLocaleString()}</div>
+            <div className="text-2xl font-black text-slate-900">{totalSchools} <span className="text-xs font-normal text-slate-500">Schools</span></div>
             <div className="text-[11px] text-slate-600 font-medium flex items-center justify-between border-t border-slate-100 pt-2">
-              <span>National CBE Cohort (Grades 7–9)</span>
-              <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded">100% Isolated</span>
+              <span>{activeSchools} Active • {trialOrPendingSchools} Pending</span>
+              <span className="text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded">Isolated Schemas</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2">
+          <div className="bg-white rounded-2xl p-4 border border-amber-200 shadow-xs space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
-                  <Users className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                  <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight block">
-                    System-Wide Staff
+                  <span className="text-[11px] font-black text-amber-800 uppercase tracking-tight block">
+                    Operational Privacy Boundary
                   </span>
-                  <span className="text-[10px] text-slate-400">Teaching &amp; Admin Personnel</span>
+                  <span className="text-[10px] text-amber-600">Teachers &amp; Learners Protected</span>
                 </div>
               </div>
             </div>
-            <div className="text-2xl font-black text-purple-900">{systemTotalStaff.toLocaleString()}</div>
+            <div className="text-2xl font-black text-amber-900">100% Protected</div>
             <div className="text-[11px] text-slate-600 font-medium flex items-center justify-between border-t border-slate-100 pt-2">
-              <span>Registered Educators &amp; Admins</span>
-              <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">RBAC Protected</span>
+              <span>School Operational Autonomy</span>
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">Owner Boundary</span>
             </div>
           </div>
 
@@ -388,9 +382,29 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
             <div className="text-[11px] text-slate-600 font-medium flex items-center justify-between border-t border-slate-100 pt-2">
               <span>Pending Verifications: <strong>{pendingVerifications}</strong></span>
               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                Rate: KSh 300 / Learner
+                Rate: KSh 300 / Active Capacity
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* Multi-Tenant Learner & Teacher Privacy Boundary Notice */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-300 flex items-start gap-3.5 shadow-md">
+          <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 shrink-0">
+            <Lock className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <strong className="text-white font-bold text-xs">
+                Multi-Tenant Data Separation &amp; Privacy Policy (§6 &amp; §7):
+              </strong>
+              <span className="text-[10px] uppercase font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800">
+                School Autonomy Enforced
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              As the Application Owner, your operational portal governs registered school tenants, subscription licensing, and infrastructure security. Individual teacher accounts, staff rosters, and student/learner profiles belong strictly to the autonomous operational domain of each school. The owner does not possess the power to onboard teachers or users under user accounts.
+            </p>
           </div>
         </div>
 

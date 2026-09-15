@@ -200,15 +200,36 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
   const [selectedRoleCategory, setSelectedRoleCategory] = useState<string>('ALL');
   const [expandedRoleKey, setExpandedRoleKey] = useState<string | null>('SUPER_ADMIN');
 
+  // Registered Schools filter in User Accounts tab (Platform Owner View)
+  const [schoolsDirectorySearch, setSchoolsDirectorySearch] = useState('');
+  const [schoolsDirectoryStatus, setSchoolsDirectoryStatus] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'SUSPENDED'>('ALL');
+
   const showNotification = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
 
+  // Filtered Schools for Owner View under User Accounts (Code P2.2 & Policy §6/§7)
+  const filteredSchoolsForOwner = useMemo(() => {
+    return tenants.filter((tenant) => {
+      const matchStatus =
+        schoolsDirectoryStatus === 'ALL' || tenant.status === schoolsDirectoryStatus;
+      const q = schoolsDirectorySearch.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        tenant.schoolName.toLowerCase().includes(q) ||
+        tenant.schoolCode.toLowerCase().includes(q) ||
+        (tenant.tenantDomain && tenant.tenantDomain.toLowerCase().includes(q)) ||
+        (tenant.category && tenant.category.toLowerCase().includes(q));
+      return matchStatus && matchSearch;
+    });
+  }, [tenants, schoolsDirectorySearch, schoolsDirectoryStatus]);
+
   // Filtered Users (Code P2.2 & P2.1.17 Isolation)
+  // Per Policy: The Application Owner cannot see teachers or learners, only registered schools.
   const displayedUsers = useMemo(() => {
     if (isSuperAdmin) {
-      return users;
+      return [];
     }
     return users.filter(
       (u) =>
@@ -293,6 +314,11 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
   // Handle Add User (Code P2.1, P2.2, P2.3 & Policy Sections 4 & 5)
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSuperAdmin) {
+      showNotification('Access Denied: The Platform Owner cannot onboard school users or teachers.');
+      setShowAddUserModal(false);
+      return;
+    }
     if (!newFullName.trim()) {
       showNotification('Please provide the full name of the user.');
       return;
@@ -555,7 +581,7 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
             { id: 'overview', label: 'Security Dashboard', icon: Activity },
             ...(isSuperAdmin ? [{ id: 'governance_isolation', label: 'Governance & Isolation (SCMH 2.X)', icon: Lock }] : []),
             ...(isSuperAdmin ? [{ id: 'tenants', label: 'Multi-School (P2.1)', icon: Building2 }] : []),
-            { id: 'users', label: 'User Accounts (P2.2)', icon: Users },
+            { id: 'users', label: isSuperAdmin ? 'Registered Schools (P2.2)' : 'User Accounts (P2.2)', icon: isSuperAdmin ? Building2 : Users },
             { id: 'rbac', label: 'RBAC Matrix (P2.3)', icon: ShieldCheck },
             { id: 'session_jwt', label: 'JWT & Sessions (P2.4/P2.8)', icon: Key },
             { id: 'password_mfa', label: 'Password & MFA (P2.5/P2.6)', icon: Smartphone },
@@ -619,14 +645,16 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
               <div className="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 flex flex-col justify-between">
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-xs font-bold uppercase tracking-wider">
-                    {isSuperAdmin ? 'Active User Accounts' : 'School Staff Accounts'}
+                    {isSuperAdmin ? 'Registered School Accounts' : 'School Staff Accounts'}
                   </span>
-                  <Users className="w-5 h-5 text-blue-400" />
+                  {isSuperAdmin ? <Building2 className="w-5 h-5 text-blue-400" /> : <Users className="w-5 h-5 text-blue-400" />}
                 </div>
                 <div className="mt-3">
-                  <span className="text-2xl font-black text-white">{displayedUsers.length}</span>
+                  <span className="text-2xl font-black text-white">
+                    {isSuperAdmin ? tenants.length : displayedUsers.length}
+                  </span>
                   <span className="text-xs text-emerald-400 block mt-0.5">
-                    {isSuperAdmin ? 'Platform-Wide Profiles' : 'Assigned Staff Profiles'}
+                    {isSuperAdmin ? 'Isolated Institutional Entities' : 'Assigned Staff Profiles'}
                   </span>
                 </div>
               </div>
@@ -1105,232 +1133,429 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
         )}
 
         {/* ================= TAB: USER ACCOUNTS (P2.2, P2.3 & POLICY P2.1.18) ================= */}
-        {activeTab === 'users' && (() => {
-          const prereq = checkSchoolLeadershipPrerequisites(activeTenantId, users);
-          return (
+        {activeTab === 'users' && (
+          isSuperAdmin ? (
             <div className="flex flex-col gap-5 animate-in fade-in">
-              {/* JJSAK School Registration & Activation Policy Prerequisite Monitor */}
+              {/* Owner Multi-Tenant Privacy & Boundary Notice */}
               <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-5 rounded-3xl border border-slate-700/80 shadow-lg">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-red-950/60 border border-red-800 text-red-400">
+                    <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400">
                       <ShieldCheck className="w-5 h-5" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-red-400 block">
-                        Institutional Governance &amp; Activation Policy (Sections 3 &amp; 8)
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                        Institutional Governance &amp; Multi-Tenant Isolation (§6, §7 &amp; P2.2)
                       </span>
                       <h4 className="text-sm font-bold text-white">
-                        Leadership &amp; Faculty Activation Prerequisites
+                        Registered Schools &amp; Multi-Tenant Account Governance
                       </h4>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <div className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 ${
-                      prereq.canRegisterStudents 
-                        ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800' 
-                        : 'bg-amber-950/60 text-amber-300 border-amber-800'
-                    }`}>
-                      {prereq.canRegisterStudents ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Student Admissions: UNLOCKED</span>
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Student Admissions: LOCKED</span>
-                        </>
-                      )}
+                    <div className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-950/60 text-amber-300 border border-amber-800 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Owner Boundary: Teachers &amp; Learners Protected</span>
                     </div>
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-300 mb-4 leading-relaxed">
-                  Per JJSAK Institutional Policy: The Student Admission and Academic operations remain locked until mandatory leadership accounts are created and activated.
+                <p className="text-xs text-slate-300 mb-3 leading-relaxed">
+                  <strong>Multi-Tenant Privacy Policy:</strong> As Application Owner, your governance authority is positioned at the infrastructure and licensing tier. Teachers, staff rosters, and learner profiles belong strictly to the autonomous operational domain of each school. The owner cannot view individual teachers or learners, nor onboard staff under school user accounts.
                 </p>
 
-                {/* 4 Mandatory Role Checkpoints */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className={`p-3 rounded-2xl border ${
-                    prereq.hasHeadOfInstitution
-                      ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
-                      : 'bg-slate-900/60 border-slate-700/80 text-slate-400'
-                  }`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] font-bold">1. Head of Institution</span>
-                      {prereq.hasHeadOfInstitution ? (
-                        <Check className="w-4 h-4 text-emerald-400" />
-                      ) : (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">REQUIRED</span>
-                      )}
-                    </div>
-                    <p className="text-[10px] opacity-80">Oversees entire school portal &amp; staff</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800">
+                  <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase block">Registered Schools</span>
+                    <span className="text-lg font-black text-white">{tenants.length}</span>
+                    <span className="text-[10px] text-emerald-400 block mt-0.5">Isolated Database Schemas</span>
                   </div>
-
-                  <div className={`p-3 rounded-2xl border ${
-                    prereq.hasDeputyHead
-                      ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
-                      : 'bg-slate-900/60 border-slate-700/80 text-slate-400'
-                  }`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] font-bold">2. Deputy Head</span>
-                      {prereq.hasDeputyHead ? (
-                        <Check className="w-4 h-4 text-emerald-400" />
-                      ) : (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">OPTIONAL</span>
-                      )}
-                    </div>
-                    <p className="text-[10px] opacity-80">Delegated admin &amp; master timetables</p>
+                  <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase block">User Onboarding Privilege</span>
+                    <span className="text-xs font-bold text-amber-300 block mt-1">Delegated to School Heads</span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">Owner Onboarding Prohibited</span>
                   </div>
-
-                  <div className={`p-3 rounded-2xl border ${
-                    prereq.hasDirectorOfAcademics
-                      ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
-                      : 'bg-slate-900/60 border-slate-700/80 text-slate-400'
-                  }`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] font-bold">3. Director of Academics</span>
-                      {prereq.hasDirectorOfAcademics ? (
-                        <Check className="w-4 h-4 text-emerald-400" />
-                      ) : (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">REQUIRED</span>
-                      )}
-                    </div>
-                    <p className="text-[10px] opacity-80">Manages assessments &amp; curriculum</p>
-                  </div>
-
-                  <div className={`p-3 rounded-2xl border ${
-                    prereq.hasActiveTeachers
-                      ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
-                      : 'bg-slate-900/60 border-slate-700/80 text-slate-400'
-                  }`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] font-bold">4. Teachers ({prereq.activeTeachersCount})</span>
-                      {prereq.hasActiveTeachers ? (
-                        <Check className="w-4 h-4 text-emerald-400" />
-                      ) : (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">MIN 1 REQ</span>
-                      )}
-                    </div>
-                    <p className="text-[10px] opacity-80">Enters marks, attendance &amp; rubrics</p>
+                  <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase block">Learners &amp; Teachers Visibility</span>
+                    <span className="text-xs font-bold text-sky-300 block mt-1">Restricted to School Domain</span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">100% Zero-Leakage Guarantee</span>
                   </div>
                 </div>
               </div>
 
+              {/* Registered Schools Directory Header & Controls */}
               <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-800/80 p-5 rounded-3xl border border-slate-700">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-red-400 block">
-                    Code P2.2 &amp; P2.3 User Governance
+                    Institutional Accounts Directory
                   </span>
-                  <h3 className="text-base font-bold text-white">Institutional Staff &amp; User Accounts</h3>
+                  <h3 className="text-base font-bold text-white">Registered Schools on Platform</h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Every user is strictly linked to {activeTenant.schoolName} [{activeTenant.schoolCode}] and assigned one of the approved institutional roles.
+                    Managing {filteredSchoolsForOwner.length} institutional accounts with partitioned database schemas.
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  id="add-user-btn"
-                  onClick={() => setShowAddUserModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white text-xs font-bold shadow-md flex items-center gap-2 transition cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Onboard New Staff / User</span>
-                </button>
+                {/* Explicit notice showing owner CANNOT onboard users */}
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-400 text-xs">
+                  <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Staff &amp; Teacher Onboarding: <strong className="text-amber-300">School Head Only</strong></span>
+                </div>
               </div>
 
-              <div className="bg-slate-800/80 rounded-3xl border border-slate-700 overflow-hidden">
+              {/* Search & Filter Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+                <div className="relative flex-1 min-w-[220px]">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search registered schools by name, code, domain..."
+                    value={schoolsDirectorySearch}
+                    onChange={(e) => setSchoolsDirectorySearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-slate-800/90 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-red-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto">
+                  {(['ALL', 'ACTIVE', 'PENDING', 'SUSPENDED'] as const).map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setSchoolsDirectoryStatus(st)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                        schoolsDirectoryStatus === st
+                          ? 'bg-red-600 text-white shadow-xs'
+                          : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {st === 'ALL' ? 'All Schools' : st}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Registered Schools Table */}
+              <div className="bg-slate-800/80 rounded-3xl border border-slate-700 overflow-hidden shadow-lg">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-900 text-slate-400 uppercase font-mono text-[10px] tracking-wider border-b border-slate-700">
                       <tr>
-                        <th className="p-4">User Details</th>
-                        <th className="p-4">Institutional Role</th>
-                        <th className="p-4">Phone / National ID</th>
-                        <th className="p-4">Activation Status</th>
-                        <th className="p-4">2FA / MFA</th>
-                        <th className="p-4 text-right">Actions</th>
+                        <th className="p-4">School Institution</th>
+                        <th className="p-4">Tenant Domain / Subdomain</th>
+                        <th className="p-4">Category</th>
+                        <th className="p-4">Database Partition</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4 text-right">Governance Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/60 text-slate-300">
-                      {displayedUsers.map((user) => {
-                        const isPrivileged = isMfaRequiredForRole(user.role);
-                        const isPending = user.activationStatus === 'PENDING_ACTIVATION';
+                      {filteredSchoolsForOwner.map((school) => {
+                        const isActive = school.status === 'ACTIVE';
+                        const isPending = school.status === 'PENDING';
                         return (
-                          <tr key={user.id} className="hover:bg-slate-750/50 transition">
+                          <tr key={school.schoolId} className="hover:bg-slate-750/50 transition">
                             <td className="p-4">
-                              <div className="font-bold text-white text-sm">{user.fullName}</div>
-                              <div className="text-slate-400 text-[11px] font-mono">@{user.username} • {user.email}</div>
-                              {user.designation && (
-                                <div className="text-[10px] text-red-300 mt-0.5">{user.designation}</div>
-                              )}
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-slate-700 border border-slate-600 flex items-center justify-center font-black text-white text-xs shrink-0">
+                                  <Building2 className="w-4 h-4 text-red-400" />
+                                </div>
+                                <div>
+                                  <div className="font-bold text-white text-sm">{school.schoolName}</div>
+                                  <div className="text-slate-400 text-[11px] font-mono">
+                                    Code: {school.schoolCode} • ID: {school.schoolId}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-4 font-mono text-[11px]">
+                              <span className="text-sky-300">{school.tenantDomain || `${school.schoolCode.toLowerCase()}.jjsak.internal`}</span>
+                              <div className="text-[10px] text-slate-500">Port 3000 Ingress Proxy</div>
                             </td>
                             <td className="p-4">
-                              <span className="font-bold px-2.5 py-1 rounded-lg bg-slate-700 text-red-300 border border-slate-600">
-                                {user.role}
+                              <span className="font-bold px-2 py-0.5 rounded-md bg-slate-700 text-slate-300 border border-slate-600 text-[10px]">
+                                {school.category || 'JUNIOR_SCHOOL'}
                               </span>
                             </td>
-                            <td className="p-4 font-mono text-[11px] text-slate-300">
-                              <div>{user.phoneNumber || '—'}</div>
-                              <div className="text-[10px] text-slate-500">ID: {user.nationalId || user.employeeNumber || '—'}</div>
+                            <td className="p-4 font-mono text-[11px]">
+                              <span className="text-emerald-400">schema_{school.schoolCode.toLowerCase()}</span>
+                              <div className="text-[10px] text-slate-500">100% Isolated</div>
                             </td>
                             <td className="p-4">
-                              {isPending ? (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 w-fit">
-                                  <Clock className="w-3 h-3" />
-                                  <span>PENDING ACTIVATION</span>
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 w-fit">
+                              {isActive ? (
+                                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 w-fit">
                                   <CheckCircle2 className="w-3 h-3" />
                                   <span>ACTIVE</span>
                                 </span>
-                              )}
-                            </td>
-                            <td className="p-4">
-                              {isPrivileged ? (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center gap-1 w-fit">
-                                  <Fingerprint className="w-3 h-3" />
-                                  <span>{user.mfaMethod || 'Email OTP'}</span>
+                              ) : isPending ? (
+                                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 w-fit">
+                                  <Clock className="w-3 h-3" />
+                                  <span>PENDING SETUP</span>
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-slate-500 font-mono">Optional</span>
+                                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1 w-fit">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  <span>SUSPENDED</span>
+                                </span>
                               )}
                             </td>
                             <td className="p-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenUserInvitation(user)}
-                                  className="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-200 border border-red-800 text-xs font-bold transition cursor-pointer flex items-center gap-1"
-                                >
-                                  <Send className="w-3 h-3" />
-                                  <span>Smart Invitation</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    onLogAudit('USER_MANAGE', `Audited credentials for user ${user.username}.`);
-                                    showNotification(`Audited user ${user.username}`);
-                                  }}
-                                  className="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold transition cursor-pointer"
-                                >
-                                  Inspect
-                                </button>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onLogAudit(
+                                    'SYSTEM_EVENT',
+                                    `Owner ${currentUser?.fullName} inspected tenant isolation boundary for school [${school.schoolName}] (${school.schoolCode}).`
+                                  );
+                                  showNotification(`Audited isolation boundaries for ${school.schoolName}`);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5"
+                              >
+                                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                                <span>Inspect Isolation</span>
+                              </button>
                             </td>
                           </tr>
                         );
                       })}
+                      {filteredSchoolsForOwner.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-slate-400">
+                            No registered schools matching current search criteria.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
             </div>
-          );
-        })()}
+          ) : (() => {
+            const prereq = checkSchoolLeadershipPrerequisites(activeTenantId, users);
+            return (
+              <div className="flex flex-col gap-5 animate-in fade-in">
+                {/* JJSAK School Registration & Activation Policy Prerequisite Monitor */}
+                <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-5 rounded-3xl border border-slate-700/80 shadow-lg">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-red-950/60 border border-red-800 text-red-400">
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-red-400 block">
+                          Institutional Governance &amp; Activation Policy (Sections 3 &amp; 8)
+                        </span>
+                        <h4 className="text-sm font-bold text-white">
+                          Leadership &amp; Faculty Activation Prerequisites
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 ${
+                        prereq.canRegisterStudents 
+                          ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800' 
+                          : 'bg-amber-950/60 text-amber-300 border-amber-800'
+                      }`}>
+                        {prereq.canRegisterStudents ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Student Admissions: UNLOCKED</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Student Admissions: LOCKED</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+                    Per JJSAK Institutional Policy: The Student Admission and Academic operations remain locked until mandatory leadership accounts are created and activated.
+                  </p>
+
+                  {/* 4 Mandatory Role Checkpoints */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className={`p-3 rounded-2xl border ${
+                      prereq.hasHeadOfInstitution
+                        ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
+                        : 'bg-slate-900/60 border-slate-700/80 text-slate-400'
+                    }`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-bold">1. Head of Institution</span>
+                        {prereq.hasHeadOfInstitution ? (
+                          <Check className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">REQUIRED</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] opacity-80">Oversees entire school portal &amp; staff</p>
+                    </div>
+
+                    <div className={`p-3 rounded-2xl border ${
+                      prereq.hasDeputyHead
+                        ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
+                        : 'bg-slate-900/60 border-slate-700/80 text-slate-400'
+                    }`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-bold">2. Deputy Head</span>
+                        {prereq.hasDeputyHead ? (
+                          <Check className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">OPTIONAL</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] opacity-80">Delegated admin &amp; master timetables</p>
+                    </div>
+
+                    <div className={`p-3 rounded-2xl border ${
+                      prereq.hasDirectorOfAcademics
+                        ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
+                        : 'bg-slate-900/60 border-slate-700/80 text-slate-400'
+                    }`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-bold">3. Director of Academics</span>
+                        {prereq.hasDirectorOfAcademics ? (
+                          <Check className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">REQUIRED</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] opacity-80">Manages assessments &amp; curriculum</p>
+                    </div>
+
+                    <div className={`p-3 rounded-2xl border ${
+                      prereq.hasActiveTeachers
+                        ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
+                        : 'bg-slate-900/60 border-slate-700/80 text-slate-400'
+                    }`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-bold">4. Teachers ({prereq.activeTeachersCount})</span>
+                        {prereq.hasActiveTeachers ? (
+                          <Check className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">MIN 1 REQ</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] opacity-80">Enters marks, attendance &amp; rubrics</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-800/80 p-5 rounded-3xl border border-slate-700">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-red-400 block">
+                      Code P2.2 &amp; P2.3 User Governance
+                    </span>
+                    <h3 className="text-base font-bold text-white">Institutional Staff &amp; User Accounts</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Every user is strictly linked to {activeTenant.schoolName} [{activeTenant.schoolCode}] and assigned one of the approved institutional roles.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    id="add-user-btn"
+                    onClick={() => setShowAddUserModal(true)}
+                    className="px-4 py-2.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white text-xs font-bold shadow-md flex items-center gap-2 transition cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Onboard New Staff / User</span>
+                  </button>
+                </div>
+
+                <div className="bg-slate-800/80 rounded-3xl border border-slate-700 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-900 text-slate-400 uppercase font-mono text-[10px] tracking-wider border-b border-slate-700">
+                        <tr>
+                          <th className="p-4">User Details</th>
+                          <th className="p-4">Institutional Role</th>
+                          <th className="p-4">Phone / National ID</th>
+                          <th className="p-4">Activation Status</th>
+                          <th className="p-4">2FA / MFA</th>
+                          <th className="p-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-700/60 text-slate-300">
+                        {displayedUsers.map((user) => {
+                          const isPrivileged = isMfaRequiredForRole(user.role);
+                          const isPending = user.activationStatus === 'PENDING_ACTIVATION';
+                          return (
+                            <tr key={user.id} className="hover:bg-slate-750/50 transition">
+                              <td className="p-4">
+                                <div className="font-bold text-white text-sm">{user.fullName}</div>
+                                <div className="text-slate-400 text-[11px] font-mono">@{user.username} • {user.email}</div>
+                                {user.designation && (
+                                  <div className="text-[10px] text-red-300 mt-0.5">{user.designation}</div>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                <span className="font-bold px-2.5 py-1 rounded-lg bg-slate-700 text-red-300 border border-slate-600">
+                                  {user.role}
+                                </span>
+                              </td>
+                              <td className="p-4 font-mono text-[11px] text-slate-300">
+                                <div>{user.phoneNumber || '—'}</div>
+                                <div className="text-[10px] text-slate-500">ID: {user.nationalId || user.employeeNumber || '—'}</div>
+                              </td>
+                              <td className="p-4">
+                                {isPending ? (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 w-fit">
+                                    <Clock className="w-3 h-3" />
+                                    <span>PENDING ACTIVATION</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 w-fit">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>ACTIVE</span>
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                {isPrivileged ? (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center gap-1 w-fit">
+                                    <Fingerprint className="w-3 h-3" />
+                                    <span>{user.mfaMethod || 'Email OTP'}</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-slate-500 font-mono">Optional</span>
+                                )}
+                              </td>
+                              <td className="p-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenUserInvitation(user)}
+                                    className="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-200 border border-red-800 text-xs font-bold transition cursor-pointer flex items-center gap-1"
+                                  >
+                                    <Send className="w-3 h-3" />
+                                    <span>Smart Invitation</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      onLogAudit('USER_MANAGE', `Audited credentials for user ${user.username}.`);
+                                      showNotification(`Audited user ${user.username}`);
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold transition cursor-pointer"
+                                  >
+                                    Inspect
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()
+        )}
 
         {/* ================= TAB: RBAC MATRIX (P2.3) ================= */}
         {activeTab === 'rbac' && (
@@ -2236,7 +2461,7 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
       )}
 
       {/* ================= MODAL: ADD USER (P2.2, P2.3 & POLICY SECTIONS 4 & 5) ================= */}
-      {showAddUserModal && (
+      {showAddUserModal && !isSuperAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs select-none">
           <div className="bg-slate-900 text-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-700 p-6 flex flex-col gap-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">

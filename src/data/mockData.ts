@@ -185,77 +185,7 @@ export const INITIAL_STUDENTS: Student[] = [];
 
 export const INITIAL_ASSESSMENTS: Assessment[] = [];
 
-export const INITIAL_TEACHERS: Teacher[] = [
-  {
-    id: 'tch-00',
-    schoolId: '',
-    name: 'Mr. Jotham Watila',
-    email: 'jothambarasawatila@gmail.com',
-    role: 'Platform Owner & Senior Educational Specialist',
-    classes: [],
-    subjects: ['Social Studies', 'Pretechnical Studies', 'Creative Arts'],
-    allocations: [],
-    avatarHex: '#C51E28',
-    tscNumber: 'TSC-641890',
-    staffNumber: 'STF-2022-001',
-    nationalId: '28491034',
-    gender: 'Male',
-    dateOfBirth: '1988-04-12',
-    phoneNumber: '+254 741 478 813',
-    physicalAddress: 'Kitale, Trans-Nzoia',
-    emergencyContact: {
-      name: 'Dr. Stella Watila',
-      phone: '+254 722 998 877',
-      relationship: 'Spouse',
-    },
-    dateOfEmployment: '2022-01-10',
-    designation: 'Senior Teacher / Specialist',
-    department: 'Technical & Applied',
-    employmentStatus: 'Permanent & Pensionable',
-    reportingOfficer: 'Ministry of Education',
-    qualification: 'B.Ed (Arts) - Social Sciences & Pretech',
-    academicQualifications: [
-      {
-        id: 'aq-001',
-        degree: 'Bachelor of Education (Arts) - First Class Honours',
-        institution: 'Kenyatta University',
-        year: 2012,
-        gradeOrClass: 'First Class Honours',
-        verified: true,
-      },
-    ],
-    professionalQualifications: [
-      {
-        id: 'pq-001',
-        title: 'TSC Registered Professional Educator',
-        body: 'Teachers Service Commission Kenya',
-        regNumber: 'TSC/641890',
-        year: 2012,
-        status: 'Verified',
-      },
-    ],
-    teachingSubjects: ['Pretechnical Studies', 'Social Studies', 'Creative Arts'],
-    teachingLevels: ['Grade 7', 'Grade 8', 'Grade 9'],
-    professionalCertifications: [],
-    professionalDevelopmentRecords: [],
-    trainingHistory: [],
-    supportingDocuments: [],
-    accountStatus: 'ACTIVE',
-    userId: 'usr-001',
-    mfaEnabled: true,
-    mfaMethod: 'SMS_OTP',
-    passwordCreated: true,
-    active: true,
-    workload: {
-      lessonsPerWeek: 0,
-      standardTarget: 27,
-      status: 'Optimal',
-      totalClassesAssigned: 0,
-      totalStudentsReached: 0,
-    },
-    appraisals: [],
-  },
-];
+export const INITIAL_TEACHERS: Teacher[] = [];
 
 export const AVAILABLE_GRADES = [
   'G7',

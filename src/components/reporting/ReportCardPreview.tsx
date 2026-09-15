@@ -23,7 +23,7 @@ import {
 } from '../../types/reporting';
 
 interface ReportCardPreviewProps {
-  student: Student;
+  student?: Student | null;
   templateType: ReportTemplateType;
   schoolInfo: SchoolInfo;
   schoolProfile?: SchoolProfile;
@@ -53,6 +53,22 @@ export const ReportCardPreview: React.FC<ReportCardPreviewProps> = ({
   includeOfficialStamp,
   showRankings,
 }) => {
+  if (!student) {
+    return (
+      <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-12 text-center space-y-4">
+        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
+          <GraduationCap className="w-8 h-8" />
+        </div>
+        <div>
+          <h4 className="text-base font-bold text-slate-800">No Learner Selected</h4>
+          <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+            Register students in the School Portal to preview authentic CBC Competency-Based Report Cards.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const avg = student.avgScore ?? 68;
   const grade = student.overallGrade || (avg >= 80 ? 'EE' : avg >= 65 ? 'ME' : avg >= 50 ? 'AE' : 'BE');
 

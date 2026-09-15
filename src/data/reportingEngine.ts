@@ -29,9 +29,12 @@ export function generateIntegrityHash(studentId: string, term: string, meanScore
 }
 
 // Generate Default Approval Record
-export function getInitialApprovalRecord(student: Student, term: string): ReportApprovalRecord {
-  const avg = student.avgScore ?? 65;
-  const hash = generateIntegrityHash(student.id, term, avg);
+export function getInitialApprovalRecord(student?: Student | null, term?: string): ReportApprovalRecord {
+  const avg = student?.avgScore ?? 65;
+  const studentId = student?.id || 'learner-default';
+  const admNo = student?.admNo || 'JJSAK-ADM';
+  const termName = term || 'Term 2, 2026';
+  const hash = generateIntegrityHash(studentId, termName, avg);
   return {
     status: 'PUBLISHED',
     verifiedByTeacher: 'Mr. David Mutua (Class Master)',
@@ -44,13 +47,13 @@ export function getInitialApprovalRecord(student: Student, term: string): Report
     isLocked: true,
     lockTimestamp: '2026-08-22T08:30:00Z',
     integrityHash: hash,
-    qrVerificationUrl: `https://jjsak.edu.ke/verify?doc=REPORT&id=${student.admNo}&hash=${hash}`,
+    qrVerificationUrl: `https://jjsak.edu.ke/verify?doc=REPORT&id=${admNo}&hash=${hash}`,
   };
 }
 
 // 7 Core CBC Competencies Evaluation
-export function generateCompetencyEvaluations(student: Student): LearnerCompetencyEvaluation[] {
-  const avg = student.avgScore ?? 68;
+export function generateCompetencyEvaluations(student?: Student | null): LearnerCompetencyEvaluation[] {
+  const avg = student?.avgScore ?? 68;
   const isHigh = avg >= 75;
   const isMedium = avg >= 55;
 
@@ -159,7 +162,8 @@ export function generatePCIEvaluations(): LearnerPCIEvaluation[] {
 }
 
 // Multi-term progression records
-export function generateTermComparisonRecords(student: Student): TermComparisonRecord[] {
+export function generateTermComparisonRecords(student?: Student | null): TermComparisonRecord[] {
+  if (!student) return [];
   const currentAvg = student.avgScore ?? 72;
   return [
     {
@@ -193,9 +197,9 @@ export function generateTermComparisonRecords(student: Student): TermComparisonR
 }
 
 // AI-Powered Academic Intelligence
-export function generateAICompetencyInsight(student: Student): AICompetencyInsight {
-  const avg = student.avgScore ?? 65;
-  const subjects = student.subjects || [];
+export function generateAICompetencyInsight(student?: Student | null): AICompetencyInsight {
+  const avg = student?.avgScore ?? 65;
+  const subjects = student?.subjects || [];
 
   // Identify top subjects
   const sortedSubjects = [...subjects].sort((a, b) => (b.score || 0) - (a.score || 0));

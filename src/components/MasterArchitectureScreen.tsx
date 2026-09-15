@@ -1143,15 +1143,27 @@ export const MasterArchitectureScreen: React.FC<MasterArchitectureScreenProps> =
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Total Learners</span>
-                  <span className="text-xl font-black text-white block mt-0.5">{students.length} Learners</span>
-                  <span className="text-[10px] text-blue-400 font-semibold">NEMIS Enrolled</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">
+                    {currentUser?.role === 'SUPER_ADMIN' ? 'Tenant Databases' : 'Total Learners'}
+                  </span>
+                  <span className="text-xl font-black text-white block mt-0.5">
+                    {currentUser?.role === 'SUPER_ADMIN' ? `${tenants.length} Schemas` : `${students.length} Learners`}
+                  </span>
+                  <span className="text-[10px] text-blue-400 font-semibold">
+                    {currentUser?.role === 'SUPER_ADMIN' ? 'PostgreSQL Partitioned' : 'NEMIS Enrolled'}
+                  </span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Active Staff</span>
-                  <span className="text-xl font-black text-white block mt-0.5">{teachers.length} Teachers</span>
-                  <span className="text-[10px] text-purple-400 font-semibold">TSC Allocated</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">
+                    {currentUser?.role === 'SUPER_ADMIN' ? 'Privacy Boundary' : 'Active Staff'}
+                  </span>
+                  <span className="text-xl font-black text-white block mt-0.5">
+                    {currentUser?.role === 'SUPER_ADMIN' ? '100% Protected' : `${teachers.length} Teachers`}
+                  </span>
+                  <span className="text-[10px] text-purple-400 font-semibold">
+                    {currentUser?.role === 'SUPER_ADMIN' ? 'Learners & Staff Segregated' : 'TSC Allocated'}
+                  </span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">

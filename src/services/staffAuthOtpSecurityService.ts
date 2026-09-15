@@ -331,22 +331,21 @@ export class StaffAuthOtpSecurityService {
         if (matchedUser.schoolId) {
           matchedTenant = params.tenants.find((t) => t.schoolId === matchedUser?.schoolId);
         } else if (matchedUser.role === 'SYSTEM_ADMIN' || matchedUser.role === 'SUPER_ADMIN') {
-          matchedTenant = params.tenants.find((t) => t.schoolId === params.activeTenantId) || params.tenants[0];
-          // Rule §17: Owner does not belong to any school tenant. Virtual platform identity allows login when registered schools = 0
-          if (!matchedTenant) {
-            matchedTenant = {
-              schoolId: 'platform-governance',
-              schoolCode: 'JJSAK-GOV',
-              schoolName: 'JJSAK Platform Governance',
-              subdomain: 'platform-governance',
-              tenantDomain: 'platform-governance.jjsak.internal',
-              category: 'OTHER',
-              address: 'National Platform Core',
-              email: 'governance@jjsak.internal',
-              phone: '+254 741 478 813',
-              status: 'ACTIVE',
-            };
-          }
+          // Rule §17: Application Owner does NOT belong to any school tenant.
+          // The owner can only log in as the platform owner with platform governance tenant,
+          // until registered by a school with separate details to access the school portal.
+          matchedTenant = {
+            schoolId: 'platform-governance',
+            schoolCode: 'JJSAK-GOV',
+            schoolName: 'JJSAK Platform Governance Core',
+            subdomain: 'platform-governance',
+            tenantDomain: 'platform-governance.jjsak.internal',
+            category: 'OTHER',
+            address: 'National Platform Core',
+            email: 'governance@jjsak.internal',
+            phone: '+254 741 478 813',
+            status: 'ACTIVE',
+          };
         }
       }
     }

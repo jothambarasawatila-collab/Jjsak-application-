@@ -1214,6 +1214,19 @@ export function App() {
       setActiveTenantId(account.schoolId);
       localStorage.setItem('jjsak_current_user', JSON.stringify(switchedUser));
       localStorage.setItem('jjsak_active_tenant_id', account.schoolId);
+
+      const targetTenant = tenants.find((t) => t.schoolId === account.schoolId);
+      if (targetTenant) {
+        setSchoolInfo((prev) => ({
+          ...prev,
+          name: targetTenant.schoolName,
+          motto: targetTenant.schoolBranding?.motto || targetTenant.motto || prev.motto,
+          headOfInstitution: targetTenant.administratorDetails?.fullName || prev.headOfInstitution,
+          headTeacher: targetTenant.administratorDetails?.fullName || prev.headTeacher,
+          logoInitial: targetTenant.schoolName.charAt(0) || 'J',
+        }));
+      }
+
       handleLogAudit(
         'DUAL_IDENTITY_SWITCH_TO_SCHOOL',
         `Switched from Platform Owner to School User account: ${account.fullName} (${account.role || account.schoolRole}) at school ${account.schoolName || account.schoolId}.`
@@ -1444,29 +1457,47 @@ export function App() {
       isOpen: true,
       itemTitle,
       itemType,
-      onConfirm: (reason: string) => {
-        // Move item to 30-Day Recycle Bin (Code P2.10)
-        if (rawObject) {
-          const recycleItem = createRecycleBinItem(
-            itemType as any,
-            itemTitle,
-            rawObject,
-            currentUser.fullName,
-            currentUser.role,
-            activeTenantId,
-            reason
+      onConfirm: (reason: string, mode: 'PERMANENT' | 'RECYCLE' = 'PERMANENT') => {
+        if (mode === 'RECYCLE') {
+          // Move item to 30-Day Recycle Bin (Code P2.10)
+          if (rawObject) {
+            const recycleItem = createRecycleBinItem(
+              itemType as any,
+              itemTitle,
+              rawObject,
+              currentUser.fullName,
+              currentUser.role,
+              activeTenantId,
+              reason
+            );
+            setRecycleBin((prev) => [recycleItem, ...prev]);
+          }
+          executeDelete();
+          handleLogAudit(
+            'RECORD_DELETE',
+            `Soft-deleted ${itemType} "${itemTitle}" to 30-day Recycle Bin. Mandatory Reason: ${reason}`,
+            'Active Record',
+            'Recycle Bin'
           );
-          setRecycleBin((prev) => [recycleItem, ...prev]);
+          setDeletionModalState((prev) => ({ ...prev, isOpen: false }));
+          triggerSaveNotification(`✓ Moved to 30-Day Recycle Bin (Can be restored)`);
+        } else {
+          // Permanent Purge (Head of Institution / Super Admin privilege)
+          executeDelete();
+          if (rawObject && rawObject.id) {
+            setRecycleBin((prev) =>
+              prev.filter((r) => r.id !== rawObject.id && (r.originalData as any)?.id !== rawObject.id)
+            );
+          }
+          handleLogAudit(
+            'PERMANENT_PURGE',
+            `Permanently expunged ${itemType} "${itemTitle}" from institutional database by ${currentUser.role} (${currentUser.fullName}). Reason: ${reason}`,
+            'Active Record',
+            'Permanently Purged'
+          );
+          setDeletionModalState((prev) => ({ ...prev, isOpen: false }));
+          triggerSaveNotification(`✓ Permanently deleted "${itemTitle}" from school portal`);
         }
-        executeDelete();
-        handleLogAudit(
-          'RECORD_DELETE',
-          `Soft-deleted ${itemType} "${itemTitle}" to 30-day Recycle Bin. Mandatory Reason: ${reason}`,
-          'Active Record',
-          'Recycle Bin'
-        );
-        setDeletionModalState((prev) => ({ ...prev, isOpen: false }));
-        triggerSaveNotification(`✓ Moved to 30-Day Recycle Bin (Can be restored)`);
       },
     });
   };
@@ -1508,6 +1539,10 @@ export function App() {
   };
 
   const handleAddStudent = (newStudent: Student) => {
+    if (currentUser?.role === 'SUPER_ADMIN') {
+      alert("Access Denied (§6): The Platform Owner cannot register learners. Student admissions are strictly reserved for School Administrators.");
+      return;
+    }
     setStudents((prev) => {
       const merged = [newStudent, ...prev];
       const ranked = calculateStudentRankings(merged);
@@ -1593,6 +1628,10 @@ export function App() {
     newTeacher: Teacher,
     options?: { provisionAccount?: boolean; userRole?: UserRole; sendInvitation?: boolean }
   ) => {
+    if (currentUser?.role === 'SUPER_ADMIN') {
+      alert("Access Denied (§7): The Platform Owner cannot onboard teachers or staff. Staff onboarding is strictly delegated to School Institutional Administrators.");
+      return;
+    }
     setTeachers((prev) => [newTeacher, ...prev]);
 
     if (options?.provisionAccount) {
@@ -1616,6 +1655,28 @@ export function App() {
         const filtered = prev.filter((u) => u.id !== newUser.id && u.username !== newUser.username);
         return [...filtered, newUser];
       });
+
+      // If the individual registered by the school is the platform owner, link dual-identity (§7)
+      if (
+        newTeacher.name.toLowerCase().includes('jotham') ||
+        (newTeacher.email && newTeacher.email.toLowerCase().includes('jothambarasawatila'))
+      ) {
+        const activeTenant = tenants.find((t) => t.schoolId === activeTenantId);
+        ownerGovernanceService.registerSchoolIdentity({
+          id: newUser.id,
+          username: newUser.username,
+          fullName: newUser.fullName,
+          role: newUser.role,
+          schoolId: activeTenantId || 'sch-central-001',
+          schoolName: activeTenant?.schoolName || 'Central Primary School',
+          schoolDomain: activeTenant?.tenantDomain || `${activeTenantId}.jjsak.internal`,
+          designation: newTeacher.designation || `Staff (${newUser.role})`,
+          isDesignatedStaff: true,
+          password: 'Password@2026!',
+          lastLogin: new Date().toISOString(),
+        });
+      }
+
       handleLogAudit(
         'STAFF_ACCOUNT_PROVISIONED',
         `Provisioned unified IAM login for ${newTeacher.name} with role ${options.userRole || 'TEACHER'} in tenant ${activeTenantId}.`,
@@ -2182,11 +2243,12 @@ export function App() {
 
           {currentScreen === 'student_report' && (
             <StudentReportScreen
-              student={selectedStudent}
+              student={selectedStudent || students[0]}
               allStudents={students}
               teachers={teachers}
               activeTenant={tenants.find((t) => t.schoolId === activeTenantId)}
               schoolProfile={schoolProfile}
+              currentUser={currentUser}
               onSelectStudent={(s) => setSelectedStudent(s)}
               onUpdateStudent={handleUpdateStudent}
               onBatchUpdateStudents={handleBatchUpdateStudents}
@@ -2333,6 +2395,10 @@ export function App() {
                 );
               }}
               onAddUser={(newU) => {
+                if (currentUser?.role === 'SUPER_ADMIN') {
+                  alert("Access Denied: The Platform Owner cannot onboard users or teachers under user accounts.");
+                  return;
+                }
                 setUsers((prev) => [newU, ...prev]);
                 localStorage.setItem('jjsak_users', JSON.stringify([newU, ...users]));
               }}
@@ -2905,6 +2971,16 @@ export function App() {
         onClose={() => setIsDualIdentityModalOpen(false)}
         onIdentitySwitched={handleIdentitySwitch}
         onLogAudit={(action, details) => handleLogAudit(action as any, details)}
+        tenants={tenants}
+        onAddUser={(newU) => {
+          setUsers((prev) => [newU, ...prev]);
+          localStorage.setItem('jjsak_users', JSON.stringify([newU, ...users]));
+        }}
+        onLogoutToSchoolLogin={(schoolUsername) => {
+          setIsDualIdentityModalOpen(false);
+          handleLogout();
+          sessionStorage.setItem('jjsak_prefill_username', schoolUsername);
+        }}
       />
 
       {/* Emergency Break-Glass 12-Phase Lifecycle Modal (§10, §11) */}

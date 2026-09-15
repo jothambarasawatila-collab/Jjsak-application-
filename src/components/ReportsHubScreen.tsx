@@ -339,10 +339,11 @@ export const ReportsHubScreen: React.FC<ReportsHubScreenProps> = ({
           <div className="flex items-center gap-3">
             <button
               onClick={onBack}
-              className="p-1.5 rounded-full hover:bg-white/20 transition cursor-pointer"
-              title="Back"
+              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition cursor-pointer flex items-center gap-1.5 text-white font-bold text-xs border border-white/20"
+              title="Return to Dashboard"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Dashboard</span>
             </button>
             <div>
               <div className="flex items-center gap-2">
@@ -529,23 +530,27 @@ export const ReportsHubScreen: React.FC<ReportsHubScreenProps> = ({
                   <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider shrink-0">
                     Learner ({filteredStudents.length}):
                   </span>
-                  {filteredStudents.slice(0, 10).map((st) => (
-                    <button
-                      key={st.id}
-                      onClick={() => {
-                        setSelectedStudentId(st.id);
-                        onSelectStudent?.(st);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                        st.id === activeStudent.id
-                          ? 'bg-indigo-600 text-white shadow-sm'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      <span>{st.name.split(' ')[0]}</span>
-                      <span className="text-[10px] opacity-75 font-mono">({st.avgScore}%)</span>
-                    </button>
-                  ))}
+                  {filteredStudents.length === 0 ? (
+                    <span className="text-xs text-slate-400 italic">No learners enrolled yet</span>
+                  ) : (
+                    filteredStudents.slice(0, 10).map((st) => (
+                      <button
+                        key={st.id}
+                        onClick={() => {
+                          setSelectedStudentId(st.id);
+                          onSelectStudent?.(st);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                          st.id === activeStudent?.id
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        <span>{st.name.split(' ')[0]}</span>
+                        <span className="text-[10px] opacity-75 font-mono">({st.avgScore}%)</span>
+                      </button>
+                    ))
+                  )}
                 </div>
 
                 <div className="relative w-full sm:w-56 shrink-0">

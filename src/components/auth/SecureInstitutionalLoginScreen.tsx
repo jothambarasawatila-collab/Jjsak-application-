@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   ShieldAlert,
   ArrowLeft,
+  GraduationCap,
 } from 'lucide-react';
 import { User, SchoolTenant, JWTSession } from '../../types';
 import { FirstTimeStaffActivationModal } from './FirstTimeStaffActivationModal';
@@ -51,10 +52,30 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
 }) => {
   // JJSAK-AUTH-PORTAL-001 Section 2: Application Launch Display
   // Opens the approved Organisational Profile / Welcome Display first with public info only
-  const [viewMode, setViewMode] = useState<'WELCOME_PROFILE' | 'LOGIN'>('WELCOME_PROFILE');
+  const [viewMode, setViewMode] = useState<'WELCOME_PROFILE' | 'LOGIN'>(() => {
+    try {
+      if (sessionStorage.getItem('jjsak_prefill_username')) {
+        return 'LOGIN';
+      }
+    } catch {
+      // ignore
+    }
+    return 'WELCOME_PROFILE';
+  });
 
   // Step 1: Credential Submission State
-  const [institutionUsername, setInstitutionUsername] = useState('');
+  const [institutionUsername, setInstitutionUsername] = useState(() => {
+    try {
+      const prefill = sessionStorage.getItem('jjsak_prefill_username');
+      if (prefill) {
+        sessionStorage.removeItem('jjsak_prefill_username');
+        return prefill;
+      }
+    } catch {
+      // ignore
+    }
+    return '';
+  });
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -714,6 +735,29 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
                   />
                   <Building2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 </div>
+                {/* Visual Governance Guidance on Identifier */}
+                {institutionUsername.toLowerCase().includes('jotham') && !institutionUsername.includes('.teacher') && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-amber-950/70 border border-amber-800/60 text-[11px] text-amber-200 flex items-start gap-2 animate-in fade-in">
+                    <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block text-amber-300 font-bold">Platform Owner Account</strong>
+                      <span className="text-[10px] text-amber-200/90 leading-tight block mt-0.5">
+                        Authenticates strictly to Platform Governance. School portal access requires separate school-registered credentials.
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {institutionUsername.includes('.teacher') && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60 text-[11px] text-emerald-200 flex items-start gap-2 animate-in fade-in">
+                    <GraduationCap className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block text-emerald-300 font-bold">School Operational Account</strong>
+                      <span className="text-[10px] text-emerald-200/90 leading-tight block mt-0.5">
+                        Authenticating to School Portal using separate credentials registered by the school.
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Password Field */}

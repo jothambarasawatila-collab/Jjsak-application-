@@ -11,7 +11,6 @@ import {
   Share2,
   GraduationCap,
   ShieldCheck,
-  AlertTriangle,
   Eye,
 } from 'lucide-react';
 import { Teacher, AuditActionType, UserRole } from '../types';
@@ -62,9 +61,6 @@ export const TeachersScreen: React.FC<TeachersScreenProps> = ({
   // 360° Dossier Modal State
   const [dossierTeacher, setDossierTeacher] = useState<Teacher | null>(null);
 
-  // Deletion Confirmation
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-
   // Quick Notification
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
@@ -100,14 +96,6 @@ export const TeachersScreen: React.FC<TeachersScreenProps> = ({
       onAddTeacher(teacherData, options);
       showNotification(`✓ Registered ${teacherData.name} into institutional staff database`);
     }
-  };
-
-  const handleDelete = (id: string) => {
-    if (onDeleteTeacher) {
-      onDeleteTeacher(id);
-    }
-    setDeleteConfirmId(null);
-    showNotification('✓ Staff record moved to Recycle Bin');
   };
 
   // KPIs
@@ -519,9 +507,9 @@ export const TeachersScreen: React.FC<TeachersScreenProps> = ({
 
                           <button
                             type="button"
-                            onClick={() => setDeleteConfirmId(t.id)}
-                            className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="Remove Staff Member"
+                            onClick={() => onDeleteTeacher?.(t.id)}
+                            className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Delete Staff Details (Permanent / Recycle Bin Deletion)"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -581,40 +569,6 @@ export const TeachersScreen: React.FC<TeachersScreenProps> = ({
         onOpenMarksEntry={onOpenMarksEntry}
         onLogAudit={onLogAudit}
       />
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center gap-3 text-red-600">
-              <div className="p-2.5 bg-red-50 rounded-xl">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900">Remove Staff Member?</h3>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              This staff member profile will be safely relocated to the 30-Day Recycle Bin and their IAM user account
-              deactivated. You can restore them anytime within 30 days.
-            </p>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmId(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(deleteConfirmId)}
-                className="px-4 py-2 text-xs font-bold bg-red-700 hover:bg-red-800 text-white rounded-lg shadow-xs"
-              >
-                Confirm Removal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

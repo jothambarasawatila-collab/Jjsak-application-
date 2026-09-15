@@ -53,6 +53,7 @@ import {
 } from '../data/mockData';
 import { ScoreConverterModal } from './ScoreConverterModal';
 import { BatchReportGeneratorModal } from './BatchReportGeneratorModal';
+import { StudentPerformanceTrendChart } from './reporting/StudentPerformanceTrendChart';
 
 interface StudentReportScreenProps {
   student: Student;
@@ -95,6 +96,28 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
   );
 
   const isDirector = isDirectorOfAcademics(currentUser);
+
+  if (!student) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 border border-slate-200 shadow-sm">
+          <GraduationCap className="w-12 h-12 text-slate-400 mx-auto" />
+          <h2 className="text-lg font-bold text-slate-800">No Learner Selected</h2>
+          <p className="text-xs text-slate-500">
+            Please return to the dashboard to select or register a learner.
+          </p>
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [showPrintToast, setShowPrintToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('Generating Printable Report Card...');
@@ -630,10 +653,11 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
         <button
           type="button"
           onClick={onBack}
-          className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition cursor-pointer"
-          title="Back"
+          className="px-3 py-1.5 rounded-xl flex items-center gap-1.5 bg-white/10 hover:bg-white/20 active:scale-95 transition cursor-pointer text-white text-xs font-bold border border-white/20"
+          title="Return to Dashboard"
         >
-          <ArrowLeft className="w-5 h-5 text-white" />
+          <ArrowLeft className="w-4 h-4 text-white" />
+          <span className="hidden sm:inline">Back to Dashboard</span>
         </button>
 
         <div className="text-center">
@@ -1002,6 +1026,9 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
             </div>
           </div>
         </div>
+
+        {/* 3.4 Student Performance Trends (Recharts) */}
+        <StudentPerformanceTrendChart student={student} allStudents={allStudents} />
 
         {/* 3.5 CBE Senior School Pathway Profile & Career Guidance */}
         {(() => {
