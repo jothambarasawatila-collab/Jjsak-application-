@@ -57,6 +57,41 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
   onLogAudit,
 }) => {
   const userRole = currentUser?.role || 'ADMIN';
+  const isOwner = userRole === 'SUPER_ADMIN' || userRole === 'SYSTEM_ADMIN';
+
+  if (isOwner) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col p-4 sm:p-8">
+        <div className="max-w-3xl mx-auto w-full mt-8 bg-slate-800/80 border border-slate-700 rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-red-950/60 border border-red-800/80 text-red-400 flex items-center justify-center mx-auto mb-4">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <div className="text-center space-y-2">
+            <span className="text-[11px] font-black uppercase tracking-wider text-red-400">
+              Platform Owner Domain Separation (§1 &amp; §7)
+            </span>
+            <h2 className="text-xl font-bold text-white">Learner Registry Isolated</h2>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
+              As the Platform Owner, you govern registered schools, infrastructure, and institutional tenancies.
+              Under child protection and tenant privacy regulations, individual learner records, bio-data, and assessment grades are strictly confidential to school institutional staff.
+              The Platform Owner cannot view registered learners or teachers.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="px-6 py-2.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white font-bold text-xs transition cursor-pointer shadow-md"
+            >
+              Return to Governance Console
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const canEditParents = userRole === 'ADMIN' || userRole === 'TEACHER' || userRole === 'HEADTEACHER' || userRole === 'DEPUTY_HEADTEACHER';
 
   const [searchTerm, setSearchTerm] = useState('');

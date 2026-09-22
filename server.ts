@@ -78,6 +78,88 @@ async function startServer() {
     }
   });
 
+  // Carrier Virtual Inbox Endpoints for Inboxes & Guaranteed Delivery Validation
+  app.get('/api/carrier/messages', (_req, res) => {
+    try {
+      const messages = backendOtpService.getCarrierMessages();
+      return res.status(200).json({ success: true, messages });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, messages: [], error: err.message });
+    }
+  });
+
+  app.post('/api/carrier/dispatch', async (req, res) => {
+    try {
+      const msg = backendOtpService.recordCarrierMessage(req.body);
+      let liveResult: any = null;
+      // If message contains credentials or OTP, attempt live delivery via configured API keys
+      if (req.body?.otpCode || req.body?.firstTimePassword || req.body?.activationLink) {
+        liveResult = await backendOtpService.dispatchLiveTeacherCredentials({
+          teacherId: req.body.recipientId || 'tch-default',
+          teacherName: req.body.recipientName || 'Teacher',
+          username: req.body.username || (req.body.recipientAddress && req.body.recipientAddress.includes('@') ? req.body.recipientAddress.split('@')[0] : 'teacher'),
+          email: req.body.channel === 'EMAIL' ? req.body.recipientAddress : req.body.email,
+          phoneNumber: req.body.channel !== 'EMAIL' ? req.body.recipientAddress : req.body.phoneNumber,
+          schoolId: req.body.schoolId || 'sch-default',
+          schoolName: req.body.schoolName || 'School',
+          firstTimePassword: req.body.firstTimePassword,
+          otpCode: req.body.otpCode,
+          activationLink: req.body.activationLink,
+          channels: [req.body.channel || 'EMAIL'],
+        }).catch(() => null);
+      }
+      return res.status(200).json({ success: true, message: msg, liveResult });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/teacher/dispatch-live', async (req, res) => {
+    try {
+      const result = await backendOtpService.dispatchLiveTeacherCredentials(req.body);
+      return res.status(200).json({ success: true, ...result });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/carrier/live-status', (_req, res) => {
+    try {
+      const telemetry =
+        typeof (backendOtpService as any).getProviderTelemetry === 'function'
+          ? (backendOtpService as any).getProviderTelemetry()
+          : typeof (backendOtpService as any).getProviderStatus === 'function'
+            ? (backendOtpService as any).getProviderStatus()
+            : {};
+      return res.status(200).json({
+        success: true,
+        keysInstalled: {
+          whatsappMeta: Boolean(process.env.WHATSAPP_BUSINESS_PHONE_ID && process.env.WHATSAPP_BUSINESS_ACCESS_TOKEN),
+          whatsappPhoneId: process.env.WHATSAPP_BUSINESS_PHONE_ID || null,
+          resend: Boolean(process.env.RESEND_API_KEY || process.env.EMAIL_PROVIDER_API_KEY),
+          africasTalking: Boolean(process.env.AFRICASTALKING_API_KEY && process.env.AFRICASTALKING_USERNAME),
+          twilio: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+          smtp: Boolean((process.env.SMTP_HOST || process.env.OWNER_EMAIL) && (process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_USER)),
+          smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+          ownerPhone: process.env.OWNER_PHONE || '0741478813',
+          ownerEmail: process.env.OWNER_EMAIL || 'jothambarasawatila@gmail.com',
+        },
+        telemetry,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.delete('/api/carrier/messages', (_req, res) => {
+    try {
+      backendOtpService.clearCarrierMessages();
+      return res.status(200).json({ success: true, message: 'Carrier messages cleared' });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // 3. Observability Audit Logs (Section 11: Request ID | Channel | Provider ID | Created | Provider Status | Delivery Status | Failure Reason | Retry Count)
   app.get('/api/otp/logs', (_req, res) => {
     try {
@@ -455,7 +537,18 @@ async function startServer() {
   app.get('/api/tenants', (_req, res) => {
     try {
       const tenants = multiTenantStorageService.getAllTenants();
-      return res.status(200).json({ success: true, count: tenants.length, tenants });
+      const deletedTenantIds = multiTenantStorageService.getDeletedTenantIds();
+      return res.status(200).json({ success: true, count: tenants.length, tenants, deletedTenantIds });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 15b. Tenants: Get list of permanently deleted tenant IDs
+  app.get('/api/tenants/deleted', (_req, res) => {
+    try {
+      const deletedTenantIds = multiTenantStorageService.getDeletedTenantIds();
+      return res.status(200).json({ success: true, deletedTenantIds });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }
@@ -498,7 +591,8 @@ async function startServer() {
     try {
       const { tenantId } = req.params;
       const deleted = multiTenantStorageService.deleteTenant(tenantId);
-      return res.status(200).json({ success: true, deleted });
+      const deletedTenantIds = multiTenantStorageService.getDeletedTenantIds();
+      return res.status(200).json({ success: true, deleted, tenantId, deletedTenantIds });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }

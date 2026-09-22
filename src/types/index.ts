@@ -373,6 +373,9 @@ export interface Teacher {
   // PHASE 4 — Account & Security Lifecycle
   accountStatus?: StaffAccountStatus;
   userId?: string;
+  password?: string;
+  firstTimePassword?: string;
+  tempOtp?: string;
   mfaEnabled?: boolean;
   mfaMethod?: 'SMS_OTP' | 'EMAIL_OTP' | 'AUTHENTICATOR_APP';
   activationInvitationSentAt?: string;
@@ -464,7 +467,7 @@ export type UserRole =
 
 export * from './roleGovernance';
 
-export type MfaMethod = 'EMAIL_OTP' | 'SMS_OTP' | 'AUTHENTICATOR_APP';
+export type MfaMethod = 'EMAIL_OTP' | 'SMS_OTP' | 'WHATSAPP_OTP' | 'AUTHENTICATOR_APP';
 
 export type SchoolStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
 
@@ -479,7 +482,7 @@ export type UserActivationStatus =
 
 export interface SchoolAdministratorDetails {
   fullName: string;
-  nationalId: string;
+  nationalId?: string;
   phoneNumber: string;
   emailAddress: string;
 }
@@ -574,10 +577,13 @@ export interface SchoolTenant {
 export interface User {
   id: string;
   schoolId?: string;
+  schoolName?: string;
+  schoolAccountAlias?: string;
   username: string;
   fullName: string;
   email?: string;
   password?: string;
+  firstTimePassword?: string;
   role: UserRole;
   // Learner Account-to-Profile Permanent Relationship (JJSAK Core Section 2)
   learnerId?: string;
@@ -606,6 +612,8 @@ export interface User {
   lastPasswordChange?: number;
   forcePasswordReset?: boolean;
   firstLoginCompleted?: boolean;
+  passwordCreated?: boolean;
+  termsAcceptedAt?: string;
   resendCount?: number;
   lastResendAt?: number;
   failedOtpAttempts?: number;
@@ -661,7 +669,7 @@ export interface JWTSession {
 export interface RecycleBinItem {
   id: string;
   schoolId: string;
-  itemType: 'Learner Record' | 'Assessment Record' | 'Teacher Profile' | 'Report Card Draft' | 'Grading Scheme';
+  itemType: 'Learner Record' | 'Assessment Record' | 'Teacher Profile' | 'Report Card Draft' | 'Grading Scheme' | 'School Registration';
   itemTitle: string;
   deletedBy: string;
   deletedByRole: UserRole;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   ActiveScreen,
   BottomNavTab,
@@ -11,6 +11,7 @@ import {
   SubscriptionActivation,
   User,
   SchoolTenant,
+  SchoolStatus,
   AuditLogEntry,
   AuditActionType,
   RecycleBinItem,
@@ -133,6 +134,9 @@ import { FirstTimeStaffActivationModal } from './components/auth/FirstTimeStaffA
 import { InstitutionalRoleGovernanceModal } from './components/security/InstitutionalRoleGovernanceModal';
 import { SelfServiceRoleIntegrityModal } from './components/security/SelfServiceRoleIntegrityModal';
 import { SecureInstitutionalLoginScreen } from './components/auth/SecureInstitutionalLoginScreen';
+import { SimulatedCarrierInboxModal } from './components/auth/SimulatedCarrierInboxModal';
+import { TeacherValidationAndActivationModal } from './components/auth/TeacherValidationAndActivationModal';
+import { SchoolOnboardingActivationModal } from './components/auth/SchoolOnboardingActivationModal';
 import { institutionalRoleGovernanceService } from './services/institutionalRoleGovernanceService';
 import { masterAuthorizationService } from './services/masterAuthorizationService';
 import { createAuditLog, generateJWTSession, createRecycleBinItem } from './utils/securityEngine';
@@ -154,6 +158,95 @@ import {
   AUTHORIZED_PLATFORM_OWNER,
   CLEAN_PLATFORM_INFO,
 } from './services/cleanDeploymentService';
+import { carrierInboxService } from './services/carrierInboxService';
+import { tenantDataSyncService } from './services/tenantDataSyncService';
+
+// Registered Institutions: Yuya Primary School and Ngonyek Junior School
+const INITIAL_ONBOARDED_SCHOOLS: SchoolTenant[] = [
+  {
+    schoolId: 'sch-yuya-30200',
+    schoolCode: 'YPS-30200',
+    schoolName: 'Yuya Primary School',
+    category: 'PRIMARY',
+    subdomain: 'yuya',
+    tenantDomain: 'yuya.jjsak.edu.ke',
+    registrationNumber: 'MOE/PRI/30200/YUYA',
+    address: 'Sirende Ward, Off Kitale-Webuye Highway, P.O. Box 450 - 30200, Kitale',
+    phone: '+254 741 478 813',
+    email: 'info@yuya.sc.ke',
+    officialEmail: 'info@yuya.sc.ke',
+    status: 'ACTIVE',
+    createdAt: '2026-03-01',
+    administratorDetails: {
+      fullName: 'Headteacher (Yuya Primary School)',
+      phoneNumber: '+254 741 478 813',
+      emailAddress: 'head@yuya.sc.ke',
+    },
+  },
+  {
+    schoolId: 'sch-ngonyek-30200',
+    schoolCode: 'NJS-30200',
+    schoolName: 'Ngonyek Junior School',
+    category: 'JUNIOR',
+    subdomain: 'ngonyek',
+    tenantDomain: 'ngonyek.jjsak.edu.ke',
+    registrationNumber: 'MOE/JS/30200/NGONYEK',
+    address: 'Ngonyek Centre, Sirende Ward, Kiminini, P.O. Box 450 - 30200, Kitale',
+    phone: '+254 741 478 813',
+    email: 'info@ngonyek.sc.ke',
+    officialEmail: 'info@ngonyek.sc.ke',
+    status: 'ACTIVE',
+    createdAt: '2026-03-01',
+    administratorDetails: {
+      fullName: 'Principal (Ngonyek Junior School)',
+      phoneNumber: '+254 741 478 813',
+      emailAddress: 'head@ngonyek.sc.ke',
+    },
+  },
+];
+
+const INITIAL_ONBOARDED_HEAD_USERS: User[] = [
+  {
+    id: 'usr-head-yuya-30200',
+    schoolId: 'sch-yuya-30200',
+    schoolName: 'Yuya Primary School',
+    fullName: 'Headteacher (Yuya Primary School)',
+    username: 'head.yuya',
+    email: 'head@yuya.sc.ke',
+    phoneNumber: '+254 741 478 813',
+    role: 'HEAD',
+    designation: 'Head of Institution',
+    password: 'Password@2026!',
+    firstTimePassword: 'Password@2026!',
+    schoolAccountAlias: 'yuya@jjsak',
+    active: true,
+    mfaEnabled: true,
+    mfaMethod: 'SMS_OTP',
+    firstLoginCompleted: false,
+    activationStatus: 'PENDING_ACTIVATION',
+    employeeNumber: 'TSC-241890',
+  },
+  {
+    id: 'usr-head-ngonyek-30200',
+    schoolId: 'sch-ngonyek-30200',
+    schoolName: 'Ngonyek Junior School',
+    fullName: 'Principal (Ngonyek Junior School)',
+    username: 'head.ngonyek',
+    email: 'head@ngonyek.sc.ke',
+    phoneNumber: '+254 741 478 813',
+    role: 'HEAD',
+    designation: 'Head of Institution / Principal',
+    password: 'Password@2026!',
+    firstTimePassword: 'Password@2026!',
+    schoolAccountAlias: 'ngonyek@jjsak',
+    active: true,
+    mfaEnabled: true,
+    mfaMethod: 'SMS_OTP',
+    firstLoginCompleted: false,
+    activationStatus: 'PENDING_ACTIVATION',
+    employeeNumber: 'TSC-319804',
+  },
+];
 import {
   Smartphone,
   Laptop,
@@ -171,6 +264,7 @@ import {
   GraduationCap,
   Building2,
   ArrowRightLeft,
+  Inbox,
 } from 'lucide-react';
 
 export function App() {
@@ -194,6 +288,23 @@ export function App() {
   const [isFirstTimeActivationModalOpen, setIsFirstTimeActivationModalOpen] = useState(false);
   const [isRoleGovernanceModalOpen, setIsRoleGovernanceModalOpen] = useState(false);
   const [isSelfServiceIntegrityModalOpen, setIsSelfServiceIntegrityModalOpen] = useState(false);
+  const [isCarrierInboxOpen, setIsCarrierInboxOpen] = useState(false);
+  const [isTeacherValidationOpen, setIsTeacherValidationOpen] = useState(false);
+  const [teacherValidationParams, setTeacherValidationParams] = useState<{
+    otp?: string;
+    username?: string;
+    schoolId?: string;
+    password?: string;
+  }>({});
+  const [isSchoolActivationOpen, setIsSchoolActivationOpen] = useState(false);
+  const [schoolActivationParams, setSchoolActivationParams] = useState<{
+    schoolId?: string;
+    schoolName?: string;
+    registrationNumber?: string;
+    schoolAccount?: string;
+    otp?: string;
+    temporaryPassword?: string;
+  }>({});
 
   // Owner Governance, Boundary Protection & Emergency Modals
   const [isOwnerBoundaryModalOpen, setIsOwnerBoundaryModalOpen] = useState(false);
@@ -261,72 +372,211 @@ export function App() {
   });
 
   const [users, setUsers] = useState<User[]>(() => {
+    const deletedIds = tenantDataSyncService.getDeletedTenantIds();
+    const deletedSet = new Set(deletedIds);
+    const initialHeadUsers = INITIAL_ONBOARDED_HEAD_USERS.filter(
+      (iu) => !iu.schoolId || !deletedSet.has(iu.schoolId)
+    );
     const saved = localStorage.getItem('jjsak_users');
-    let baseList = INITIAL_USERS;
+    let baseList = [...INITIAL_USERS, ...initialHeadUsers];
     if (saved) {
       try {
         const parsed: User[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((u) => u.id));
-          baseList = [...parsed];
-          INITIAL_USERS.forEach((iu) => {
-            if (!existingIds.has(iu.id)) {
+          const filteredParsed = parsed.filter((u) => !u.schoolId || !deletedSet.has(u.schoolId));
+          const existingIds = new Set(filteredParsed.map((u) => u.id));
+          baseList = [...filteredParsed];
+          [...INITIAL_USERS, ...initialHeadUsers].forEach((iu) => {
+            if (!existingIds.has(iu.id) && (!iu.schoolId || !deletedSet.has(iu.schoolId))) {
               baseList.push(iu);
             }
           });
         }
       } catch {
-        baseList = INITIAL_USERS;
+        baseList = [...INITIAL_USERS, ...initialHeadUsers];
       }
     }
-    return baseList.map((u) => {
-      if (u.role === 'SYSTEM_ADMIN' || u.role === 'SUPER_ADMIN' || u.id === 'usr-001') {
-        return {
-          ...u,
-          schoolId: undefined,
-          employeeNumber: undefined,
-          designation: 'Platform Owner & Super Administrator',
-          fullName: 'Jotham Barasa Watila',
-          email: 'jothambarasawatila@gmail.com',
-          username: 'jotham Watila',
-          phoneNumber: '+254741478813 / +254100559811',
-          password: '299991jB@#2026',
-          mfaEnabled: true,
-        };
-      }
-      return u;
-    });
+    const finalUsers = baseList
+      .filter((u) => !u.schoolId || !deletedSet.has(u.schoolId))
+      .map((u) => {
+        if (u.role === 'SYSTEM_ADMIN' || u.role === 'SUPER_ADMIN' || u.id === 'usr-001') {
+          return {
+            ...u,
+            schoolId: undefined,
+            employeeNumber: undefined,
+            designation: 'Platform Owner & Super Administrator',
+            fullName: 'Jotham Barasa Watila',
+            email: 'jothambarasawatila@gmail.com',
+            username: 'jotham Watila',
+            phoneNumber: '+254741478813 / +254100559811',
+            password: '299991jB@#2026',
+            mfaEnabled: true,
+          };
+        }
+        return u;
+      });
+    try {
+      localStorage.setItem('jjsak_users', JSON.stringify(finalUsers));
+    } catch {}
+    return finalUsers;
   });
 
   // Multi-School Tenancy (Code P2.1 & P2.11)
   const [tenants, setTenants] = useState<SchoolTenant[]>(() => {
+    const deletedIds = tenantDataSyncService.getDeletedTenantIds();
+    const deletedSet = new Set(deletedIds);
+    const defaultSchools = [...INITIAL_ONBOARDED_SCHOOLS, ...DEFAULT_TENANT_SCHOOLS].filter(
+      (s) => !deletedSet.has(s.schoolId)
+    );
     const saved = localStorage.getItem('jjsak_tenants');
-    if (!saved) return DEFAULT_TENANT_SCHOOLS;
+    if (!saved) return defaultSchools;
     try {
       const parsed: SchoolTenant[] = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const existingIds = new Set(parsed.map((t) => t.schoolId));
-        const merged = [...parsed];
-        DEFAULT_TENANT_SCHOOLS.forEach((dt) => {
-          if (!existingIds.has(dt.schoolId)) {
+      if (Array.isArray(parsed)) {
+        if (parsed.length === 0 && cleanDeploymentService.isCleanDeploymentInitialized()) {
+          return [];
+        }
+        const filteredParsed = parsed.filter((t) => t && t.schoolId && !deletedSet.has(t.schoolId));
+        const existingIds = new Set(filteredParsed.map((t) => t.schoolId));
+        const merged = [...filteredParsed];
+        defaultSchools.forEach((dt) => {
+          if (!deletedSet.has(dt.schoolId) && !existingIds.has(dt.schoolId)) {
             merged.push(dt);
-          } else {
+          } else if (existingIds.has(dt.schoolId)) {
             const idx = merged.findIndex((m) => m.schoolId === dt.schoolId);
-            if (idx !== -1 && !merged[idx].subdomain) {
-              merged[idx] = { ...merged[idx], subdomain: dt.subdomain, tenantDomain: dt.tenantDomain };
+            if (idx !== -1) {
+              merged[idx] = {
+                ...dt,
+                ...merged[idx],
+                status: (merged[idx].status as SchoolStatus) || dt.status,
+                administratorDetails: merged[idx].administratorDetails || dt.administratorDetails,
+                subdomain: merged[idx].subdomain || dt.subdomain,
+                tenantDomain: merged[idx].tenantDomain || dt.tenantDomain,
+                registrationNumber: merged[idx].registrationNumber || dt.registrationNumber,
+              };
             }
           }
         });
-        return merged;
+        const finalTenants = merged.filter((t) => !deletedSet.has(t.schoolId));
+        try {
+          localStorage.setItem('jjsak_tenants', JSON.stringify(finalTenants));
+        } catch {}
+        return finalTenants;
       }
-      return DEFAULT_TENANT_SCHOOLS;
+      return defaultSchools;
     } catch {
-      return DEFAULT_TENANT_SCHOOLS;
+      return defaultSchools;
     }
   });
+
+  // Cross-Session Persistence: Sync school tenants with backend authoritative store & listen to real-time events
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const fullData = await tenantDataSyncService.fetchTenantsFull();
+        if (!isMounted) return;
+        const deletedSet = new Set(fullData.deletedTenantIds);
+        const serverTenants = fullData.tenants.filter((st) => !deletedSet.has(st.schoolId));
+
+        setTenants((prev) => {
+          const safePrev = prev.filter((p) => !deletedSet.has(p.schoolId));
+          const serverMap = new Map(serverTenants.map((st) => [st.schoolId, st]));
+          const merged = safePrev.map((localT) => {
+            const serverT = serverMap.get(localT.schoolId);
+            if (serverT && serverT.status) {
+              return {
+                ...localT,
+                status: serverT.status as SchoolStatus,
+              };
+            }
+            return localT;
+          });
+          const localIds = new Set(safePrev.map((t) => t.schoolId));
+          serverTenants.forEach((st) => {
+            if (!localIds.has(st.schoolId)) {
+              merged.push(st as SchoolTenant);
+            }
+          });
+          const finalResult = merged.filter((t) => !deletedSet.has(t.schoolId));
+          try {
+            localStorage.setItem('jjsak_tenants', JSON.stringify(finalResult));
+          } catch (e) {
+            console.warn('Failed to update localStorage with server tenants', e);
+          }
+          return finalResult;
+        });
+
+        // Purge users belonging to deleted schools
+        setUsers((prev) => {
+          const safeUsers = prev.filter((u) => !u.schoolId || !deletedSet.has(u.schoolId));
+          try {
+            localStorage.setItem('jjsak_users', JSON.stringify(safeUsers));
+          } catch {}
+          return safeUsers;
+        });
+      } catch (e) {
+        console.warn('Initial server tenant sync failed, continuing with local storage:', e);
+      }
+    })();
+
+    // Real-time synchronization listeners across tabs, windows, and platforms
+    const unsubscribeDeleted = tenantDataSyncService.onTenantDeleted((deletedSchoolId) => {
+      if (!isMounted) return;
+      setTenants((prev) => {
+        const remaining = prev.filter((t) => t.schoolId !== deletedSchoolId);
+        try {
+          localStorage.setItem('jjsak_tenants', JSON.stringify(remaining));
+        } catch {}
+        return remaining;
+      });
+      setUsers((prev) => {
+        const remainingUsers = prev.filter((u) => u.schoolId !== deletedSchoolId);
+        try {
+          localStorage.setItem('jjsak_users', JSON.stringify(remainingUsers));
+        } catch {}
+        return remainingUsers;
+      });
+      setActiveTenantId((prevId) => {
+        if (prevId === deletedSchoolId) {
+          localStorage.removeItem('jjsak_active_tenant_id');
+          return '';
+        }
+        return prevId;
+      });
+    });
+
+    const unsubscribeSaved = tenantDataSyncService.onTenantSaved((savedTenant) => {
+      if (!isMounted) return;
+      setTenants((prev) => {
+        const exists = prev.some((t) => t.schoolId === savedTenant.schoolId);
+        const updated = exists
+          ? prev.map((t) => (t.schoolId === savedTenant.schoolId ? savedTenant : t))
+          : [savedTenant, ...prev];
+        try {
+          localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribeDeleted();
+      unsubscribeSaved();
+    };
+  }, []);
+
   const [activeTenantId, setActiveTenantId] = useState<string>(() => {
+    const deletedSet = new Set(tenantDataSyncService.getDeletedTenantIds());
     const saved = localStorage.getItem('jjsak_active_tenant_id');
-    return saved || (DEFAULT_TENANT_SCHOOLS[0]?.schoolId || '');
+    if (saved && !deletedSet.has(saved)) {
+      return saved;
+    }
+    const defaultSchools = [...INITIAL_ONBOARDED_SCHOOLS, ...DEFAULT_TENANT_SCHOOLS].filter(
+      (s) => !deletedSet.has(s.schoolId)
+    );
+    return defaultSchools[0]?.schoolId || '';
   });
 
   // JJSAK-AUTH-SEC-001: Hide Institution Identity Until Authentication
@@ -657,6 +907,53 @@ export function App() {
     }
 
     return (teacherList || []).map((t) => {
+      let assignedSchoolId = t.schoolId;
+      if (!assignedSchoolId) {
+        const lowerEmail = (t.email || '').toLowerCase();
+        const lowerName = (t.name || '').toLowerCase();
+        if (lowerEmail.includes('ngonyek') || lowerName.includes('ngonyek')) {
+          assignedSchoolId = 'sch-ngonyek-30200';
+        } else if (lowerEmail.includes('yuya') || lowerName.includes('yuya')) {
+          assignedSchoolId = 'sch-yuya-30200';
+        } else {
+          try {
+            const rawUsers = localStorage.getItem('jjsak_users');
+            if (rawUsers) {
+              const uList = JSON.parse(rawUsers);
+              const matched = uList.find(
+                (u: any) =>
+                  (u.id && (u.id === t.userId || u.id === t.id)) ||
+                  (u.email && u.email.toLowerCase() === lowerEmail) ||
+                  (u.fullName && u.fullName.toLowerCase() === lowerName) ||
+                  (u.username && lowerEmail.startsWith(u.username.toLowerCase()))
+              );
+              if (matched && matched.schoolId) {
+                assignedSchoolId = matched.schoolId;
+              }
+            }
+          } catch {
+            // ignore
+          }
+          if (!assignedSchoolId) {
+            try {
+              const rawOtps = localStorage.getItem('jjsak_carrier_active_otps');
+              if (rawOtps) {
+                const otpObj = JSON.parse(rawOtps);
+                const rec =
+                  otpObj[t.id?.toLowerCase()] ||
+                  otpObj[t.email?.toLowerCase()] ||
+                  (t.email ? otpObj[t.email.split('@')[0]?.toLowerCase()] : null);
+                if (rec && rec.schoolId) {
+                  assignedSchoolId = rec.schoolId;
+                }
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+
       const cleanedSubjects = Array.from(
         new Set(
           (t.subjects || []).map((sub) => {
@@ -696,6 +993,7 @@ export function App() {
 
       return {
         ...t,
+        schoolId: assignedSchoolId,
         classes: derivedClasses.length > 0 ? derivedClasses : (t.classes || ['G8 S']),
         subjects: derivedSubjects.length > 0 ? derivedSubjects : cleanedSubjects,
         allocations,
@@ -704,6 +1002,65 @@ export function App() {
   });
 
   const [selectedStudent, setSelectedStudent] = useState<Student>(students[0]);
+
+  // Effective Active School Tenant ID (Strict RBAC & Tenant Isolation Policy)
+  const effectiveTenantId =
+    currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SYSTEM_ADMIN'
+      ? activeTenantId || ''
+      : currentUser?.schoolId || activeTenantId || '';
+
+  // Multi-Tenant Isolation Layer: Strict Data Partitioning Policy
+  // Guarantees absolute isolation so no data belonging to any school will be visible on another school portal
+  const isolatedTeachers = useMemo(() => {
+    if (!effectiveTenantId) return teachers;
+    return teachers.filter((t) => {
+      if (t.schoolId) {
+        return t.schoolId === effectiveTenantId;
+      }
+      if (
+        effectiveTenantId === 'sch-yuya-30200' &&
+        ((t.email || '').toLowerCase().includes('yuya') || (t.name || '').toLowerCase().includes('yuya'))
+      ) {
+        return true;
+      }
+      if (
+        effectiveTenantId === 'sch-ngonyek-30200' &&
+        ((t.email || '').toLowerCase().includes('ngonyek') || (t.name || '').toLowerCase().includes('ngonyek'))
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }, [teachers, effectiveTenantId]);
+
+  const isolatedStudents = useMemo(() => {
+    if (!effectiveTenantId) return students;
+    return students.filter((s) => !s.schoolId || s.schoolId === effectiveTenantId);
+  }, [students, effectiveTenantId]);
+
+  const isolatedAssessments = useMemo(() => {
+    if (!effectiveTenantId) return assessments;
+    return assessments.filter((a) => !a.schoolId || a.schoolId === effectiveTenantId);
+  }, [assessments, effectiveTenantId]);
+
+  const isolatedUsers = useMemo(() => {
+    if (!effectiveTenantId) return users;
+    if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.role !== 'SYSTEM_ADMIN') {
+      return users.filter(
+        (u) => u.schoolId === effectiveTenantId || u.role === 'SUPER_ADMIN' || u.role === 'SYSTEM_ADMIN'
+      );
+    }
+    return users;
+  }, [users, effectiveTenantId, currentUser?.role]);
+
+  // Keep selectedStudent scoped to the current school's students
+  useEffect(() => {
+    if (isolatedStudents.length > 0) {
+      if (!selectedStudent || (selectedStudent.schoolId && selectedStudent.schoolId !== effectiveTenantId)) {
+        setSelectedStudent(isolatedStudents[0]);
+      }
+    }
+  }, [effectiveTenantId, isolatedStudents, selectedStudent]);
 
   // Sync to localStorage with Real-time Save Status
   const triggerSaveNotification = (msg: string = '✓ Changes Saved to Local Storage') => {
@@ -878,6 +1235,90 @@ export function App() {
   useEffect(() => {
     localStorage.setItem('jjsak_academic_audit_logs', JSON.stringify(academicAuditLogs));
   }, [academicAuditLogs]);
+
+  // Automated Onboarding Credentials Dispatch & Sync for Registered Institutions
+  useEffect(() => {
+    // 1. Sync messages from backend carrier inbox
+    carrierInboxService.syncWithBackend();
+
+    const deletedIds = tenantDataSyncService.getDeletedTenantIds();
+    const deletedSet = new Set(deletedIds);
+
+    // 2. Ensure non-deleted initial onboarded schools have dispatched carrier messages
+    INITIAL_ONBOARDED_SCHOOLS.forEach((sch) => {
+      if (!deletedSet.has(sch.schoolId)) {
+        carrierInboxService.ensureDispatchedForSchool(sch);
+      }
+    });
+
+    // 3. For any other tenant in state that is not deleted, also ensure credentials dispatched
+    tenants.forEach((t) => {
+      if (!deletedSet.has(t.schoolId)) {
+        carrierInboxService.ensureDispatchedForSchool(t);
+      }
+    });
+
+    // 4. URL Hash & Parameter listener for automated portal activation links
+    const handleCheckActivationUrl = () => {
+      try {
+        const hash = window.location.hash || '';
+        if (hash.startsWith('#activate-teacher')) {
+          const queryString = hash.includes('?') ? hash.split('?')[1] : '';
+          const params = new URLSearchParams(queryString);
+          const user = params.get('user') || params.get('username') || '';
+          const school = params.get('school') || params.get('schoolId') || '';
+          const otp = params.get('otp') || '';
+          const pwd = params.get('pwd') || params.get('password') || '';
+
+          const otpRecord = user ? carrierInboxService.getLatestOtpForUser(user) : null;
+          const finalOtp = otp || otpRecord?.otp || '';
+          const finalPwd = pwd || (user ? carrierInboxService.getLatestFirstTimePasswordForUser(user) : '') || '';
+
+          setTeacherValidationParams({
+            otp: finalOtp,
+            username: user,
+            schoolId: school,
+            password: finalPwd,
+          });
+          setIsTeacherValidationOpen(true);
+        } else if (hash.startsWith('#activate-school') || hash.startsWith('#activate')) {
+          const queryString = hash.includes('?') ? hash.split('?')[1] : '';
+          const params = new URLSearchParams(queryString);
+          const schoolParam = params.get('school') || params.get('schoolId') || '';
+          const regNo = params.get('regNo') || '';
+          const account = params.get('account') || '';
+          const otp = params.get('otp') || '';
+          const pwd = params.get('pwd') || '';
+
+          // Match school
+          const matched = tenants.find(
+            (t) =>
+              t.subdomain?.toLowerCase() === schoolParam.toLowerCase() ||
+              t.schoolId.toLowerCase() === schoolParam.toLowerCase() ||
+              t.schoolCode.toLowerCase() === schoolParam.toLowerCase()
+          );
+
+          if (matched) {
+            setSchoolActivationParams({
+              schoolId: matched.schoolId,
+              schoolName: matched.schoolName,
+              registrationNumber: regNo || matched.registrationNumber || '',
+              schoolAccount: account || `${matched.subdomain || matched.schoolCode.toLowerCase()}@jjsak`,
+              otp: otp || carrierInboxService.getLatestOtpForSchool(matched.schoolId) || '',
+              temporaryPassword: pwd || carrierInboxService.getFirstTimePasswordForSchool(matched.schoolId) || 'Password@2026!',
+            });
+            setIsSchoolActivationOpen(true);
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing activation URL:', e);
+      }
+    };
+
+    handleCheckActivationUrl();
+    window.addEventListener('hashchange', handleCheckActivationUrl);
+    return () => window.removeEventListener('hashchange', handleCheckActivationUrl);
+  }, [tenants]);
 
   // Phase 7 Audit Logger
   const handleLogAcademicAudit = (
@@ -1152,9 +1593,49 @@ export function App() {
   const handleLogout = () => {
     try {
       sessionStorage.removeItem('jjsak_session_authenticated');
+      sessionStorage.removeItem('jjsak_auth_session');
+      sessionStorage.removeItem('jjsak_prefill_username');
     } catch {
       // ignore
     }
+
+    // Mandatory Policy: Purge any deleted schools and sync state so deleted schools never appear on logout/login
+    const deletedIds = tenantDataSyncService.getDeletedTenantIds();
+    const deletedSet = new Set(deletedIds);
+
+    setTenants((prev) => {
+      const cleaned = prev.filter((t) => !deletedSet.has(t.schoolId));
+      try {
+        localStorage.setItem('jjsak_tenants', JSON.stringify(cleaned));
+      } catch {}
+      return cleaned;
+    });
+
+    setUsers((prev) => {
+      const cleaned = prev.filter((u) => !u.schoolId || !deletedSet.has(u.schoolId));
+      try {
+        localStorage.setItem('jjsak_users', JSON.stringify(cleaned));
+      } catch {}
+      return cleaned;
+    });
+
+    // Reset active tenant if it was deleted
+    const currentActive = localStorage.getItem('jjsak_active_tenant_id');
+    if (currentActive && deletedSet.has(currentActive)) {
+      localStorage.removeItem('jjsak_active_tenant_id');
+      setActiveTenantId('');
+    }
+
+    // Refresh tenants from server to guarantee authoritative state across all platforms
+    tenantDataSyncService
+      .fetchTenantsFull()
+      .then((data) => {
+        const freshDeleted = new Set(data.deletedTenantIds);
+        const safeServerTenants = data.tenants.filter((st) => !freshDeleted.has(st.schoolId));
+        setTenants(safeServerTenants);
+      })
+      .catch(() => {});
+
     setIsAuthenticated(false);
     handleLogAudit(
       'LOGOUT',
@@ -1254,6 +1735,142 @@ export function App() {
       handleNavigate('owner_dashboard');
       triggerSaveNotification('✓ Active Identity: Platform Owner / Super Administrator');
     }
+  };
+
+  const handleUpdateTenantStatus = (schoolId: string, status: SchoolStatus) => {
+    setTenants((prev) => {
+      const updated = prev.map((t) => (t.schoolId === schoolId ? { ...t, status } : t));
+      try {
+        localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save jjsak_tenants to localStorage:', e);
+      }
+      return updated;
+    });
+
+    // Also persist immediately to backend server storage
+    tenantDataSyncService.updateTenantStatus(schoolId, status).catch((err) => {
+      console.warn('Failed to sync tenant status update to backend:', err);
+    });
+
+    handleLogAudit(
+      'SUBSCRIPTION_UPDATE',
+      `Super Admin / Owner updated status of school [${schoolId}] to ${status}.`
+    );
+    triggerSaveNotification(`✓ School status set to ${status}`);
+  };
+
+  const handleDeleteTenant = (schoolId: string) => {
+    const schoolToDelete = tenants.find((t) => t.schoolId === schoolId);
+    const schoolName = schoolToDelete?.schoolName || schoolId;
+
+    // 1. Remove from local tenants state
+    setTenants((prev) => {
+      const updated = prev.filter((t) => t.schoolId !== schoolId);
+      try {
+        localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save jjsak_tenants to localStorage:', e);
+      }
+      return updated;
+    });
+
+    // 2. If active tenant is being deleted, fallback to another active tenant or empty
+    if (activeTenantId === schoolId) {
+      const remaining = tenants.filter((t) => t.schoolId !== schoolId);
+      const nextTenant = remaining.find((t) => t.status === 'ACTIVE') || remaining[0];
+      const nextId = nextTenant ? nextTenant.schoolId : '';
+      setActiveTenantId(nextId);
+      try {
+        localStorage.setItem('jjsak_active_tenant_id', nextId);
+      } catch {}
+      if (nextTenant) {
+        setSchoolInfo((prev) => ({
+          ...prev,
+          name: nextTenant.schoolName,
+          address: nextTenant.address,
+          phone: nextTenant.phone,
+          email: nextTenant.email,
+          motto: nextTenant.motto || prev.motto,
+        }));
+      }
+    }
+
+    // 3. Purge associated users of this school from local user state
+    setUsers((prev) => {
+      const updatedUsers = prev.filter((u) => u.schoolId !== schoolId);
+      try {
+        localStorage.setItem('jjsak_users', JSON.stringify(updatedUsers));
+      } catch (e) {
+        console.error('Failed to save jjsak_users to localStorage:', e);
+      }
+      return updatedUsers;
+    });
+
+    // Purge associated students, teachers, and assessments for this school
+    setStudents((prev) => {
+      const remaining = prev.filter((s) => s.schoolId !== schoolId);
+      try {
+        localStorage.setItem('jjsak_students', JSON.stringify(remaining));
+      } catch {}
+      return remaining;
+    });
+
+    setTeachers((prev) => {
+      const remaining = prev.filter((t) => t.schoolId !== schoolId);
+      try {
+        localStorage.setItem('jjsak_teachers', JSON.stringify(remaining));
+      } catch {}
+      return remaining;
+    });
+
+    setAssessments((prev) => {
+      const remaining = prev.filter((a) => a.schoolId !== schoolId);
+      try {
+        localStorage.setItem('jjsak_assessments', JSON.stringify(remaining));
+      } catch {}
+      return remaining;
+    });
+
+    // Clear carrier messages and dual-identity governance records for this school
+    carrierInboxService.purgeMessagesForSchool(schoolId, schoolName);
+    ownerGovernanceService.removeSchoolIdentitiesForSchool(schoolId);
+
+    // 4. Archive in 30-Day Platform Recycle Bin (Code P2.10)
+    if (schoolToDelete) {
+      const recycleItem: RecycleBinItem = {
+        id: `recycle-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        schoolId,
+        itemType: 'School Registration' as any,
+        itemTitle: `School Tenant: ${schoolName} (${schoolToDelete.schoolCode})`,
+        deletedBy: currentUser?.fullName || 'Platform Owner',
+        deletedByRole: (currentUser?.role || 'SUPER_ADMIN') as any,
+        deletedAt: Date.now(),
+        purgeDeadline: Date.now() + 30 * 24 * 60 * 60 * 1000,
+        reason: 'Super Admin manual deletion from Registered Schools directory',
+        originalData: schoolToDelete,
+      };
+      setRecycleBin((prev) => {
+        const updated = [recycleItem, ...prev];
+        try {
+          localStorage.setItem('jjsak_recycle_bin', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    }
+
+    // 5. Persist delete to backend multi-tenant authoritative store
+    tenantDataSyncService.deleteTenant(schoolId).catch((err) => {
+      console.warn('Failed to sync tenant deletion to backend:', err);
+    });
+
+    // 6. Log immutable audit trail
+    handleLogAudit(
+      'RECORD_DELETE',
+      `Super Admin / Owner deleted registered institution '${schoolName}' [${schoolId}]. Tenant and associated credentials removed.`
+    );
+
+    triggerSaveNotification(`✓ School '${schoolName}' deleted successfully.`);
   };
 
   const handleTriggerAlert = (title: string, details: string, severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL') => {
@@ -1440,7 +2057,12 @@ export function App() {
   };
 
   const handleCreateAssessment = (newAss: Assessment) => {
-    setAssessments((prev) => [newAss, ...prev]);
+    const targetSchoolId = newAss.schoolId || effectiveTenantId;
+    const finalAssessment: Assessment = {
+      ...newAss,
+      schoolId: targetSchoolId,
+    };
+    setAssessments((prev) => [finalAssessment, ...prev]);
     setSchoolInfo((prev) => ({
       ...prev,
       totalAssessments: prev.totalAssessments + 1,
@@ -1543,10 +2165,15 @@ export function App() {
       alert("Access Denied (§6): The Platform Owner cannot register learners. Student admissions are strictly reserved for School Administrators.");
       return;
     }
+    const targetSchoolId = newStudent.schoolId || effectiveTenantId;
+    const studentWithSchool: Student = {
+      ...newStudent,
+      schoolId: targetSchoolId,
+    };
     setStudents((prev) => {
-      const merged = [newStudent, ...prev];
+      const merged = [studentWithSchool, ...prev];
       const ranked = calculateStudentRankings(merged);
-      const updatedCurrent = ranked.find((s) => s.id === newStudent.id) || newStudent;
+      const updatedCurrent = ranked.find((s) => s.id === studentWithSchool.id) || studentWithSchool;
       setSelectedStudent(updatedCurrent);
       return ranked;
     });
@@ -1557,11 +2184,16 @@ export function App() {
   };
 
   const handleUpdateStudent = (updatedStudent: Student) => {
+    const targetSchoolId = updatedStudent.schoolId || effectiveTenantId;
+    const studentWithSchool: Student = {
+      ...updatedStudent,
+      schoolId: targetSchoolId,
+    };
     setStudents((prev) => {
-      const merged = prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
+      const merged = prev.map((s) => (s.id === studentWithSchool.id ? studentWithSchool : s));
       const ranked = calculateStudentRankings(merged);
-      const updatedCurrent = ranked.find((s) => s.id === updatedStudent.id) || updatedStudent;
-      if (selectedStudent.id === updatedStudent.id) {
+      const updatedCurrent = ranked.find((s) => s.id === studentWithSchool.id) || studentWithSchool;
+      if (selectedStudent.id === studentWithSchool.id) {
         setSelectedStudent(updatedCurrent);
       }
       return ranked;
@@ -1632,24 +2264,30 @@ export function App() {
       alert("Access Denied (§7): The Platform Owner cannot onboard teachers or staff. Staff onboarding is strictly delegated to School Institutional Administrators.");
       return;
     }
-    setTeachers((prev) => [newTeacher, ...prev]);
+    const targetSchoolId = newTeacher.schoolId || effectiveTenantId;
+    const finalTeacher: Teacher = {
+      ...newTeacher,
+      schoolId: targetSchoolId,
+    };
+    setTeachers((prev) => [finalTeacher, ...prev]);
 
     if (options?.provisionAccount) {
-      const username = newTeacher.email
-        ? newTeacher.email.split('@')[0]
-        : (newTeacher.name || 'teacher').toLowerCase().replace(/[^a-z0-9]/g, '.');
+      const username = finalTeacher.email
+        ? finalTeacher.email.split('@')[0]
+        : (finalTeacher.name || 'teacher').toLowerCase().replace(/[^a-z0-9]/g, '.');
       const newUser: User = {
-        id: newTeacher.userId || `usr-${Date.now()}`,
-        schoolId: activeTenantId || '',
+        id: finalTeacher.userId || `usr-${Date.now()}`,
+        schoolId: targetSchoolId,
+        schoolName: tenants.find((t) => t.schoolId === targetSchoolId)?.schoolName || schoolInfo.name || 'School',
         username,
-        fullName: newTeacher.name,
-        email: newTeacher.email,
+        fullName: finalTeacher.name,
+        email: finalTeacher.email,
         role: options.userRole || 'TEACHER',
-        employeeNumber: newTeacher.tscNumber || newTeacher.staffNumber || newTeacher.employeeNumber,
-        phoneNumber: newTeacher.phoneNumber,
+        employeeNumber: finalTeacher.tscNumber || finalTeacher.staffNumber || finalTeacher.employeeNumber,
+        phoneNumber: finalTeacher.phoneNumber,
         active: true,
-        mfaEnabled: newTeacher.mfaEnabled || false,
-        mfaMethod: newTeacher.mfaMethod || 'SMS_OTP',
+        mfaEnabled: finalTeacher.mfaEnabled || false,
+        mfaMethod: finalTeacher.mfaMethod || 'SMS_OTP',
       };
       setUsers((prev) => {
         const filtered = prev.filter((u) => u.id !== newUser.id && u.username !== newUser.username);
@@ -1658,19 +2296,19 @@ export function App() {
 
       // If the individual registered by the school is the platform owner, link dual-identity (§7)
       if (
-        newTeacher.name.toLowerCase().includes('jotham') ||
-        (newTeacher.email && newTeacher.email.toLowerCase().includes('jothambarasawatila'))
+        finalTeacher.name.toLowerCase().includes('jotham') ||
+        (finalTeacher.email && finalTeacher.email.toLowerCase().includes('jothambarasawatila'))
       ) {
-        const activeTenant = tenants.find((t) => t.schoolId === activeTenantId);
+        const activeTenant = tenants.find((t) => t.schoolId === targetSchoolId);
         ownerGovernanceService.registerSchoolIdentity({
           id: newUser.id,
           username: newUser.username,
           fullName: newUser.fullName,
           role: newUser.role,
-          schoolId: activeTenantId || 'sch-central-001',
+          schoolId: targetSchoolId || 'sch-central-001',
           schoolName: activeTenant?.schoolName || 'Central Primary School',
-          schoolDomain: activeTenant?.tenantDomain || `${activeTenantId}.jjsak.internal`,
-          designation: newTeacher.designation || `Staff (${newUser.role})`,
+          schoolDomain: activeTenant?.tenantDomain || `${targetSchoolId}.jjsak.internal`,
+          designation: finalTeacher.designation || `Staff (${newUser.role})`,
           isDesignatedStaff: true,
           password: 'Password@2026!',
           lastLogin: new Date().toISOString(),
@@ -1679,7 +2317,7 @@ export function App() {
 
       handleLogAudit(
         'STAFF_ACCOUNT_PROVISIONED',
-        `Provisioned unified IAM login for ${newTeacher.name} with role ${options.userRole || 'TEACHER'} in tenant ${activeTenantId}.`,
+        `Provisioned unified IAM login for ${finalTeacher.name} with role ${options.userRole || 'TEACHER'} in tenant ${targetSchoolId}.`,
         'None',
         `User ID: ${newUser.id}`
       );
@@ -1687,16 +2325,21 @@ export function App() {
 
     handleLogAudit(
       'STAFF_REGISTERED',
-      `Registered staff profile for ${newTeacher.name} (${newTeacher.staffNumber || 'STF'}). Designation: ${newTeacher.designation || newTeacher.role}.`,
+      `Registered staff profile for ${finalTeacher.name} (${finalTeacher.staffNumber || 'STF'}). Designation: ${finalTeacher.designation || finalTeacher.role}.`,
       'New Record',
-      `Staff ID: ${newTeacher.id}`
+      `Staff ID: ${finalTeacher.id}`
     );
     triggerSaveNotification(`✓ Staff member registered & profile created`);
   };
 
   const handleUpdateTeacher = (updatedTeacher: Teacher) => {
+    const targetSchoolId = updatedTeacher.schoolId || effectiveTenantId;
+    const finalTeacher: Teacher = {
+      ...updatedTeacher,
+      schoolId: targetSchoolId,
+    };
     setTeachers((prev) =>
-      prev.map((t) => (t.id === updatedTeacher.id ? updatedTeacher : t))
+      prev.map((t) => (t.id === finalTeacher.id ? finalTeacher : t))
     );
 
     // Sync status and credentials to IAM user database
@@ -1764,21 +2407,137 @@ export function App() {
   // Gated: Show strictly the secure login interface when unauthenticated.
   if (!isAuthenticated) {
     return (
-      <SecureInstitutionalLoginScreen
-        users={users}
-        tenants={tenants}
-        activeTenantId={activeTenantId}
-        onLoginSuccess={handleSecureLoginSuccess}
-        onUpdateUser={(upU) => {
-          setUsers((prev) => {
-            const updated = prev.map((u) => (u.id === upU.id ? upU : u));
-            localStorage.setItem('jjsak_users', JSON.stringify(updated));
-            return updated;
-          });
-        }}
-        onLogAudit={handleLogAudit}
-        onTriggerAlert={handleTriggerAlert}
-      />
+      <>
+        <SecureInstitutionalLoginScreen
+          users={users}
+          tenants={tenants}
+          activeTenantId={activeTenantId}
+          onLoginSuccess={handleSecureLoginSuccess}
+          onUpdateUser={(upU) => {
+            setUsers((prev) => {
+              const updated = prev.map((u) => (u.id === upU.id ? upU : u));
+              localStorage.setItem('jjsak_users', JSON.stringify(updated));
+              return updated;
+            });
+          }}
+          onLogAudit={handleLogAudit}
+          onTriggerAlert={handleTriggerAlert}
+          onOpenCarrierInbox={() => setIsCarrierInboxOpen(true)}
+          onOpenSchoolActivation={(params) => {
+            setSchoolActivationParams(params || {});
+            setIsSchoolActivationOpen(true);
+          }}
+          onOpenTeacherValidation={(otp, username, schoolId) => {
+            setTeacherValidationParams({ otp, username, schoolId });
+            setIsTeacherValidationOpen(true);
+          }}
+        />
+
+        {/* Carrier Dispatch & Notification Inbox Modal */}
+        <SimulatedCarrierInboxModal
+          isOpen={isCarrierInboxOpen}
+          onClose={() => setIsCarrierInboxOpen(false)}
+          onSelectOtpForLogin={(_otp) => {
+            setIsCarrierInboxOpen(false);
+          }}
+          onOpenSchoolActivation={(params) => {
+            setIsCarrierInboxOpen(false);
+            setSchoolActivationParams(params);
+            setIsSchoolActivationOpen(true);
+          }}
+          onOpenValidation={(otp, username, schoolId, password) => {
+            setIsCarrierInboxOpen(false);
+            setTeacherValidationParams({ otp, username, schoolId, password });
+            setIsTeacherValidationOpen(true);
+          }}
+        />
+
+        {/* School Registration & Personnel Onboarding Activation Modal */}
+        <SchoolOnboardingActivationModal
+          isOpen={isSchoolActivationOpen}
+          onClose={() => setIsSchoolActivationOpen(false)}
+          initialSchoolId={schoolActivationParams.schoolId}
+          initialSchoolName={schoolActivationParams.schoolName}
+          initialRegistrationNumber={schoolActivationParams.registrationNumber}
+          initialSchoolAccount={schoolActivationParams.schoolAccount}
+          initialOtp={schoolActivationParams.otp}
+          initialTempPassword={schoolActivationParams.temporaryPassword}
+          tenants={tenants}
+          users={users}
+          onActivationSuccess={(activatedHeadUser, targetTenant, jwtSession) => {
+            setTenants((prev) => {
+              const updated = prev.map((t) => (t.schoolId === targetTenant.schoolId ? { ...targetTenant, status: 'ACTIVE' as const } : t));
+              if (!updated.some((t) => t.schoolId === targetTenant.schoolId)) {
+                updated.unshift(targetTenant);
+              }
+              localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
+              return updated;
+            });
+
+            setUsers((prev) => {
+              const updated = prev.map((u) => (u.id === activatedHeadUser.id ? activatedHeadUser : u));
+              if (!updated.some((u) => u.id === activatedHeadUser.id)) {
+                updated.unshift(activatedHeadUser);
+              }
+              localStorage.setItem('jjsak_users', JSON.stringify(updated));
+              return updated;
+            });
+
+            handleSecureLoginSuccess(activatedHeadUser, targetTenant, jwtSession);
+            setCurrentScreen('teachers'); // Immediately direct to onboard school personnel!
+            setIsSchoolActivationOpen(false);
+            triggerSaveNotification(`✓ School ${targetTenant.schoolName} activated! You may now onboard teachers & staff.`);
+            handleLogAudit('STAFF_APPROVED', `School ${targetTenant.schoolName} activated via school account. Directing to personnel onboarding.`);
+          }}
+          onUpdateSchoolStatus={handleUpdateTenantStatus}
+          onLogAudit={(action, details) => handleLogAudit(action, details)}
+        />
+
+        {/* Teacher Validation & Set Permanent Password Modal */}
+        <TeacherValidationAndActivationModal
+          isOpen={isTeacherValidationOpen}
+          onClose={() => setIsTeacherValidationOpen(false)}
+          users={users}
+          tenants={tenants}
+          initialOtp={teacherValidationParams.otp}
+          initialUsername={teacherValidationParams.username}
+          initialSchoolId={teacherValidationParams.schoolId}
+          initialPassword={teacherValidationParams.password}
+          onActivationComplete={(activatedUser, schoolId) => {
+            setUsers((prev) => {
+              const updated = prev.map((u) => (u.id === activatedUser.id ? activatedUser : u));
+              localStorage.setItem('jjsak_users', JSON.stringify(updated));
+              return updated;
+            });
+            setTeachers((prev) => {
+              const updated = prev.map((t) => {
+                if (
+                  t.id === activatedUser.id ||
+                  (t.email && activatedUser.email && t.email.toLowerCase() === activatedUser.email.toLowerCase()) ||
+                  t.name.toLowerCase() === activatedUser.fullName.toLowerCase()
+                ) {
+                  return {
+                    ...t,
+                    accountStatus: 'APPROVED' as const,
+                    active: true,
+                    passwordCreated: true,
+                  };
+                }
+                return t;
+              });
+              localStorage.setItem('jjsak_teachers_v3', JSON.stringify(updated));
+              return updated;
+            });
+            setIsTeacherValidationOpen(false);
+            triggerSaveNotification(`✓ Password configured for ${activatedUser.fullName}. Please log in.`);
+            handleLogAudit('STAFF_PASSWORD_SET', `Teacher ${activatedUser.fullName} (${activatedUser.username}) completed OTP activation and permanent password setup for school ${schoolId}.`);
+          }}
+          onOpenInbox={() => {
+            setIsTeacherValidationOpen(false);
+            setIsCarrierInboxOpen(true);
+          }}
+        />
+      </>
     );
   }
 
@@ -2087,6 +2846,17 @@ export function App() {
 
           <button
             type="button"
+            id="header-carrier-inbox-btn"
+            onClick={() => setIsCarrierInboxOpen(true)}
+            className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold text-[11px] flex items-center gap-1 transition border border-amber-500/30 cursor-pointer"
+            title="Open Carrier Inboxes (SMS / WhatsApp / Email verification OTP dispatch)"
+          >
+            <Inbox className="w-3 h-3 text-amber-400" />
+            <span className="hidden xl:inline">Inboxes</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsShareModalOpen(true)}
             className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] flex items-center gap-1 transition border border-slate-700 cursor-pointer"
             title="Share app to Phone, PC or Laptop"
@@ -2152,10 +2922,10 @@ export function App() {
           {currentScreen === 'home' && (
             <HomeScreen
               schoolInfo={schoolInfo}
-              students={students}
-              teachers={teachers}
+              students={isolatedStudents}
+              teachers={isolatedTeachers}
               currentUser={currentUser}
-              users={users}
+              users={isolatedUsers}
               activeTenantId={activeTenantId}
               tenants={tenants}
               onNavigate={(screen) => handleNavigate(screen)}
@@ -2183,8 +2953,8 @@ export function App() {
 
           {currentScreen === 'analytics' && (
             <AnalyticsScreen
-              students={students}
-              teachers={teachers}
+              students={isolatedStudents}
+              teachers={isolatedTeachers}
               onBack={() => handleNavigate('home')}
               onSelectStudent={(s) => {
                 setSelectedStudent(s);
@@ -2196,8 +2966,8 @@ export function App() {
 
           {currentScreen === 'pathways' && (
             <PathwayFinderScreen
-              students={students}
-              initialStudentId={selectedStudent.id}
+              students={isolatedStudents}
+              initialStudentId={selectedStudent?.id}
               onBack={() => handleNavigate('home')}
               onOpenReportCard={(s) => {
                 setSelectedStudent(s);
@@ -2209,9 +2979,9 @@ export function App() {
           {currentScreen === 'timetabling' && (
             <TimetableScreen
               schoolInfo={schoolInfo}
-              teachers={teachers}
+              teachers={isolatedTeachers}
               currentUser={currentUser}
-              users={users}
+              users={isolatedUsers}
               onLogAudit={handleLogAudit}
               onBack={() => handleNavigate('home')}
             />
@@ -2230,9 +3000,9 @@ export function App() {
 
           {currentScreen === 'assessments' && (
             <AssessmentsScreen
-              assessments={assessments}
-              students={students}
-              teachers={teachers}
+              assessments={isolatedAssessments}
+              students={isolatedStudents}
+              teachers={isolatedTeachers}
               onBack={() => handleNavigate('home')}
               onCreateAssessment={handleCreateAssessment}
               onDeleteAssessment={handleDeleteAssessment}
@@ -2243,9 +3013,9 @@ export function App() {
 
           {currentScreen === 'student_report' && (
             <StudentReportScreen
-              student={selectedStudent || students[0]}
-              allStudents={students}
-              teachers={teachers}
+              student={selectedStudent || isolatedStudents[0] || students[0]}
+              allStudents={isolatedStudents}
+              teachers={isolatedTeachers}
               activeTenant={tenants.find((t) => t.schoolId === activeTenantId)}
               schoolProfile={schoolProfile}
               currentUser={currentUser}
@@ -2258,7 +3028,7 @@ export function App() {
 
           {currentScreen === 'students' && (
             <StudentsScreen
-              students={students}
+              students={isolatedStudents}
               currentUser={currentUser}
               onSelectStudent={(s) => {
                 setSelectedStudent(s);
@@ -2273,23 +3043,29 @@ export function App() {
 
           {currentScreen === 'teachers' && (
             <TeachersScreen
-              teachers={teachers}
+              teachers={isolatedTeachers}
+              currentSchoolId={effectiveTenantId}
               onBack={() => handleNavigate('home')}
               onAddTeacher={handleAddTeacher}
               onUpdateTeacher={handleUpdateTeacher}
               onDeleteTeacher={handleDeleteTeacher}
               onOpenMarksEntry={(teachId, cls, sub) => handleOpenTeacherMarks(teachId, cls, sub)}
               onOpenShareModal={() => setIsShareModalOpen(true)}
+              onOpenCarrierInbox={() => setIsCarrierInboxOpen(true)}
+              onOpenTeacherValidation={(otp, username, schoolId, password) => {
+                setTeacherValidationParams({ otp, username, schoolId, password });
+                setIsTeacherValidationOpen(true);
+              }}
               currentUser={currentUser}
-              users={users}
+              users={isolatedUsers}
               onLogAudit={handleLogAudit}
             />
           )}
 
           {currentScreen === 'import_export' && (
             <ImportExportScreen
-              students={students}
-              assessments={assessments}
+              students={isolatedStudents}
+              assessments={isolatedAssessments}
               onBack={() => handleNavigate('home')}
               onOpenBulkUpload={() => setIsBulkUploadModalOpen(true)}
             />
@@ -2299,7 +3075,7 @@ export function App() {
             <SettingsScreen
               schoolInfo={schoolInfo}
               currentUser={currentUser}
-              users={users}
+              users={isolatedUsers}
               onSwitchUser={handleSwitchUser}
               onNavigate={handleNavigate}
               onOpenDownloadApp={() => setIsDownloadAppModalOpen(true)}
@@ -2318,15 +3094,16 @@ export function App() {
               onNavigateToSubscriptions={() => handleNavigate('subscription')}
               onSave={handleUpdateSchoolProfile}
               onSaveTenantBranding={(updatedTenant) => {
-                setTenants((prev) =>
-                  prev.map((t) => (t.schoolId === updatedTenant.schoolId ? updatedTenant : t))
-                );
-                localStorage.setItem(
-                  'jjsak_tenants',
-                  JSON.stringify(
-                    tenants.map((t) => (t.schoolId === updatedTenant.schoolId ? updatedTenant : t))
-                  )
-                );
+                setTenants((prev) => {
+                  const updated = prev.map((t) => (t.schoolId === updatedTenant.schoolId ? updatedTenant : t));
+                  try {
+                    localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
+                  } catch (e) {
+                    console.error('Failed to save jjsak_tenants:', e);
+                  }
+                  return updated;
+                });
+                tenantDataSyncService.saveTenant(updatedTenant).catch(console.warn);
                 setSchoolInfo((prev) => ({
                   ...prev,
                   name: updatedTenant.schoolName,
@@ -2386,21 +3163,30 @@ export function App() {
                 }
               }}
               onAddTenant={(newT) => {
-                setTenants((prev) => [newT, ...prev]);
-                localStorage.setItem('jjsak_tenants', JSON.stringify([newT, ...tenants]));
+                setTenants((prev) => {
+                  const updated = [newT, ...prev];
+                  try {
+                    localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
+                  } catch (e) {
+                    console.error('Failed to save jjsak_tenants:', e);
+                  }
+                  return updated;
+                });
+                tenantDataSyncService.saveTenant(newT).catch(console.warn);
               }}
-              onUpdateTenantStatus={(tId, st) => {
-                setTenants((prev) =>
-                  prev.map((t) => (t.schoolId === tId ? { ...t, status: st } : t))
-                );
-              }}
+              onUpdateTenantStatus={handleUpdateTenantStatus}
               onAddUser={(newU) => {
-                if (currentUser?.role === 'SUPER_ADMIN') {
-                  alert("Access Denied: The Platform Owner cannot onboard users or teachers under user accounts.");
+                if (currentUser?.role === 'SUPER_ADMIN' && newU.role !== 'HEAD') {
+                  alert("Access Denied: The Platform Owner cannot onboard teachers or regular school staff. School staff must be onboarded by the school Headteacher.");
                   return;
                 }
                 setUsers((prev) => [newU, ...prev]);
                 localStorage.setItem('jjsak_users', JSON.stringify([newU, ...users]));
+              }}
+              onOpenCarrierInbox={() => setIsCarrierInboxOpen(true)}
+              onOpenSchoolActivation={(params) => {
+                setSchoolActivationParams(params);
+                setIsSchoolActivationOpen(true);
               }}
               onUpdateUser={(upU) => {
                 setUsers((prev) =>
@@ -2413,9 +3199,9 @@ export function App() {
 
           {currentScreen === 'academic_hub' && (
             <AcademicOperationsScreen
-              students={students}
-              assessments={assessments}
-              teachers={teachers}
+              students={isolatedStudents}
+              assessments={isolatedAssessments}
+              teachers={isolatedTeachers}
               schoolInfo={schoolInfo}
               currentUser={currentUser}
               auditLogs={auditLogs}
@@ -2462,8 +3248,8 @@ export function App() {
               placementRules={placementRules}
               promotionPolicies={promotionPolicies}
               auditLogs={academicAuditLogs}
-              teachers={teachers}
-              students={students}
+              teachers={isolatedTeachers}
+              students={isolatedStudents}
               schoolInfo={schoolInfo}
               onUpdateCurriculum={(curr) => {
                 setCurriculum(curr);
@@ -2518,8 +3304,8 @@ export function App() {
           {currentScreen === 'master_architecture' && (
             <MasterArchitectureScreen
               schoolInfo={schoolInfo}
-              students={students}
-              teachers={teachers}
+              students={isolatedStudents}
+              teachers={isolatedTeachers}
               tenants={tenants}
               currentUser={currentUser}
               onBack={() => handleNavigate('home')}
@@ -2539,8 +3325,8 @@ export function App() {
 
           {currentScreen === 'reports_hub' && (
             <ReportsHubScreen
-              students={students}
-              teachers={teachers}
+              students={isolatedStudents}
+              teachers={isolatedTeachers}
               schoolInfo={schoolInfo}
               schoolProfile={schoolProfile}
               currentUser={currentUser}
@@ -2558,26 +3344,45 @@ export function App() {
               <OwnerSchoolManagementScreen
                 currentUser={currentUser}
                 schools={tenants}
+                onOpenCarrierInbox={() => setIsCarrierInboxOpen(true)}
+                onOpenSchoolActivation={(params) => {
+                  setSchoolActivationParams(params);
+                  setIsSchoolActivationOpen(true);
+                }}
                 onAddSchool={(newSchool) => {
-                  setTenants((prev) => [newSchool, ...prev]);
-                  localStorage.setItem('jjsak_tenants', JSON.stringify([newSchool, ...tenants]));
+                  setTenants((prev) => {
+                    const updated = [newSchool, ...prev];
+                    try {
+                      localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
+                    } catch (e) {
+                      console.error('Failed to save jjsak_tenants:', e);
+                    }
+                    return updated;
+                  });
+                  tenantDataSyncService.saveTenant(newSchool).catch(console.warn);
+
+                  // Auto-dispatch portal activation link, first-time password & OTP
+                  const dispatchResult = carrierInboxService.ensureDispatchedForSchool(newSchool, { force: true });
 
                   // Auto-provision initial Head of Institution account in compliance with Part B, Rule §6
                   const initialHeadUser: User = {
                     id: `usr-${(newSchool.subdomain || newSchool.schoolCode).toLowerCase().replace(/[^a-z0-9]/g, '')}-head`,
                     schoolId: newSchool.schoolId,
+                    schoolName: newSchool.schoolName,
                     fullName: newSchool.administratorDetails?.fullName || `Headteacher (${newSchool.schoolName})`,
                     username: `head.${(newSchool.subdomain || newSchool.schoolCode).toLowerCase().replace(/[^a-z0-9]/g, '')}`,
                     email: newSchool.administratorDetails?.emailAddress || newSchool.email || `head@${newSchool.subdomain || 'school'}.sc.ke`,
-                    phoneNumber: newSchool.administratorDetails?.phoneNumber || newSchool.phone || '+254 722 000 111',
+                    phoneNumber: newSchool.administratorDetails?.phoneNumber || newSchool.phone || '+254 741 478 813',
                     role: 'HEAD',
                     designation: 'Head of Institution / Principal',
-                    password: 'Password@2026!',
+                    password: dispatchResult.firstTimePassword || 'Password@2026!',
+                    firstTimePassword: dispatchResult.firstTimePassword || 'Password@2026!',
+                    schoolAccountAlias: `${(newSchool.subdomain || newSchool.schoolCode).toLowerCase().replace(/[^a-z0-9]/g, '')}@jjsak`,
                     active: true,
                     mfaEnabled: true,
                     mfaMethod: 'SMS_OTP',
-                    firstLoginCompleted: true,
-                    activationStatus: 'ACTIVE',
+                    firstLoginCompleted: false,
+                    activationStatus: 'PENDING_ACTIVATION',
                     employeeNumber: `TSC-${Math.floor(100000 + Math.random() * 900000)}`,
                   };
 
@@ -2588,16 +3393,14 @@ export function App() {
                     return updated;
                   });
 
-                  handleLogAudit('TENANT_CREATE', `Super Admin registered new school '${newSchool.schoolName}' [${newSchool.schoolCode}]. Initial Head of Institution account provisioned.`);
-                  triggerSaveNotification(`✓ School '${newSchool.schoolName}' registered & Initial Head account provisioned`);
-                }}
-                onUpdateSchoolStatus={(schoolId, status) => {
-                  setTenants((prev) =>
-                    prev.map((t) => (t.schoolId === schoolId ? { ...t, status } : t))
+                  handleLogAudit(
+                    'TENANT_CREATE',
+                    `Super Admin registered new school '${newSchool.schoolName}' [${newSchool.schoolCode}]. Activation credentials dispatched & Initial Head account provisioned.`
                   );
-                  handleLogAudit('SUBSCRIPTION_UPDATE', `Super Admin updated status of school ${schoolId} to ${status}.`);
-                  triggerSaveNotification(`✓ School status set to ${status}`);
+                  triggerSaveNotification(`✓ School '${newSchool.schoolName}' registered & credentials dispatched via SMS & WhatsApp`);
                 }}
+                onUpdateSchoolStatus={handleUpdateTenantStatus}
+                onDeleteSchool={handleDeleteTenant}
                 onActivateAndProceedToProfile={(school) => {
                   setActiveTenantId(school.schoolId);
                   setSchoolInfo((prev) => ({
@@ -2660,6 +3463,8 @@ export function App() {
                   }}
                   onLogAudit={handleLogAudit}
                   onIdentitySwitched={handleIdentitySwitch}
+                  onUpdateSchoolStatus={handleUpdateTenantStatus}
+                  onDeleteSchool={handleDeleteTenant}
                 />
               </div>
             ) : (
@@ -2807,15 +3612,27 @@ export function App() {
       <BulkUploadModal
         isOpen={isBulkUploadModalOpen}
         onClose={() => setIsBulkUploadModalOpen(false)}
-        existingStudents={students}
+        existingStudents={isolatedStudents}
+        currentSchoolId={effectiveTenantId}
         onUploadSuccess={(updatedStudents) => {
-          setStudents(updatedStudents);
+          const stampedUploaded = updatedStudents.map((s) => ({
+            ...s,
+            schoolId: s.schoolId || effectiveTenantId,
+          }));
+          setStudents((prev) => {
+            const others = effectiveTenantId
+              ? prev.filter((s) => s.schoolId && s.schoolId !== effectiveTenantId)
+              : [];
+            const merged = [...others, ...stampedUploaded];
+            localStorage.setItem('jjsak_students_v3', JSON.stringify(merged));
+            return merged;
+          });
           setSchoolInfo((prev) => ({
             ...prev,
-            totalStudents: updatedStudents.length,
+            totalStudents: stampedUploaded.length,
           }));
-          if (updatedStudents.length > 0) {
-            setSelectedStudent(updatedStudents[0]);
+          if (stampedUploaded.length > 0) {
+            setSelectedStudent(stampedUploaded[0]);
           }
         }}
       />
@@ -2830,9 +3647,9 @@ export function App() {
       <TeacherMarksEntryModal
         isOpen={isTeacherMarksModalOpen}
         onClose={() => setIsTeacherMarksModalOpen(false)}
-        students={students}
-        teachers={teachers}
-        assessments={assessments}
+        students={isolatedStudents}
+        teachers={isolatedTeachers}
+        assessments={isolatedAssessments}
         initialTeacherId={teacherMarksParams.teacherId}
         initialClass={teacherMarksParams.className}
         initialSubject={teacherMarksParams.subject}
@@ -2846,8 +3663,8 @@ export function App() {
         isOpen={isDataEntryHubOpen}
         onClose={() => setIsDataEntryHubOpen(false)}
         initialMode={dataEntryHubMode}
-        students={students}
-        teachers={teachers}
+        students={isolatedStudents}
+        teachers={isolatedTeachers}
         schoolInfo={schoolInfo}
         onAddStudent={handleAddStudent}
         onUpdateStudent={handleUpdateStudent}
@@ -2877,8 +3694,8 @@ export function App() {
         onClose={() => setIsCommunicationHubOpen(false)}
         initialTab={communicationHubTab}
         schoolInfo={schoolInfo}
-        students={students}
-        teachers={teachers}
+        students={isolatedStudents}
+        teachers={isolatedTeachers}
         currentUser={currentUser}
         onNavigateToReportsHub={() => {
           setIsCommunicationHubOpen(false);
@@ -2902,7 +3719,7 @@ export function App() {
           isOpen={isDownloadAppModalOpen}
           onClose={() => setIsDownloadAppModalOpen(false)}
           school={tenants.find((t) => t.schoolId === activeTenantId)!}
-          users={users}
+          users={isolatedUsers}
           onOpenFirstTimeActivation={() => setIsFirstTimeActivationModalOpen(true)}
         />
       )}
@@ -2910,7 +3727,7 @@ export function App() {
       {/* In-School First-Time Staff Activation Modal (Rule §6) */}
       <FirstTimeStaffActivationModal
         isOpen={isFirstTimeActivationModalOpen}
-        users={users}
+        users={isolatedUsers}
         school={tenants.find((t) => t.schoolId === activeTenantId)}
         schoolName={tenants.find((t) => t.schoolId === activeTenantId)?.schoolName}
         onClose={() => setIsFirstTimeActivationModalOpen(false)}
@@ -3004,6 +3821,117 @@ export function App() {
         onClose={() => setIsExceptionsModalOpen(false)}
         tenants={tenants}
         onLogAudit={(action, details) => handleLogAudit(action as any, details)}
+      />
+
+      {/* Carrier Dispatch & Notification Inbox Modal (SMS / WhatsApp / Email) */}
+      <SimulatedCarrierInboxModal
+        isOpen={isCarrierInboxOpen}
+        onClose={() => setIsCarrierInboxOpen(false)}
+        onSelectOtpForLogin={(_otp) => {
+          setIsCarrierInboxOpen(false);
+        }}
+        onOpenSchoolActivation={(params) => {
+          setIsCarrierInboxOpen(false);
+          setSchoolActivationParams(params);
+          setIsSchoolActivationOpen(true);
+        }}
+        onOpenValidation={(otp, username, schoolId, password) => {
+          setIsCarrierInboxOpen(false);
+          setTeacherValidationParams({ otp, username, schoolId, password });
+          setIsTeacherValidationOpen(true);
+        }}
+      />
+
+      {/* School Registration & Personnel Onboarding Activation Modal */}
+      <SchoolOnboardingActivationModal
+        isOpen={isSchoolActivationOpen}
+        onClose={() => setIsSchoolActivationOpen(false)}
+        initialSchoolId={schoolActivationParams.schoolId}
+        initialSchoolName={schoolActivationParams.schoolName}
+        initialRegistrationNumber={schoolActivationParams.registrationNumber}
+        initialSchoolAccount={schoolActivationParams.schoolAccount}
+        initialOtp={schoolActivationParams.otp}
+        initialTempPassword={schoolActivationParams.temporaryPassword}
+        tenants={tenants}
+        users={users}
+        onActivationSuccess={(activatedHeadUser, targetTenant, jwtSession) => {
+          setTenants((prev) => {
+            const updated = prev.map((t) => (t.schoolId === targetTenant.schoolId ? { ...targetTenant, status: 'ACTIVE' as const } : t));
+            if (!updated.some((t) => t.schoolId === targetTenant.schoolId)) {
+              updated.unshift(targetTenant);
+            }
+            localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
+            return updated;
+          });
+
+          setUsers((prev) => {
+            const updated = prev.map((u) => (u.id === activatedHeadUser.id ? activatedHeadUser : u));
+            if (!updated.some((u) => u.id === activatedHeadUser.id)) {
+              updated.unshift(activatedHeadUser);
+            }
+            localStorage.setItem('jjsak_users', JSON.stringify(updated));
+            return updated;
+          });
+
+          handleSecureLoginSuccess(activatedHeadUser, targetTenant, jwtSession);
+          setCurrentScreen('teachers'); // Immediately direct to onboard school personnel!
+          setIsSchoolActivationOpen(false);
+          triggerSaveNotification(`✓ School ${targetTenant.schoolName} activated! You may now onboard teachers & staff.`);
+          handleLogAudit('STAFF_APPROVED', `School ${targetTenant.schoolName} activated via school account. Directing to personnel onboarding.`);
+        }}
+        onUpdateSchoolStatus={(schoolId, status) => {
+          setTenants((prev) => {
+            const updated = prev.map((t) => (t.schoolId === schoolId ? { ...t, status } : t));
+            localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
+            return updated;
+          });
+        }}
+        onLogAudit={(action, details) => handleLogAudit(action, details)}
+      />
+
+      {/* Teacher Validation & Set Permanent Password Modal */}
+      <TeacherValidationAndActivationModal
+        isOpen={isTeacherValidationOpen}
+        onClose={() => setIsTeacherValidationOpen(false)}
+        users={users}
+        tenants={tenants}
+        initialOtp={teacherValidationParams.otp}
+        initialUsername={teacherValidationParams.username}
+        initialSchoolId={teacherValidationParams.schoolId}
+        initialPassword={teacherValidationParams.password}
+        onActivationComplete={(activatedUser, schoolId) => {
+          setUsers((prev) => {
+            const updated = prev.map((u) => (u.id === activatedUser.id ? activatedUser : u));
+            localStorage.setItem('jjsak_users', JSON.stringify(updated));
+            return updated;
+          });
+          setTeachers((prev) => {
+            const updated = prev.map((t) => {
+              if (
+                t.id === activatedUser.id ||
+                (t.email && activatedUser.email && t.email.toLowerCase() === activatedUser.email.toLowerCase()) ||
+                t.name.toLowerCase() === activatedUser.fullName.toLowerCase()
+              ) {
+                return {
+                  ...t,
+                  accountStatus: 'APPROVED' as const,
+                  active: true,
+                  passwordCreated: true,
+                };
+              }
+              return t;
+            });
+            localStorage.setItem('jjsak_teachers_v3', JSON.stringify(updated));
+            return updated;
+          });
+          setIsTeacherValidationOpen(false);
+          triggerSaveNotification(`✓ Password configured for ${activatedUser.fullName}.`);
+          handleLogAudit('STAFF_PASSWORD_SET', `Teacher ${activatedUser.fullName} (${activatedUser.username}) completed OTP activation and permanent password setup for school ${schoolId}.`);
+        }}
+        onOpenInbox={() => {
+          setIsTeacherValidationOpen(false);
+          setIsCarrierInboxOpen(true);
+        }}
       />
 
       {/* Floating Save Status Indicator */}

@@ -224,9 +224,19 @@ class MasterAuthorizationService {
    * Automatically determines the target portal after successful authentication and OTP verification (§5).
    * Users never manually choose a school portal. Server-side tenant determines destination.
    */
-  public determineTargetPortal(user: User, tenant: SchoolTenant): PortalRouteDecision {
+  public determineTargetPortal(user: User, tenant?: SchoolTenant | null): PortalRouteDecision {
     const activeRoles = this.getActiveRoles(user);
-    const tenantSubdomain = tenant.subdomain || tenant.schoolCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const safeTenant: SchoolTenant = tenant || {
+      schoolId: user.schoolId || 'sch-default',
+      schoolName: 'Institutional Portal',
+      schoolCode: 'SCH',
+      category: 'MIXED' as any,
+      status: 'ACTIVE' as any,
+      address: 'P.O. Box 100, Kenya',
+      email: 'admin@school.ac.ke',
+      phone: '+254700000000',
+    };
+    const tenantSubdomain = safeTenant.subdomain || (safeTenant.schoolCode || 'school').toLowerCase().replace(/[^a-z0-9]/g, '');
     const tenantDomain = `${tenantSubdomain}.jjsak.com`;
 
     // 1. Owner / Super Administrator -> Owner Governance Portal (§5.1, §19, §20)
@@ -246,11 +256,11 @@ class MasterAuthorizationService {
     if (user.role === 'STUDENT' || Boolean(user.learnerId)) {
       return {
         targetScreen: 'student_report',
-        portalTitle: `${tenant.schoolName} — Learner CBE Portal`,
+        portalTitle: `${safeTenant.schoolName} — Learner CBE Portal`,
         portalCategory: 'LEARNER_STAKEHOLDER',
         tenantDomain,
-        schoolId: tenant.schoolId,
-        schoolName: tenant.schoolName,
+        schoolId: safeTenant.schoolId,
+        schoolName: safeTenant.schoolName,
         user,
         activeRoles,
         timestamp: new Date().toISOString(),
@@ -261,11 +271,11 @@ class MasterAuthorizationService {
     // Head, Deputy, Director of Academics, Teachers all route to their assigned school portal
     return {
       targetScreen: 'home',
-      portalTitle: `${tenant.schoolName} — Institutional Operations Portal`,
+      portalTitle: `${safeTenant.schoolName} — Institutional Operations Portal`,
       portalCategory: 'SCHOOL_OPERATIONAL',
       tenantDomain,
-      schoolId: tenant.schoolId,
-      schoolName: tenant.schoolName,
+      schoolId: safeTenant.schoolId,
+      schoolName: safeTenant.schoolName,
       user,
       activeRoles,
       timestamp: new Date().toISOString(),

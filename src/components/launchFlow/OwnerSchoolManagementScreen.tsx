@@ -4,6 +4,7 @@ import {
   Plus,
   CheckCircle2,
   ShieldCheck,
+  ShieldAlert,
   AlertTriangle,
   FileText,
   User,
@@ -15,21 +16,37 @@ import {
   Check,
   LogOut,
   Download,
+  KeyRound,
+  Inbox,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { BrandLogo } from '../BrandLogo';
 import { DownloadSchoolAppModal } from '../DownloadSchoolAppModal';
+import { InstitutionalCredentialsModal } from '../InstitutionalCredentialsModal';
 import { SchoolTenant, SchoolStatus, User as UserType } from '../../types';
 import { cleanDeploymentService } from '../../services/cleanDeploymentService';
+import { carrierInboxService } from '../../services/carrierInboxService';
 
 interface OwnerSchoolManagementScreenProps {
   currentUser: UserType;
   schools: SchoolTenant[];
   onAddSchool: (newSchool: SchoolTenant) => void;
   onUpdateSchoolStatus: (schoolId: string, status: SchoolStatus) => void;
+  onDeleteSchool?: (schoolId: string) => void;
   onActivateAndProceedToProfile: (school: SchoolTenant) => void;
   onLogoutToLockScreen: () => void;
   onLogAudit?: (action: any, details: string) => void;
   onResetToZeroSchoolState?: () => void;
+  onOpenCarrierInbox?: () => void;
+  onOpenSchoolActivation?: (params: {
+    schoolId?: string;
+    schoolName?: string;
+    registrationNumber?: string;
+    schoolAccount?: string;
+    otp?: string;
+    temporaryPassword?: string;
+  }) => void;
 }
 
 export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenProps> = ({
@@ -37,14 +54,20 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
   schools,
   onAddSchool,
   onUpdateSchoolStatus,
+  onDeleteSchool,
   onActivateAndProceedToProfile,
   onLogoutToLockScreen,
   onLogAudit,
   onResetToZeroSchoolState,
+  onOpenCarrierInbox,
+  onOpenSchoolActivation,
 }) => {
   const [activeView, setActiveView] = useState<'LIST' | 'CREATE' | 'VERIFY'>('LIST');
   const [selectedSchoolForVerify, setSelectedSchoolForVerify] = useState<SchoolTenant | null>(null);
   const [downloadModalSchool, setDownloadModalSchool] = useState<SchoolTenant | null>(null);
+  const [inspectedSchoolCredentials, setInspectedSchoolCredentials] = useState<SchoolTenant | null>(null);
+  const [schoolToDelete, setSchoolToDelete] = useState<SchoolTenant | null>(null);
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -90,12 +113,19 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
       return;
     }
 
+    const cleanSubdomain = (schoolCode || schoolName.split(' ')[0] || 'school')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+    const regNo = registrationNumber.trim() || `MOE/${cleanSubdomain.toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+    const schoolAccount = `${cleanSubdomain}@jjsak`;
+
     const newTenant: SchoolTenant = {
-      schoolId: `sch-${Date.now().toString().slice(-6)}`,
+      schoolId: `sch-${cleanSubdomain}-${Date.now().toString().slice(-4)}`,
       schoolName: schoolName.trim(),
       schoolCode: schoolCode.trim().toUpperCase(),
+      subdomain: cleanSubdomain,
       schoolType,
-      registrationNumber: registrationNumber || `MOE/PRI/${Math.floor(10000 + Math.random() * 90000)}`,
+      registrationNumber: regNo,
       educationLevel,
       category,
       country,
@@ -105,8 +135,8 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
       physicalAddress: physicalAddress || `${ward}, ${subCounty}, ${county}`,
       postalAddress: postalAddress || `P.O. Box ${Math.floor(100 + Math.random() * 900)} - ${county}`,
       address: physicalAddress || `${ward}, ${subCounty}, ${county}`,
-      officialEmail: officialEmail || `info@${(schoolCode || 'school').toLowerCase().replace(/[^a-z0-9]/g, '')}.sc.ke`,
-      email: officialEmail || `info@${(schoolCode || 'school').toLowerCase().replace(/[^a-z0-9]/g, '')}.sc.ke`,
+      officialEmail: officialEmail || `info@${cleanSubdomain}.sc.ke`,
+      email: officialEmail || `info@${cleanSubdomain}.sc.ke`,
       officialPhone: officialPhone || '+254 700 000 000',
       phone: officialPhone || '+254 700 000 000',
       website: website || undefined,
@@ -130,9 +160,21 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
       createdAt: new Date().toISOString().split('T')[0],
     };
 
+    // Dispatch school registration invitation, temporary password, OTP & activation link to email/SMS/WhatsApp
+    const dispatch = carrierInboxService.dispatchSchoolRegistrationInvite({
+      schoolId: newTenant.schoolId,
+      schoolName: newTenant.schoolName,
+      schoolRegistrationNumber: regNo,
+      subdomain: cleanSubdomain,
+      headFullName: adminFullName || 'Head of Institution',
+      headEmail: adminEmail || officialEmail || `admin@${cleanSubdomain}.sc.ke`,
+      headPhone: adminPhone || officialPhone || '+254 700 000 000',
+      schoolAccount,
+    });
+
     onAddSchool(newTenant);
-    onLogAudit?.('RECORD_CREATE', `Owner registered new school [${newTenant.schoolName}] (${newTenant.schoolCode}). Status set to PENDING for verification.`);
-    triggerToast(`✓ School "${newTenant.schoolName}" submitted! Now in PENDING status for verification.`);
+    onLogAudit?.('RECORD_CREATE', `Owner registered new school [${newTenant.schoolName}] (${newTenant.schoolCode}, Reg: ${regNo}). Dispatched activation link & credentials to school account ${schoolAccount} via Email, SMS & WhatsApp.`);
+    triggerToast(`✓ Registered "${newTenant.schoolName}"! Onboarding link & OTP sent to ${schoolAccount} (${dispatch.channelsDispatched.join(', ')}).`);
     setSelectedSchoolForVerify(newTenant);
     setActiveView('VERIFY');
   };
@@ -165,10 +207,26 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
       adminEmail: template.adminEmail,
       adminPhone: template.adminPhone,
     });
+    const cleanSub = (template.subdomain || template.schoolCode || 'school').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const regNo = tenant.registrationNumber || `MOE/${cleanSub.toUpperCase()}-001`;
+    tenant.registrationNumber = regNo;
+    const schoolAccount = `${cleanSub}@jjsak`;
+
+    carrierInboxService.dispatchSchoolRegistrationInvite({
+      schoolId: tenant.schoolId,
+      schoolName: tenant.schoolName,
+      schoolRegistrationNumber: regNo,
+      subdomain: cleanSub,
+      headFullName: template.adminFullName,
+      headEmail: template.adminEmail,
+      headPhone: template.adminPhone,
+      schoolAccount,
+    });
+
     tenant.status = 'ACTIVE';
     onAddSchool(tenant);
-    onLogAudit?.('RECORD_CREATE', `Owner onboarded school [${tenant.schoolName}] (${tenant.schoolCode}) from verified template through 5-stage lifecycle.`);
-    triggerToast(`✓ Registered and Activated [${tenant.schoolName}]! Initial Head of Institution account provisioned.`);
+    onLogAudit?.('RECORD_CREATE', `Owner onboarded school [${tenant.schoolName}] (${tenant.schoolCode}) from verified template. Onboarding credentials sent to ${schoolAccount}.`);
+    triggerToast(`✓ Registered and Activated [${tenant.schoolName}]! Credentials & activation link sent to ${schoolAccount}.`);
   };
 
   const filteredSchools = schools.filter((s) => {
@@ -346,6 +404,18 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
+                {onOpenCarrierInbox && (
+                  <button
+                    type="button"
+                    onClick={onOpenCarrierInbox}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs border border-amber-500/30 flex items-center justify-center gap-1.5 cursor-pointer transition shadow-md"
+                    title="Open Carrier Virtual Inbox to view delivered SMS, WhatsApp and Email dispatches"
+                  >
+                    <Inbox className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Carrier Messages Inbox</span>
+                  </button>
+                )}
+
                 {onResetToZeroSchoolState && (
                   <button
                     type="button"
@@ -549,6 +619,17 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
                             <span>Download App &amp; Login Kit</span>
                           </button>
 
+                          {/* Credentials, Link & OTP Inspector Button */}
+                          <button
+                            type="button"
+                            onClick={() => setInspectedSchoolCredentials(school)}
+                            className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/50 text-red-200 text-xs font-bold flex items-center gap-1.5 border border-red-800/60 cursor-pointer transition shadow-sm"
+                            title="Inspect or Resend School Portal Activation Link, Password & OTP to Registered Administrative Phone/Email"
+                          >
+                            <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Credentials, Link &amp; OTP</span>
+                          </button>
+
                           {isPending && (
                             <button
                               type="button"
@@ -576,22 +657,65 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
                         </div>
 
                         {/* Status Toggle Dropdown / Buttons */}
-                        <div className="flex items-center gap-1 text-xs">
-                          <span className="text-[10px] text-slate-400">Lifecycle:</span>
-                          <select
-                            value={school.status}
-                            onChange={(e) => {
-                              const newStatus = e.target.value as SchoolStatus;
-                              onUpdateSchoolStatus(school.schoolId, newStatus);
-                              triggerToast(`Status for ${school.schoolCode} updated to ${newStatus}`);
+                        <div className="flex items-center gap-2 text-xs flex-wrap">
+                          {school.status === 'ACTIVE' ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onUpdateSchoolStatus(school.schoolId, 'DISABLED');
+                                triggerToast(`⛔ ${school.schoolName} (${school.schoolCode}) disabled.`);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-rose-950 hover:bg-rose-900 border border-rose-600 text-rose-200 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition active:scale-95 shadow-sm"
+                              title="Immediately disable this institution across all sessions"
+                            >
+                              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                              <span>Disable School</span>
+                            </button>
+                          ) : school.status === 'DISABLED' ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onUpdateSchoolStatus(school.schoolId, 'ACTIVE');
+                                triggerToast(`✓ ${school.schoolName} (${school.schoolCode}) re-activated.`);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-600 text-emerald-200 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition active:scale-95 shadow-sm"
+                              title="Re-activate this institution"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Enable School</span>
+                            </button>
+                          ) : null}
+
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-slate-400">Lifecycle:</span>
+                            <select
+                              value={school.status}
+                              onChange={(e) => {
+                                const newStatus = e.target.value as SchoolStatus;
+                                onUpdateSchoolStatus(school.schoolId, newStatus);
+                                triggerToast(`Status for ${school.schoolCode} updated to ${newStatus}`);
+                              }}
+                              className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-[11px] font-bold cursor-pointer focus:ring-1 focus:ring-amber-500"
+                            >
+                              <option value="PENDING">PENDING</option>
+                              <option value="ACTIVE">ACTIVE</option>
+                              <option value="SUSPENDED">SUSPENDED</option>
+                              <option value="DISABLED">DISABLED</option>
+                            </select>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSchoolToDelete(school);
+                              setDeleteConfirmationInput('');
                             }}
-                            className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-[11px] font-bold cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-700 text-rose-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition active:scale-95 shadow-sm"
+                            title="Permanently remove and delete school"
                           >
-                            <option value="PENDING">PENDING</option>
-                            <option value="ACTIVE">ACTIVE</option>
-                            <option value="SUSPENDED">SUSPENDED</option>
-                            <option value="DISABLED">DISABLED</option>
-                          </select>
+                            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                            <span>Delete</span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1134,6 +1258,108 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
           onClose={() => setDownloadModalSchool(null)}
           school={downloadModalSchool}
         />
+      )}
+
+      {/* Institutional Credentials & Multi-Channel Dispatch Inspector Modal */}
+      {inspectedSchoolCredentials && (
+        <InstitutionalCredentialsModal
+          isOpen={!!inspectedSchoolCredentials}
+          onClose={() => setInspectedSchoolCredentials(null)}
+          school={inspectedSchoolCredentials}
+          onOpenCarrierInbox={onOpenCarrierInbox}
+          onOpenSchoolActivation={onOpenSchoolActivation}
+        />
+      )}
+
+      {/* Delete School Confirmation Modal */}
+      {schoolToDelete && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-rose-800/60 space-y-4 text-slate-100">
+            <div className="flex items-start justify-between">
+              <div className="w-10 h-10 rounded-xl bg-rose-950/80 border border-rose-700/60 flex items-center justify-center text-rose-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSchoolToDelete(null);
+                  setDeleteConfirmationInput('');
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black text-white">Delete Registered Institution</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                You are about to permanently remove{' '}
+                <span className="font-bold text-white">{schoolToDelete.schoolName}</span>{' '}
+                (<span className="font-mono text-amber-400 font-bold">{schoolToDelete.schoolCode}</span>) from the platform registry.
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-rose-950/40 rounded-xl border border-rose-800/40 text-rose-200 text-xs space-y-1.5 leading-relaxed">
+              <div className="font-bold flex items-center gap-1.5 text-rose-300">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>Governance Warning: Destructive Action</span>
+              </div>
+              <ul className="list-disc pl-4 space-y-1 text-[11px] text-rose-300/90">
+                <li>All personnel and student accounts belonging to this institution will be purged.</li>
+                <li>Portal access and active sessions will be terminated immediately.</li>
+                <li>Archived into the 30-Day Platform Recycle Bin for disaster recovery compliance.</li>
+              </ul>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                Type <span className="text-rose-400 font-black">DELETE</span> to confirm:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmationInput}
+                onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+                placeholder="DELETE"
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setSchoolToDelete(null);
+                  setDeleteConfirmationInput('');
+                }}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteConfirmationInput.trim().toUpperCase() !== 'DELETE'}
+                onClick={() => {
+                  if (schoolToDelete && deleteConfirmationInput.trim().toUpperCase() === 'DELETE') {
+                    const name = schoolToDelete.schoolName;
+                    onDeleteSchool?.(schoolToDelete.schoolId);
+                    triggerToast(`🗑️ School "${name}" deleted successfully.`);
+                    setSchoolToDelete(null);
+                    setDeleteConfirmationInput('');
+                  }
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
+                  deleteConfirmationInput.trim().toUpperCase() === 'DELETE'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white cursor-pointer shadow-md'
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                }`}
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Confirm &amp; Delete School</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

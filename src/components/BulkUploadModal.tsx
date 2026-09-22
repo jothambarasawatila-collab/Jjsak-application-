@@ -15,6 +15,7 @@ interface BulkUploadModalProps {
   onClose: () => void;
   existingStudents: Student[];
   onUploadSuccess: (students: Student[]) => void;
+  currentSchoolId?: string;
 }
 
 interface ParsedRow {
@@ -42,6 +43,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   onClose,
   existingStudents,
   onUploadSuccess,
+  currentSchoolId,
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
@@ -243,6 +245,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
       return {
         id: `std-bulk-${Date.now()}-${index}`,
+        schoolId: currentSchoolId,
         admNo: row.admNo,
         name: row.name,
         grade: row.grade,

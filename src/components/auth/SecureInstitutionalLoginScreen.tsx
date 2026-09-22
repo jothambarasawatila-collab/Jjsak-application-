@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ShieldCheck,
   Lock,
@@ -8,6 +8,7 @@ import {
   AlertCircle,
   Mail,
   Smartphone,
+  MessageSquare,
   RefreshCw,
   Building2,
   Clock,
@@ -15,6 +16,7 @@ import {
   ShieldAlert,
   ArrowLeft,
   GraduationCap,
+  Inbox,
 } from 'lucide-react';
 import { User, SchoolTenant, JWTSession } from '../../types';
 import { FirstTimeStaffActivationModal } from './FirstTimeStaffActivationModal';
@@ -24,6 +26,7 @@ import { OrganizationalProfileScreen } from '../launchFlow/OrganizationalProfile
 import { staffAuthOtpSecurityService } from '../../services/staffAuthOtpSecurityService';
 import { otpDeliveryService } from '../../services/otpDeliveryService';
 import { ownerOtpDeliveryService } from '../../services/ownerOtpDeliveryService';
+import { carrierInboxService } from '../../services/carrierInboxService';
 import { generateJWTSession } from '../../utils/securityEngine';
 import {
   ActiveAuthSession,
@@ -39,6 +42,16 @@ interface SecureInstitutionalLoginScreenProps {
   onUpdateUser?: (updatedUser: User) => void;
   onLogAudit: (action: any, details: string, before?: string, after?: string) => void;
   onTriggerAlert?: (title: string, desc: string, severity: 'HIGH' | 'MEDIUM' | 'LOW') => void;
+  onOpenCarrierInbox?: () => void;
+  onOpenTeacherValidation?: (otp?: string, username?: string, schoolId?: string) => void;
+  onOpenSchoolActivation?: (params?: {
+    schoolId?: string;
+    schoolName?: string;
+    registrationNumber?: string;
+    schoolAccount?: string;
+    otp?: string;
+    temporaryPassword?: string;
+  }) => void;
 }
 
 export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginScreenProps> = ({
@@ -49,6 +62,9 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
   onUpdateUser,
   onLogAudit,
   onTriggerAlert,
+  onOpenCarrierInbox,
+  onOpenTeacherValidation,
+  onOpenSchoolActivation,
 }) => {
   // JJSAK-AUTH-PORTAL-001 Section 2: Application Launch Display
   // Opens the approved Organisational Profile / Welcome Display first with public info only
@@ -88,6 +104,195 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
   const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
   const [otpCode, setOtpCode] = useState('');
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [detectedInboxOtp, setDetectedInboxOtp] = useState<string | null>(null);
+  const [isRetrievingOtp, setIsRetrievingOtp] = useState<boolean>(false);
+
+  // Auto-listen for Carrier Inbox autofill events
+  useEffect(() => {
+    const handleAutofill = (e: any) => {
+      if (e.detail?.otp) {
+        setOtpCode(e.detail.otp.trim());
+        setDetectedInboxOtp(e.detail.otp.trim());
+        if (errorMessage) setErrorMessage(null);
+      }
+    };
+    window.addEventListener('jjsak_autofill_otp', handleAutofill);
+    return () => window.removeEventListener('jjsak_autofill_otp', handleAutofill);
+  }, [errorMessage]);
+
+  // Continuously check carrier inbox for active OTP when on OTP verification step
+  const checkInboxOtp = useCallback(async () => {
+    if (!isOtpSent) return;
+    try {
+      await carrierInboxService.syncWithBackend();
+      const targetUser = authSession?.user;
+      const targetQuery =
+        targetUser?.email ||
+        targetUser?.username ||
+        institutionUsername ||
+        'jothambarasawatila@gmail.com';
+      const channel = deliveryReceipt?.channel;
+      const found = carrierInboxService.getLatestOtpForUser(targetQuery, channel as any);
+      if (found && found.otp) {
+        setDetectedInboxOtp(found.otp);
+      }
+    } catch {
+      // ignore
+    }
+  }, [isOtpSent, authSession, institutionUsername, deliveryReceipt?.channel]);
+
+  useEffect(() => {
+    if (isOtpSent) {
+      checkInboxOtp();
+      const interval = setInterval(checkInboxOtp, 2500);
+      return () => clearInterval(interval);
+    } else {
+      setDetectedInboxOtp(null);
+    }
+  }, [isOtpSent, checkInboxOtp]);
+
+  const [inboxNotice, setInboxNotice] = useState<string | null>(null);
+  const [isSwitchingChannel, setIsSwitchingChannel] = useState<boolean>(false);
+
+  const handleRetrieveFromInbox = async () => {
+    setIsRetrievingOtp(true);
+    try {
+      await carrierInboxService.syncWithBackend();
+      const targetUser = authSession?.user;
+      const targetQuery =
+        targetUser?.email ||
+        targetUser?.username ||
+        institutionUsername ||
+        'jothambarasawatila@gmail.com';
+      const channel = deliveryReceipt?.channel;
+      const found = carrierInboxService.getLatestOtpForUser(targetQuery, channel as any);
+      if (found && found.otp) {
+        setOtpCode(found.otp);
+        setDetectedInboxOtp(found.otp);
+        setErrorMessage(null);
+        setInboxNotice(`✓ Verification code retrieved from ${found.channel} inbox (${found.recipientAddress})`);
+        setTimeout(() => setInboxNotice(null), 4000);
+      } else {
+        const latestEmail = carrierInboxService.getLatestEmailMessage();
+        if (latestEmail && latestEmail.otpCode) {
+          setOtpCode(latestEmail.otpCode);
+          setDetectedInboxOtp(latestEmail.otpCode);
+          setErrorMessage(null);
+          setInboxNotice(`✓ Verification code retrieved from ${latestEmail.channel} inbox (${latestEmail.recipientAddress})`);
+          setTimeout(() => setInboxNotice(null), 4000);
+        } else if (onOpenCarrierInbox) {
+          onOpenCarrierInbox();
+        }
+      }
+    } finally {
+      setIsRetrievingOtp(false);
+    }
+  };
+
+  // Switch delivery channel (EMAIL <-> SMS <-> WHATSAPP vice versa)
+  const handleSwitchChannel = async (newChannel: 'EMAIL' | 'SMS' | 'WHATSAPP') => {
+    if (!authSession || isSwitchingChannel) return;
+    if (deliveryReceipt?.channel === newChannel) return;
+
+    setIsSwitchingChannel(true);
+    setErrorMessage(null);
+    setInboxNotice(`Switching OTP channel to ${newChannel}...`);
+
+    const isOwner =
+      authSession.user.role === 'SUPER_ADMIN' ||
+      authSession.user.role === 'SYSTEM_ADMIN' ||
+      authSession.user.email?.toLowerCase() === 'jothambarasawatila@gmail.com' ||
+      authSession.user.username?.toLowerCase().includes('jotham');
+
+    try {
+      let authoritativeSessionId = authSession.sessionId;
+      let newMaskedDest = deliveryReceipt?.maskedDestination || '';
+      let validitySecs = 300;
+      let cooldownSecs = 30;
+
+      if (isOwner) {
+        const res = await ownerOtpDeliveryService.dispatchOwnerOtp(newChannel, 'OWNER_LOGIN');
+        if (res.success && res.receipt) {
+          authoritativeSessionId = res.receipt.sessionId;
+          newMaskedDest = res.receipt.maskedDestination;
+          validitySecs = res.receipt.validitySeconds || 300;
+          cooldownSecs = res.receipt.cooldownSeconds || 30;
+        } else {
+          setErrorMessage(res.errorMessage || `Failed to switch to ${newChannel}.`);
+          setIsSwitchingChannel(false);
+          setInboxNotice(null);
+          return;
+        }
+      } else {
+        const resp = await fetch('/api/otp/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: authSession.user.id,
+            userType: 'INSTITUTIONAL',
+            identifier: authSession.identifier,
+            email: authSession.user.email,
+            phone: authSession.user.phoneNumber,
+            channel: newChannel,
+            purpose: 'Institutional Staff Authentication Channel Switch',
+            role: authSession.user.role,
+            userName: authSession.user.fullName || authSession.user.username,
+          }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          authoritativeSessionId = data.sessionId || authSession.sessionId;
+          newMaskedDest = data.maskedDestination || newMaskedDest;
+          validitySecs = data.expiresInSeconds || 300;
+          cooldownSecs = data.cooldownSeconds || 30;
+        } else {
+          setErrorMessage(data.message || `Failed to switch to ${newChannel}.`);
+          setIsSwitchingChannel(false);
+          setInboxNotice(null);
+          return;
+        }
+      }
+
+      setAuthSession((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          sessionId: authoritativeSessionId,
+          backendSessionId: authoritativeSessionId,
+          channel: newChannel as any,
+          maskedDestination: newMaskedDest,
+        };
+      });
+
+      setDeliveryReceipt((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          sessionId: authoritativeSessionId,
+          channel: newChannel as any,
+          maskedDestination: newMaskedDest,
+          validitySeconds: validitySecs,
+          cooldownSeconds: cooldownSecs,
+          expiresAt: Date.now() + validitySecs * 1000,
+        };
+      });
+
+      setOtpRemainingSeconds(validitySecs);
+      setResendCooldownSeconds(cooldownSecs);
+      setOtpCode('');
+      setDetectedInboxOtp(null);
+
+      // Force background sync with carrier inbox
+      await carrierInboxService.syncWithBackend();
+
+      setInboxNotice(`✓ Channel switched! New verification code dispatched to your ${newChannel} (${newMaskedDest})`);
+      setTimeout(() => setInboxNotice(null), 5000);
+    } catch (err: any) {
+      setErrorMessage(`Error switching delivery channel: ${err.message || err}`);
+    } finally {
+      setIsSwitchingChannel(false);
+    }
+  };
 
   // Live Timer States (5-minute validity & 30-second cooldown)
   const [otpRemainingSeconds, setOtpRemainingSeconds] = useState<number>(0);
@@ -766,6 +971,22 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
                   <label className="text-xs font-bold text-slate-300">
                     Password
                   </label>
+                  {institutionUsername && carrierInboxService.getLatestFirstTimePasswordForUser(institutionUsername) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const delivered = carrierInboxService.getLatestFirstTimePasswordForUser(institutionUsername);
+                        if (delivered) {
+                          setPassword(delivered);
+                          if (errorMessage) setErrorMessage(null);
+                        }
+                      }}
+                      className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer transition"
+                    >
+                      <KeyRound className="w-3 h-3" />
+                      <span>Use Delivered Password</span>
+                    </button>
+                  )}
                 </div>
                 <div className="relative">
                   <input
@@ -818,15 +1039,76 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
           ) : (
             /* STEP 5: OTP VERIFICATION (Zero-Exposure Policy & Locked Spec JJSAK-AUTH-PORTAL-001) */
             <form onSubmit={handleVerifyOtpSubmit} className="space-y-4 animate-in fade-in">
+              {/* Interactive Delivery Channel Switcher (EMAIL <-> SMS <-> WHATSAPP vice versa) */}
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    Delivery Channel (Switch Anytime):
+                  </span>
+                  {isSwitchingChannel && (
+                    <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1 animate-pulse">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      Switching channel...
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchChannel('EMAIL')}
+                    disabled={isSwitchingChannel || deliveryReceipt?.channel === 'EMAIL'}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer border ${
+                      deliveryReceipt?.channel === 'EMAIL'
+                        ? 'bg-red-950/80 border-red-500 text-white shadow-md shadow-red-950/50'
+                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+                    } disabled:cursor-not-allowed`}
+                    title="Send OTP to registered Email address"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Email</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchChannel('SMS')}
+                    disabled={isSwitchingChannel || deliveryReceipt?.channel === 'SMS'}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer border ${
+                      deliveryReceipt?.channel === 'SMS'
+                        ? 'bg-red-950/80 border-red-500 text-white shadow-md shadow-red-950/50'
+                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+                    } disabled:cursor-not-allowed`}
+                    title="Send OTP to registered mobile SMS"
+                  >
+                    <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>SMS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchChannel('WHATSAPP')}
+                    disabled={isSwitchingChannel || deliveryReceipt?.channel === 'WHATSAPP'}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer border ${
+                      deliveryReceipt?.channel === 'WHATSAPP'
+                        ? 'bg-red-950/80 border-red-500 text-white shadow-md shadow-red-950/50'
+                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+                    } disabled:cursor-not-allowed`}
+                    title="Send OTP to registered WhatsApp number"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-green-400" />
+                    <span>WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-slate-300 text-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-white font-bold">
                     {deliveryReceipt?.channel === 'EMAIL' ? (
                       <Mail className="w-4 h-4 text-[#C51E28]" />
-                    ) : (
+                    ) : deliveryReceipt?.channel === 'SMS' ? (
                       <Smartphone className="w-4 h-4 text-[#C51E28]" />
+                    ) : (
+                      <MessageSquare className="w-4 h-4 text-[#C51E28]" />
                     )}
-                    <span>Verification Code Sent</span>
+                    <span>Verification Code Sent via {deliveryReceipt?.channel || 'EMAIL'}</span>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-900/60 font-semibold">
                     Encrypted Gateway
@@ -834,15 +1116,19 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
                 </div>
 
                 <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                  Please check your registered email address or phone number and enter the 6-digit verification code.
+                  {deliveryReceipt?.channel === 'EMAIL'
+                    ? 'Please check your registered email inbox and enter the 6-digit verification code.'
+                    : deliveryReceipt?.channel === 'SMS'
+                    ? 'Please check your SMS messages and enter the 6-digit verification code.'
+                    : 'Please check your WhatsApp chat and enter the 6-digit verification code.'}
                 </p>
 
                 <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 text-[11px]">
                   <div className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">
-                    Destination:
+                    Destination ({deliveryReceipt?.channel || 'EMAIL'}):
                   </div>
                   <div className="text-white font-mono font-bold text-xs bg-slate-950 p-2.5 rounded-xl border border-slate-800/80 break-all">
-                    {deliveryReceipt?.maskedDestination || 'Registered Email / Mobile Phone'}
+                    {deliveryReceipt?.maskedDestination || 'Registered Address'}
                   </div>
                   <div className="flex items-center justify-between text-slate-400 pt-1">
                     <span>Code Validity:</span>
@@ -861,11 +1147,73 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
                 </div>
               </div>
 
+              {/* Zero-Exposure: Inbox Delivery Notification Banner (OTP hidden until retrieved) */}
+              {detectedInboxOtp && !otpCode && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-red-950/70 via-slate-900 to-amber-950/60 border border-amber-500/50 flex items-center justify-between gap-3 shadow-xl shadow-red-950/40 animate-in fade-in">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wide block">
+                        Code Dispatched to {deliveryReceipt?.channel || 'Inbox'}:
+                      </span>
+                      <span className="text-slate-300 font-mono text-xs truncate block">
+                        {deliveryReceipt?.maskedDestination || 'Verified address'} • Code Protected (••••••)
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtpCode(detectedInboxOtp);
+                      if (errorMessage) setErrorMessage(null);
+                      setInboxNotice(`✓ OTP retrieved from ${deliveryReceipt?.channel || 'inbox'} address`);
+                      setTimeout(() => setInboxNotice(null), 3500);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 active:scale-95 text-white text-xs font-bold shrink-0 transition flex items-center gap-1 cursor-pointer shadow-md shadow-red-950/60"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Retrieve from Inbox</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Inbox notice alert if recently retrieved or switched */}
+              {inboxNotice && (
+                <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-medium flex items-center gap-2 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="truncate">{inboxNotice}</span>
+                </div>
+              )}
+
               {/* 6-Digit Verification Code Field */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  [ Enter 6-Digit Verification Code ]
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-300">
+                    [ Enter 6-Digit Verification Code ]
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleRetrieveFromInbox}
+                      disabled={isRetrievingOtp}
+                      className="text-[11px] text-red-400 hover:text-red-300 font-bold flex items-center gap-1 transition cursor-pointer"
+                      title="Sync and retrieve OTP directly from inbox"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRetrievingOtp ? 'animate-spin' : ''}`} />
+                      <span>{isRetrievingOtp ? 'Retrieving...' : 'Retrieve from Inbox'}</span>
+                    </button>
+                    {onOpenCarrierInbox && (
+                      <button
+                        type="button"
+                        onClick={onOpenCarrierInbox}
+                        className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition cursor-pointer"
+                      >
+                        <Inbox className="w-3.5 h-3.5" />
+                        <span>Open Inboxes</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <input
                   type="text"
                   id="otp-verification-input"
@@ -947,7 +1295,52 @@ export const SecureInstitutionalLoginScreen: React.FC<SecureInstitutionalLoginSc
         </div>
 
         {/* Secondary Portal Links */}
-        <div className="mt-4 flex items-center justify-center gap-4 text-xs font-semibold text-slate-400">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-semibold text-slate-400">
+          {onOpenSchoolActivation && (
+            <>
+              <button
+                type="button"
+                id="login-school-activation-btn"
+                onClick={() => onOpenSchoolActivation()}
+                className="text-red-400 hover:text-red-300 transition cursor-pointer flex items-center gap-1 font-bold"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Activate Registered School &amp; Onboard Staff</span>
+              </button>
+              <span className="text-slate-700 hidden sm:inline">•</span>
+            </>
+          )}
+
+          {onOpenTeacherValidation && (
+            <>
+              <button
+                type="button"
+                id="login-teacher-validation-btn"
+                onClick={() => onOpenTeacherValidation()}
+                className="text-emerald-400 hover:text-emerald-300 transition cursor-pointer flex items-center gap-1 font-bold"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Validate Teacher &amp; Set Password</span>
+              </button>
+              <span className="text-slate-700 hidden sm:inline">•</span>
+            </>
+          )}
+
+          {onOpenCarrierInbox && (
+            <>
+              <button
+                type="button"
+                id="login-carrier-inbox-btn"
+                onClick={onOpenCarrierInbox}
+                className="text-amber-400 hover:text-amber-300 transition cursor-pointer flex items-center gap-1 font-bold"
+              >
+                <Inbox className="w-3.5 h-3.5" />
+                <span>SMS / WhatsApp / Email Inbox</span>
+              </button>
+              <span className="text-slate-700 hidden sm:inline">•</span>
+            </>
+          )}
+
           <button
             type="button"
             onClick={() => setIsFirstTimeModalOpen(true)}

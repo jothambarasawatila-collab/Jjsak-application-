@@ -128,6 +128,35 @@ class OwnerGovernanceService {
   }
 
   /**
+   * De-registers all school operational accounts associated with a specific school ID
+   */
+  removeSchoolIdentitiesForSchool(schoolId: string): { profile: DualIdentityProfile; count: number } {
+    const profile = this.getDualIdentityProfile();
+    const cleanId = (schoolId || '').toLowerCase();
+    const initialCount = profile.schoolAccounts.length;
+    profile.schoolAccounts = profile.schoolAccounts.filter(
+      (s) => (s.schoolId || '').toLowerCase() !== cleanId
+    );
+    const removedCount = initialCount - profile.schoolAccounts.length;
+
+    if (
+      profile.activeMode === 'SCHOOL_OPERATIONAL' &&
+      (profile.activeSchoolTenantId || '').toLowerCase() === cleanId
+    ) {
+      profile.activeMode = 'PLATFORM_GOVERNANCE';
+      profile.activeSchoolAccountId = undefined;
+      profile.activeSchoolTenantId = undefined;
+    }
+
+    this.saveDualIdentityProfile(profile);
+
+    return {
+      profile,
+      count: removedCount,
+    };
+  }
+
+  /**
    * Verifies the separate credentials registered by the school before allowing access to the school portal (§7)
    */
   verifySchoolCredentials(schoolAccountId: string, passwordAttempt: string): boolean {

@@ -18,6 +18,7 @@ import {
   KeyRound,
   UserCheck,
   XCircle,
+  Inbox,
 } from 'lucide-react';
 import { BrandLogo } from '../BrandLogo';
 import { DownloadSchoolAppModal } from '../DownloadSchoolAppModal';
@@ -35,6 +36,7 @@ import {
   OwnerDeliveryReceipt,
   OWNER_REGISTERED_CREDENTIALS,
 } from '../../services/ownerOtpDeliveryService';
+import { carrierInboxService } from '../../services/carrierInboxService';
 import { JJSAK_ORGANIZATIONAL_INFO, SecurityValidationCheck, SecurityValidationResult } from '../../types/launchFlow';
 import {
   teacherAccountSecurityService,
@@ -50,6 +52,7 @@ interface JJSAKLoginScreenProps {
   onUpdateUser?: (updatedUser: UserType) => void;
   onViewOrganizationalProfile: () => void;
   onOpenOwnerConsole?: () => void;
+  onOpenCarrierInbox?: () => void;
   onLogAudit: (action: any, details: string) => void;
 }
 
@@ -63,6 +66,7 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
   onUpdateUser,
   onViewOrganizationalProfile,
   onOpenOwnerConsole: _onOpenOwnerConsole,
+  onOpenCarrierInbox,
   onLogAudit,
 }) => {
   const activeSchools = tenants.filter((t) => t.status === 'ACTIVE');
@@ -94,11 +98,90 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
     fullEmail: string;
   } | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [detectedInboxOtp, setDetectedInboxOtp] = useState<string | null>(null);
+  const [isRetrievingOtp, setIsRetrievingOtp] = useState<boolean>(false);
+
+  // Auto-listen for Carrier Inbox autofill events
+  useEffect(() => {
+    const handleAutofill = (e: any) => {
+      if (e.detail?.otp) {
+        setMfaCode(e.detail.otp.trim());
+        setDetectedInboxOtp(e.detail.otp.trim());
+        if (errorMessage) setErrorMessage(null);
+      }
+    };
+    window.addEventListener('jjsak_autofill_otp', handleAutofill);
+    return () => window.removeEventListener('jjsak_autofill_otp', handleAutofill);
+  }, [errorMessage]);
+
+  const [inboxNotice, setInboxNotice] = useState<string | null>(null);
+
+  // Continuously check carrier inbox for active OTP when on MFA step
+  useEffect(() => {
+    if (!isMfaStep) {
+      setDetectedInboxOtp(null);
+      return;
+    }
+
+    const checkInbox = async () => {
+      try {
+        await carrierInboxService.syncWithBackend();
+        const target =
+          pendingUser?.email ||
+          pendingUser?.username ||
+          identifier ||
+          'jothambarasawatila@gmail.com';
+        const found = carrierInboxService.getLatestOtpForUser(target, ownerDeliveryChannel);
+        if (found && found.otp) {
+          setDetectedInboxOtp(found.otp);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    checkInbox();
+    const interval = setInterval(checkInbox, 2500);
+    return () => clearInterval(interval);
+  }, [isMfaStep, pendingUser, identifier, ownerDeliveryChannel]);
+
+  const handleRetrieveFromInbox = async () => {
+    setIsRetrievingOtp(true);
+    try {
+      await carrierInboxService.syncWithBackend();
+      const target =
+        pendingUser?.email ||
+        pendingUser?.username ||
+        identifier ||
+        'jothambarasawatila@gmail.com';
+      const found = carrierInboxService.getLatestOtpForUser(target, ownerDeliveryChannel);
+      if (found && found.otp) {
+        setMfaCode(found.otp);
+        setDetectedInboxOtp(found.otp);
+        setErrorMessage(null);
+        setInboxNotice(`✓ Verification code retrieved from ${found.channel} inbox (${found.recipientAddress})`);
+        setTimeout(() => setInboxNotice(null), 4000);
+      } else {
+        const latestMsg = carrierInboxService.getLatestEmailMessage();
+        if (latestMsg && latestMsg.otpCode) {
+          setMfaCode(latestMsg.otpCode);
+          setDetectedInboxOtp(latestMsg.otpCode);
+          setErrorMessage(null);
+          setInboxNotice(`✓ Verification code retrieved from ${latestMsg.channel} inbox (${latestMsg.recipientAddress})`);
+          setTimeout(() => setInboxNotice(null), 4000);
+        } else if (onOpenCarrierInbox) {
+          onOpenCarrierInbox();
+        }
+      }
+    } finally {
+      setIsRetrievingOtp(false);
+    }
+  };
 
   // Stage 7: Real-time Security Validation Engine State
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<SecurityValidationResult | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Policy Section 6: First-Time User Activation State (Zero-Exposure Policy)
   const [activationIdentifier, setActivationIdentifier] = useState('');
@@ -393,7 +476,14 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
   const currentSchool =
     tenants.find((t) => t.schoolId === selectedSchoolId) ||
     tenants.find((t) => t.status === 'ACTIVE') ||
-    tenants[0];
+    tenants[0] || {
+      schoolId: selectedSchoolId || 'sch-default',
+      schoolName: 'Registered School Portal',
+      schoolCode: 'SCH-001',
+      category: 'MIXED' as const,
+      status: 'ACTIVE' as const,
+      createdAt: new Date().toISOString(),
+    };
 
   const handleSendOtp = async (targetUser: UserType, channelOverride?: OwnerDeliveryChannel) => {
     const isOwner =
@@ -414,18 +504,51 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
       }
     } else {
       const userEmail = targetUser.email || `${targetUser.username}@jjsak.internal`;
-      const generated = generateEmailOtpCode(userEmail);
+      const userPhone = targetUser.phoneNumber || '+254700000000';
+      const targetDest = channel === 'EMAIL' ? userEmail : userPhone;
+      const generated = generateEmailOtpCode(targetDest);
       setEmailOtpInfo({
         code: generated.code,
         expiresAt: generated.expiresAt,
         maskedEmail: generated.maskedEmail,
-        fullEmail: userEmail,
+        fullEmail: targetDest,
       });
+
+      // Synchronize dispatch with Carrier Inbox immediately
+      carrierInboxService.dispatchDirectOtpMessage({
+        recipientId: targetUser.id || targetUser.username,
+        recipientName: targetUser.fullName || targetUser.username,
+        recipientAddress: targetDest,
+        channel: channel,
+        subject: `JJSAK Authentication Code: ${generated.code}`,
+        body: `[JJSAK Alert] Your verification code is ${generated.code}. Valid for 5 minutes. Destination channel: ${channel}.`,
+        otpCode: generated.code,
+        schoolName: (targetUser as any).schoolName || currentSchool?.schoolName || 'Institutional Staff Portal',
+      });
+
+      // Also trigger backend request asynchronously
+      fetch('/api/otp/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: targetUser.id || targetUser.username,
+          userType: 'INSTITUTIONAL',
+          identifier: targetUser.username || targetUser.email,
+          email: targetUser.email,
+          phone: targetUser.phoneNumber,
+          channel,
+          purpose: 'Institutional Staff Authentication',
+          role: targetUser.role,
+          userName: targetUser.fullName || targetUser.username,
+        }),
+      }).catch(() => {});
+
       setResendCooldown(30);
     }
-    setMfaMethod('EMAIL_OTP');
+    setMfaMethod(channel === 'SMS' ? 'SMS_OTP' : channel === 'WHATSAPP' ? 'WHATSAPP_OTP' : 'EMAIL_OTP');
     setIsMfaStep(true);
     setMfaCode('');
+    setDetectedInboxOtp(null);
   };
 
   const handleResendOtp = async () => {
@@ -437,6 +560,8 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
     if (!pendingUser) return;
     setOwnerDeliveryChannel(newChannel);
     await handleSendOtp(pendingUser, newChannel);
+    setInboxNotice(`✓ Delivery channel switched to ${newChannel}. New verification code dispatched.`);
+    setTimeout(() => setInboxNotice(null), 4000);
   };
 
   // Execute Stage 7: 10 Mandatory Security Validation Checks
@@ -1724,7 +1849,6 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSwitchOwnerChannel('EMAIL')}
-                            disabled={resendCooldown > 0}
                             className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer ${
                               ownerDeliveryChannel === 'EMAIL'
                                 ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-900/30'
@@ -1737,7 +1861,6 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSwitchOwnerChannel('SMS')}
-                            disabled={resendCooldown > 0}
                             className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer ${
                               ownerDeliveryChannel === 'SMS'
                                 ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-900/30'
@@ -1750,7 +1873,6 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSwitchOwnerChannel('WHATSAPP')}
-                            disabled={resendCooldown > 0}
                             className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer ${
                               ownerDeliveryChannel === 'WHATSAPP'
                                 ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-900/30'
@@ -1787,52 +1909,206 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
                                 {ownerReceipt?.maskedDestination || OWNER_REGISTERED_CREDENTIALS.email}
                               </strong>
                             </div>
-                            {ownerDeliveryChannel === 'EMAIL' && (
-                              <a
-                                href="https://mail.google.com/mail/u/0/#inbox"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-2.5 py-1 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40 text-[10px] font-bold transition flex items-center gap-1 shrink-0"
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {ownerDeliveryChannel === 'EMAIL' && (
+                                <a
+                                  href="https://mail.google.com/mail/u/0/#inbox"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-2 py-1 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40 text-[10px] font-bold transition flex items-center gap-1 shrink-0"
+                                >
+                                  <span>Gmail</span>
+                                  <ArrowRight className="w-2.5 h-2.5" />
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                onClick={handleRetrieveFromInbox}
+                                disabled={isRetrievingOtp}
+                                className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 text-[10px] font-bold transition flex items-center gap-1 shrink-0 cursor-pointer"
+                                title="Retrieve OTP code directly from inbox"
                               >
-                                <span>Open Gmail</span>
-                                <ArrowRight className="w-3 h-3" />
-                              </a>
-                            )}
+                                <RefreshCw className={`w-2.5 h-2.5 ${isRetrievingOtp ? 'animate-spin' : ''}`} />
+                                <span>{isRetrievingOtp ? 'Checking...' : 'Retrieve'}</span>
+                              </button>
+                              {onOpenCarrierInbox && (
+                                <button
+                                  type="button"
+                                  onClick={onOpenCarrierInbox}
+                                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 shrink-0 cursor-pointer"
+                                  title="Open simulated carrier inbox"
+                                >
+                                  <Inbox className="w-2.5 h-2.5" />
+                                  <span>Inbox</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
 
                           <p className="text-[10px] text-amber-200/80 leading-relaxed flex items-start gap-1">
                             <Lock className="w-3 h-3 shrink-0 mt-0.5 text-amber-400" />
                             <span>
-                              Zero-Exposure Policy: OTP is never displayed on screen, in console, or in logs. Check your registered {ownerDeliveryChannel.toLowerCase()} channel.
+                              Zero-Exposure Policy: OTP is securely routed to your verified {ownerDeliveryChannel.toLowerCase()} channel. You can also retrieve it instantly via the Carrier &amp; Email Inbox.
                             </span>
                           </p>
                         </div>
                       </div>
                     ) : (
-                      /* Standard Staff MFA */
-                      <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-300 space-y-2">
+                      /* Standard Staff Multi-Channel MFA Flow */
+                      <div className="space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-white flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Institutional Email Dispatched</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">
+                            Delivery Channel (Switch Anytime):
                           </span>
-                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
-                            5m Validity
+                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">
+                            Multi-Channel MFA
                           </span>
                         </div>
-                        <div className="p-2 rounded-lg bg-slate-950 border border-slate-800">
-                          <span className="text-[9px] text-slate-400 uppercase font-bold block">Recipient:</span>
-                          <strong className="text-white font-mono text-xs truncate block">
-                            {emailOtpInfo?.maskedEmail || pendingUser?.email || `${pendingUser?.username}@jjsak.internal`}
-                          </strong>
+
+                        {/* Interactive Channel Switcher for Staff */}
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchOwnerChannel('EMAIL')}
+                            className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer ${
+                              ownerDeliveryChannel === 'EMAIL'
+                                ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-900/30'
+                                : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+                            }`}
+                          >
+                            <Mail className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Email</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchOwnerChannel('SMS')}
+                            className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer ${
+                              ownerDeliveryChannel === 'SMS'
+                                ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-900/30'
+                                : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+                            }`}
+                          >
+                            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>SMS</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchOwnerChannel('WHATSAPP')}
+                            className={`p-2 rounded-xl text-[10px] font-bold flex flex-col items-center gap-1 border transition cursor-pointer ${
+                              ownerDeliveryChannel === 'WHATSAPP'
+                                ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-900/30'
+                                : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+                            }`}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 text-green-400" />
+                            <span>WhatsApp</span>
+                          </button>
+                        </div>
+
+                        <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-300 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-white flex items-center gap-1.5">
+                              {ownerDeliveryChannel === 'EMAIL' ? (
+                                <Mail className="w-3.5 h-3.5 text-slate-400" />
+                              ) : ownerDeliveryChannel === 'SMS' ? (
+                                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <MessageSquare className="w-3.5 h-3.5 text-green-400" />
+                              )}
+                              <span>Institutional {ownerDeliveryChannel} Dispatched</span>
+                            </span>
+                            <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                              5m Validity
+                            </span>
+                          </div>
+                          <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <span className="text-[9px] text-slate-400 uppercase font-bold block">
+                                Recipient ({ownerDeliveryChannel}):
+                              </span>
+                              <strong className="text-white font-mono text-xs truncate block">
+                                {emailOtpInfo?.maskedEmail ||
+                                  (ownerDeliveryChannel === 'EMAIL'
+                                    ? pendingUser?.email || `${pendingUser?.username}@jjsak.internal`
+                                    : pendingUser?.phoneNumber || '+254 700 000 000')}
+                              </strong>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={handleRetrieveFromInbox}
+                                disabled={isRetrievingOtp}
+                                className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer"
+                              >
+                                <RefreshCw className={`w-2.5 h-2.5 ${isRetrievingOtp ? 'animate-spin' : ''}`} />
+                                <span>{isRetrievingOtp ? 'Checking...' : 'Retrieve'}</span>
+                              </button>
+                              {onOpenCarrierInbox && (
+                                <button
+                                  type="button"
+                                  onClick={onOpenCarrierInbox}
+                                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Inbox className="w-2.5 h-2.5" />
+                                  <span>Inbox</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
 
+                    {/* Zero-Exposure: Detected Inbox OTP Alert (OTP masked until retrieved) */}
+                    {detectedInboxOtp && !mfaCode && (
+                      <div className="p-3 rounded-xl bg-gradient-to-r from-red-950/60 via-slate-900 to-amber-950/50 border border-amber-500/40 flex items-center justify-between gap-2 shadow-lg animate-in fade-in">
+                        <div className="min-w-0">
+                          <span className="text-[9px] text-amber-300 font-bold uppercase tracking-wide block">
+                            Code Dispatched to {ownerDeliveryChannel} Inbox:
+                          </span>
+                          <span className="text-slate-300 font-mono text-xs">
+                            Destination Verified • Code Protected (••••••)
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMfaCode(detectedInboxOtp);
+                            if (errorMessage) setErrorMessage(null);
+                            setInboxNotice(`✓ OTP retrieved from ${ownerDeliveryChannel} inbox`);
+                            setTimeout(() => setInboxNotice(null), 3500);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                        >
+                          <KeyRound className="w-3 h-3" />
+                          <span>Retrieve &amp; Auto-Fill</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Status feedback notice for channel switch or retrieval */}
+                    {inboxNotice && (
+                      <div className="p-2 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-[11px] font-medium flex items-center gap-2 animate-in fade-in">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="truncate">{inboxNotice}</span>
+                      </div>
+                    )}
+
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                        Enter 6-Digit Security One-Time Verification Code
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase">
+                          Enter 6-Digit Security One-Time Verification Code
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleRetrieveFromInbox}
+                          disabled={isRetrievingOtp}
+                          className="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <RefreshCw className={`w-2.5 h-2.5 ${isRetrievingOtp ? 'animate-spin' : ''}`} />
+                          <span>{isRetrievingOtp ? 'Checking Inbox...' : 'Retrieve from Inbox'}</span>
+                        </button>
+                      </div>
                       <input
                         type="text"
                         value={mfaCode}

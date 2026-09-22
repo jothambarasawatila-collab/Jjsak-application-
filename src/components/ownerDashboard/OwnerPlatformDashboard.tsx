@@ -18,8 +18,10 @@ import {
   FileCheck2,
   Search,
   Check,
+  Trash2,
+  X,
 } from 'lucide-react';
-import { User, SchoolTenant, ActiveScreen } from '../../types';
+import { User, SchoolTenant, SchoolStatus, ActiveScreen } from '../../types';
 import { OwnerPaymentConfigurationModal } from '../subscription/OwnerPaymentConfigurationModal';
 import { subscriptionPaymentService } from '../../services/subscriptionPaymentService';
 import { PLATFORM_GOVERNANCE_COMPONENTS } from '../../utils/platformGovernance';
@@ -32,18 +34,24 @@ interface OwnerPlatformDashboardProps {
   currentUser: User;
   tenants: SchoolTenant[];
   onNavigate: (screen: ActiveScreen) => void;
+  onUpdateSchoolStatus?: (schoolId: string, status: SchoolStatus) => void;
+  onDeleteSchool?: (schoolId: string) => void;
   onInitiateSchoolAudit?: (tenant: SchoolTenant, reason: string) => void;
   onLogAudit?: (action: any, details: string) => void;
   onIdentitySwitched?: (mode: 'PLATFORM_GOVERNANCE' | 'SCHOOL_OPERATIONAL', account?: any) => void;
+  onLogoutToSchoolLogin?: (username: string, schoolId?: string) => void;
 }
 
 export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
   currentUser,
   tenants = [],
   onNavigate,
+  onUpdateSchoolStatus,
+  onDeleteSchool,
   onInitiateSchoolAudit,
   onLogAudit,
   onIdentitySwitched,
+  onLogoutToSchoolLogin,
 }) => {
   const [isPaymentConfigOpen, setIsPaymentConfigOpen] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
@@ -51,10 +59,20 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [isExceptionsModalOpen, setIsExceptionsModalOpen] = useState(false);
 
+  const [schoolToDelete, setSchoolToDelete] = useState<SchoolTenant | null>(null);
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
+
   const [selectedAuditTenantId, setSelectedAuditTenantId] = useState<string>(tenants[0]?.schoolId || '');
   const [auditReason, setAuditReason] = useState('Technical Support & Data Verification');
   const [customReason, setCustomReason] = useState('');
   const [auditSuccessToast, setAuditSuccessToast] = useState<string | null>(null);
+  const [institutionSearch, setInstitutionSearch] = useState('');
+  const [statusToast, setStatusToast] = useState<string | null>(null);
+
+  const triggerStatusToast = (msg: string) => {
+    setStatusToast(msg);
+    setTimeout(() => setStatusToast(null), 4000);
+  };
 
   // Module filter and search
   const [moduleSearch, setModuleSearch] = useState('');
@@ -490,6 +508,229 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
         </div>
       </div>
 
+      {/* Persistent Status Notification Banner */}
+      {statusToast && (
+        <div className="bg-emerald-900 border border-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between shadow-lg animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+            <span>{statusToast}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusToast(null)}
+            className="text-emerald-300 hover:text-white text-xs font-bold ml-3 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* 2.5 Registered Institutions & Lifecycle Status Governance Directory */}
+      <div className="space-y-3 pt-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+          <div>
+            <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-[#C51E28]" />
+              <span>Registered Institutions &amp; Lifecycle Status Governance</span>
+            </h2>
+            <p className="text-[11px] text-slate-500 font-medium">
+              Real-time institution status control. Disabled status is consistently preserved across logout, server restarts, and re-login.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                value={institutionSearch}
+                onChange={(e) => setInstitutionSearch(e.target.value)}
+                placeholder="Search registered schools..."
+                className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-red-500 w-48 sm:w-60"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate('owner_console')}
+              className="px-3 py-1.5 bg-[#C51E28] hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Provisioning Console</span>
+            </button>
+          </div>
+        </div>
+
+        {/* School Directory Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {tenants
+            .filter((t) => {
+              const q = institutionSearch.trim().toLowerCase();
+              if (!q) return true;
+              return (
+                t.schoolName.toLowerCase().includes(q) ||
+                (t.schoolCode || '').toLowerCase().includes(q) ||
+                (t.subdomain || '').toLowerCase().includes(q) ||
+                (t.status || '').toLowerCase().includes(q)
+              );
+            })
+            .map((school) => {
+              const isDisabled = school.status === 'DISABLED';
+              const isSuspended = school.status === 'SUSPENDED';
+              const isActive = school.status === 'ACTIVE';
+
+              return (
+                <div
+                  key={school.schoolId}
+                  className={`rounded-2xl p-4 border transition ${
+                    isDisabled
+                      ? 'bg-rose-50/70 border-rose-300 shadow-xs'
+                      : isSuspended
+                      ? 'bg-amber-50/70 border-amber-300 shadow-xs'
+                      : 'bg-white border-slate-200 shadow-xs hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2.5">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-black text-slate-900 truncate">
+                          {school.schoolName}
+                        </h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                          {school.schoolCode}
+                        </span>
+                        <span className="text-[10px] font-medium text-slate-500">
+                          {school.category || 'ACADEMIC'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
+                        <span>Domain: {school.subdomain || school.tenantDomain || 'internal'}.jjsak.edu.ke</span>
+                        {school.registrationNumber && (
+                          <span className="text-slate-400">• MoE: {school.registrationNumber}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="shrink-0">
+                      {isDisabled ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
+                          <Lock className="w-3 h-3" />
+                          <span>DISABLED (Locked)</span>
+                        </span>
+                      ) : isSuspended ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-xs">
+                          <AlertTriangle className="w-3 h-3" />
+                          <span>SUSPENDED</span>
+                        </span>
+                      ) : isActive ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black uppercase tracking-wider">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                          <span>ACTIVE</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-100 text-sky-800 border border-sky-300 text-[10px] font-black uppercase tracking-wider">
+                          <span>{school.status || 'PENDING'}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {isDisabled && (
+                    <div className="mb-3 px-3 py-2 rounded-xl bg-rose-100/90 border border-rose-300 text-rose-900 text-xs font-medium flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>This institution is currently disabled. All staff credentials and login attempts are strictly blocked across all sessions.</span>
+                    </div>
+                  )}
+
+                  {/* Actions & Lifecycle Controller */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-2">
+                      {/* One-Click Disable / Enable Action */}
+                      {isActive ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdateSchoolStatus?.(school.schoolId, 'DISABLED');
+                            triggerStatusToast(`⛔ ${school.schoolName} is now DISABLED. Login access is locked.`);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs active:scale-95"
+                          title="Block institutional staff access and disable school"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Disable School</span>
+                        </button>
+                      ) : isDisabled ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdateSchoolStatus?.(school.schoolId, 'ACTIVE');
+                            triggerStatusToast(`✓ ${school.schoolName} is re-activated to ACTIVE status.`);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs active:scale-95"
+                          title="Re-enable school access"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Activate School</span>
+                        </button>
+                      ) : null}
+
+                      {/* Dropdown Selector */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Status:</span>
+                        <select
+                          value={school.status}
+                          onChange={(e) => {
+                            const newStatus = e.target.value as SchoolStatus;
+                            onUpdateSchoolStatus?.(school.schoolId, newStatus);
+                            triggerStatusToast(`Status for ${school.schoolName} updated to ${newStatus}.`);
+                          }}
+                          className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-none focus:ring-1 focus:ring-red-500"
+                        >
+                          <option value="ACTIVE">ACTIVE</option>
+                          <option value="DISABLED">DISABLED</option>
+                          <option value="SUSPENDED">SUSPENDED</option>
+                          <option value="PENDING">PENDING</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onInitiateSchoolAudit?.(school, 'Super Administrator Institution Review')}
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                        title="Open authorized read-only audit session"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Audit School</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSchoolToDelete(school);
+                          setDeleteConfirmationInput('');
+                        }}
+                        className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer active:scale-95 shadow-xs"
+                        title="Permanently remove and delete school tenant"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+
+        {tenants.length === 0 && (
+          <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-xs">
+            No registered institutions present in active state. Use the Provisioning Console to onboard a school.
+          </div>
+        )}
+      </div>
+
       {/* 3. The 17 Platform Governance Modules (Section 4 Compliance) */}
       <div className="space-y-3 pt-2">
         <div className="flex flex-wrap items-center justify-between gap-2 px-1">
@@ -615,11 +856,9 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
         onClose={() => setIsDualIdentityModalOpen(false)}
         onIdentitySwitched={(mode, account) => {
           onIdentitySwitched?.(mode, account);
-          if (mode === 'SCHOOL_OPERATIONAL') {
-            onNavigate('home');
-          }
         }}
         onLogAudit={onLogAudit}
+        onLogoutToSchoolLogin={onLogoutToSchoolLogin}
       />
 
       {/* Emergency Access & Break Glass Modal */}
@@ -757,6 +996,97 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
           onClose={() => setIsPaymentConfigOpen(false)}
           currentUser={currentUser}
         />
+      )}
+
+      {/* Delete School Confirmation Modal */}
+      {schoolToDelete && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-rose-200 space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSchoolToDelete(null);
+                  setDeleteConfirmationInput('');
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black text-slate-900">Delete Registered Institution</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                You are about to permanently remove{' '}
+                <span className="font-bold text-slate-900">{schoolToDelete.schoolName}</span>{' '}
+                (<span className="font-mono text-slate-700 font-bold">{schoolToDelete.schoolCode}</span>) from the platform registry.
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-rose-50 rounded-xl border border-rose-200 text-rose-900 text-xs space-y-1.5 leading-relaxed">
+              <div className="font-bold flex items-center gap-1.5 text-rose-800">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>Governance Warning: Destructive Action</span>
+              </div>
+              <ul className="list-disc pl-4 space-y-1 text-[11px] text-rose-800">
+                <li>All staff &amp; student accounts associated with this institution will be purged from the active directory.</li>
+                <li>Live sessions and login credentials for this school will be terminated immediately.</li>
+                <li>A backup snapshot will be archived in the 30-Day Platform Recycle Bin (Code P2.10) for safety.</li>
+              </ul>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Type <span className="text-rose-600 font-black">DELETE</span> to confirm:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmationInput}
+                onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+                placeholder="DELETE"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setSchoolToDelete(null);
+                  setDeleteConfirmationInput('');
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteConfirmationInput.trim().toUpperCase() !== 'DELETE'}
+                onClick={() => {
+                  if (schoolToDelete && deleteConfirmationInput.trim().toUpperCase() === 'DELETE') {
+                    const name = schoolToDelete.schoolName;
+                    onDeleteSchool?.(schoolToDelete.schoolId);
+                    setStatusToast(`🗑️ School "${name}" deleted from registry.`);
+                    setSchoolToDelete(null);
+                    setDeleteConfirmationInput('');
+                  }
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
+                  deleteConfirmationInput.trim().toUpperCase() === 'DELETE'
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer shadow-md'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Confirm &amp; Delete School</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

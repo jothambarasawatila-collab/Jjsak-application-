@@ -1,0 +1,45 @@
+{
+  "tenants": [
+    {
+      "schoolId": "sch-yuya-30200",
+      "schoolCode": "YUYA-30200",
+      "schoolName": "Yuya Primary School",
+      "subdomain": "yuya",
+      "tenantDomain": "yuya.jjsak.ac.ke",
+      "category": "PRIMARY",
+      "address": "P.O. Box 45, Yuya",
+      "email": "info@yuya.sc.ke",
+      "phone": "+254 712 345 678",
+      "status": "ACTIVE"
+    },
+    {
+      "schoolId": "sch-ngonyek-30200",
+      "schoolCode": "NGONYEK-30200",
+      "schoolName": "Ngonyek Junior School",
+      "subdomain": "ngonyek",
+      "tenantDomain": "ngonyek.jjsak.ac.ke",
+      "category": "JUNIOR_SECONDARY",
+      "address": "P.O. Box 78, Ngonyek",
+      "email": "admin@ngonyek.sc.ke",
+      "phone": "+254 722 000 111",
+      "status": "ACTIVE"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr-001",
+      "fullName": "Jotham Barasa Watila",
+      "username": "jotham Watila",
+      "email": "jothambarasawatila@gmail.com",
+      "phoneNumber": "+254741478813",
+      "role": "SUPER_ADMIN",
+      "designation": "Platform Owner & Super Administrator",
+      "active": true,
+      "mfaEnabled": true,
+      "firstLoginCompleted": true,
+      "activationStatus": "ACTIVE"
+    }
+  ],
+  "tenantData": {},
+  "savedAt": "2026-09-21T08:43:57.466Z"
+}

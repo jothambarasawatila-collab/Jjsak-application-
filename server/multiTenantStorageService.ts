@@ -80,6 +80,7 @@ class MultiTenantStorageService {
   private tenants: Map<string, ServerSchoolTenant> = new Map();
   private tenantData: Map<string, ServerTenantDataBundle> = new Map();
   private users: Map<string, ServerUserData> = new Map();
+  private deletedTenantIds: Set<string> = new Set();
 
   private constructor() {
     const dataDir = path.join(process.cwd(), 'data');
@@ -92,6 +93,7 @@ class MultiTenantStorageService {
     }
     this.filePath = path.join(dataDir, 'jjsak_production_store.json');
     this.loadFromDisk();
+    this.ensureDefaultTenants();
     this.ensureDefaultOwner();
   }
 
@@ -100,6 +102,48 @@ class MultiTenantStorageService {
       MultiTenantStorageService.instance = new MultiTenantStorageService();
     }
     return MultiTenantStorageService.instance;
+  }
+
+  private ensureDefaultTenants() {
+    const defaultSchools: ServerSchoolTenant[] = [
+      {
+        schoolId: 'sch-yuya-30200',
+        schoolCode: 'YUYA-30200',
+        schoolName: 'Yuya Primary School',
+        subdomain: 'yuya',
+        tenantDomain: 'yuya.jjsak.ac.ke',
+        category: 'PRIMARY',
+        address: 'P.O. Box 45, Yuya',
+        email: 'info@yuya.sc.ke',
+        phone: '+254 712 345 678',
+        status: 'ACTIVE',
+      },
+      {
+        schoolId: 'sch-ngonyek-30200',
+        schoolCode: 'NGONYEK-30200',
+        schoolName: 'Ngonyek Junior School',
+        subdomain: 'ngonyek',
+        tenantDomain: 'ngonyek.jjsak.ac.ke',
+        category: 'JUNIOR_SECONDARY',
+        address: 'P.O. Box 78, Ngonyek',
+        email: 'admin@ngonyek.sc.ke',
+        phone: '+254 722 000 111',
+        status: 'ACTIVE',
+      },
+    ];
+
+    let modified = false;
+    defaultSchools.forEach((school) => {
+      // NEVER restore a school that has been permanently deleted
+      if (!this.deletedTenantIds.has(school.schoolId) && !this.tenants.has(school.schoolId)) {
+        this.tenants.set(school.schoolId, school);
+        modified = true;
+      }
+    });
+
+    if (modified) {
+      this.saveToDisk();
+    }
   }
 
   private ensureDefaultOwner() {
@@ -127,21 +171,31 @@ class MultiTenantStorageService {
         const raw = fs.readFileSync(this.filePath, 'utf-8');
         const data = JSON.parse(raw);
 
+        if (Array.isArray(data.deletedTenantIds)) {
+          this.deletedTenantIds = new Set(data.deletedTenantIds);
+        }
+
         if (Array.isArray(data.tenants)) {
           data.tenants.forEach((t: ServerSchoolTenant) => {
-            if (t && t.schoolId) this.tenants.set(t.schoolId, t);
+            if (t && t.schoolId && !this.deletedTenantIds.has(t.schoolId)) {
+              this.tenants.set(t.schoolId, t);
+            }
           });
         }
 
         if (Array.isArray(data.users)) {
           data.users.forEach((u: ServerUserData) => {
-            if (u && u.id) this.users.set(u.id, u);
+            if (u && u.id && (!u.schoolId || !this.deletedTenantIds.has(u.schoolId))) {
+              this.users.set(u.id, u);
+            }
           });
         }
 
         if (data.tenantData && typeof data.tenantData === 'object') {
           Object.keys(data.tenantData).forEach((tenantId) => {
-            this.tenantData.set(tenantId, data.tenantData[tenantId]);
+            if (!this.deletedTenantIds.has(tenantId)) {
+              this.tenantData.set(tenantId, data.tenantData[tenantId]);
+            }
           });
         }
       }
@@ -156,6 +210,7 @@ class MultiTenantStorageService {
         tenants: Array.from(this.tenants.values()),
         users: Array.from(this.users.values()),
         tenantData: Object.fromEntries(this.tenantData.entries()),
+        deletedTenantIds: Array.from(this.deletedTenantIds),
         savedAt: new Date().toISOString(),
       };
       fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
@@ -166,14 +221,25 @@ class MultiTenantStorageService {
 
   // ===================== TENANTS =====================
   public getAllTenants(): ServerSchoolTenant[] {
-    return Array.from(this.tenants.values());
+    return Array.from(this.tenants.values()).filter((t) => !this.deletedTenantIds.has(t.schoolId));
+  }
+
+  public getDeletedTenantIds(): string[] {
+    return Array.from(this.deletedTenantIds);
+  }
+
+  public isTenantDeleted(schoolId: string): boolean {
+    return this.deletedTenantIds.has(schoolId);
   }
 
   public getTenant(schoolId: string): ServerSchoolTenant | null {
+    if (this.deletedTenantIds.has(schoolId)) return null;
     return this.tenants.get(schoolId) || null;
   }
 
   public saveTenant(tenant: ServerSchoolTenant): ServerSchoolTenant {
+    // If being re-created or updated, clear from deleted tombstone
+    this.deletedTenantIds.delete(tenant.schoolId);
     this.tenants.set(tenant.schoolId, tenant);
     if (!this.tenantData.has(tenant.schoolId)) {
       this.tenantData.set(tenant.schoolId, {
@@ -194,15 +260,26 @@ class MultiTenantStorageService {
   }
 
   public updateTenantStatus(schoolId: string, status: ServerSchoolTenant['status']): boolean {
-    const existing = this.tenants.get(schoolId);
-    if (!existing) return false;
-    existing.status = status;
+    if (this.deletedTenantIds.has(schoolId)) return false;
+    let existing = this.tenants.get(schoolId);
+    if (!existing) {
+      existing = {
+        schoolId,
+        schoolCode: schoolId.toUpperCase(),
+        schoolName: schoolId,
+        subdomain: schoolId.replace(/^sch-/, '').replace(/-.*$/, ''),
+        status,
+      };
+    } else {
+      existing.status = status;
+    }
     this.tenants.set(schoolId, existing);
     this.saveToDisk();
     return true;
   }
 
   public deleteTenant(schoolId: string): boolean {
+    this.deletedTenantIds.add(schoolId);
     const deleted = this.tenants.delete(schoolId);
     this.tenantData.delete(schoolId);
     // Remove users of this tenant
@@ -212,16 +289,21 @@ class MultiTenantStorageService {
       }
     }
     this.saveToDisk();
-    return deleted;
+    return true;
   }
 
   // ===================== USERS =====================
   public getAllUsers(): ServerUserData[] {
-    return Array.from(this.users.values());
+    return Array.from(this.users.values()).filter(
+      (u) => !u.schoolId || !this.deletedTenantIds.has(u.schoolId)
+    );
   }
 
   public getUser(userId: string): ServerUserData | null {
-    return this.users.get(userId) || null;
+    const user = this.users.get(userId);
+    if (!user) return null;
+    if (user.schoolId && this.deletedTenantIds.has(user.schoolId)) return null;
+    return user;
   }
 
   public findUserByIdentifier(identifier: string): ServerUserData | null {
@@ -229,6 +311,9 @@ class MultiTenantStorageService {
     const cleanDigits = norm.replace(/\D/g, '');
 
     for (const user of this.users.values()) {
+      if (user.schoolId && this.deletedTenantIds.has(user.schoolId)) {
+        continue;
+      }
       if (
         user.id.toLowerCase() === norm ||
         user.username.toLowerCase() === norm ||

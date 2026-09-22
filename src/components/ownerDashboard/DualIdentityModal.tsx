@@ -27,7 +27,7 @@ interface DualIdentityModalProps {
   onLogAudit?: (action: string, details: string) => void;
   tenants?: SchoolTenant[];
   onAddUser?: (user: User) => void;
-  onLogoutToSchoolLogin?: (schoolUsername: string) => void;
+  onLogoutToSchoolLogin?: (schoolUsername: string, schoolId?: string) => void;
 }
 
 export const DualIdentityModal: React.FC<DualIdentityModalProps> = ({
@@ -101,17 +101,21 @@ export const DualIdentityModal: React.FC<DualIdentityModalProps> = ({
         return;
       }
 
-      const res = ownerGovernanceService.switchIdentity('SCHOOL_OPERATIONAL', account.id);
-      setProfile(res.profile);
       onLogAudit?.(
-        'DUAL_IDENTITY_SWITCH',
-        `Individual authenticated with separate school credentials for [${account.fullName}] with role '${account.role}' at '${account.schoolName}'. Platform Owner governance rights suspended.`
+        'PORTAL_SWITCH_ROUTED_TO_GATEWAY',
+        `Individual provided registered school credentials for [${account.fullName}] at '${account.schoolName}'. Direct switch prohibited; user logged out and routed to School Login Gateway per Section 7 mandate.`
       );
-      setToastMessage(`✓ Verified credentials: Accessing ${account.schoolName} Portal as ${account.role}.`);
+      setToastMessage(`✓ Credentials verified. Exiting Owner Portal to authenticate as Teacher at ${account.schoolName}...`);
       setIsVerifying(false);
       setTimeout(() => {
-        onIdentitySwitched('SCHOOL_OPERATIONAL', account);
-        onClose();
+        if (onLogoutToSchoolLogin) {
+          onLogoutToSchoolLogin(account.username, account.schoolId);
+        } else {
+          sessionStorage.setItem('jjsak_prefill_username', account.username);
+          sessionStorage.setItem('jjsak_prefill_school_id', account.schoolId);
+          window.location.hash = '#login';
+          onClose();
+        }
       }, 700);
     }, 400);
   };
@@ -493,33 +497,51 @@ export const DualIdentityModal: React.FC<DualIdentityModalProps> = ({
                         </div>
                       )}
 
-                      <div className="flex gap-2 pt-1">
+                      {/* Direct Switching Prohibited Security Notice */}
+                      <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs space-y-1">
+                        <div className="font-bold flex items-center gap-1.5 text-amber-900 text-[11px]">
+                          <ShieldCheck className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                          <span>Direct In-Session Portal Switch Restricted (§7)</span>
+                        </div>
+                        <p className="text-[10px] leading-relaxed text-amber-800">
+                          The Platform Owner cannot switch directly from the Owner's Portal to the Teacher Portal. To access the school portal registered to you, you must authenticate through the School Login Gateway using your registered school credentials and OTP.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
                         <button
                           type="button"
                           disabled={isVerifying || !enteredPassword}
                           onClick={() => handleSwitchToSchoolAccountWithVerification(activeSchoolAccount)}
-                          className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                          className="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           {isVerifying ? (
-                            <span>Verifying...</span>
+                            <span>Verifying Credentials...</span>
                           ) : (
                             <>
                               <LogIn className="w-3.5 h-3.5" />
-                              <span>Verify &amp; Enter School Portal</span>
+                              <span>Verify &amp; Proceed to School Login</span>
                             </>
                           )}
                         </button>
 
-                        {onLogoutToSchoolLogin && (
-                          <button
-                            type="button"
-                            onClick={() => onLogoutToSchoolLogin(activeSchoolAccount.username)}
-                            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
-                            title="Sign out and log in directly with these school credentials"
-                          >
-                            Sign In via Lockscreen
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onLogoutToSchoolLogin) {
+                              onLogoutToSchoolLogin(activeSchoolAccount.username, activeSchoolAccount.schoolId);
+                            } else {
+                              sessionStorage.setItem('jjsak_prefill_username', activeSchoolAccount.username);
+                              sessionStorage.setItem('jjsak_prefill_school_id', activeSchoolAccount.schoolId);
+                              window.location.hash = '#login';
+                              onClose();
+                            }
+                          }}
+                          className="px-3 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Sign out of Owner portal and log in directly with school credentials"
+                        >
+                          <span>Go to School Login</span>
+                        </button>
                       </div>
                     </div>
                   )}

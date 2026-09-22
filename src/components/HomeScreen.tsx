@@ -106,12 +106,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   // Leadership & Staff Account Prerequisites Check (JJSAK Policy Sections 2, 3, 8)
   const currentSchoolId = schoolAuditSession
-    ? schoolAuditSession.tenant.schoolId
+    ? schoolAuditSession.tenant?.schoolId || ''
     : activeTenantId || currentUser?.schoolId || schoolInfo.address || '';
   const prerequisites = checkSchoolLeadershipPrerequisites(currentSchoolId, users);
   const currentTenant = schoolAuditSession
     ? schoolAuditSession.tenant
-    : tenants.find((t) => t.schoolId === currentSchoolId);
+    : tenants.find((t) => t.schoolId === currentSchoolId) || tenants[0];
 
   // Selected teacher for Teacher view
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(teachers[0]?.id || '');
@@ -329,7 +329,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </span>
             </div>
             <p className="text-xs text-amber-100 font-medium">
-              Inspecting Tenant: <strong>{schoolAuditSession.tenant.schoolName}</strong> ({schoolAuditSession.tenant.schoolCode}) • Purpose: <em>{schoolAuditSession.reason}</em>
+              Inspecting Tenant: <strong>{schoolAuditSession.tenant?.schoolName || 'Inspected School'}</strong> ({schoolAuditSession.tenant?.schoolCode || 'SCH'}) • Purpose: <em>{schoolAuditSession.reason}</em>
             </p>
             <p className="text-[10px] text-amber-400/90 font-mono">
               Notice: The Owner is not a member of this school. All actions are logged to the platform immutable audit trail.
@@ -340,7 +340,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             onClick={() => {
               onLogAudit?.(
                 'CROSS_TENANT_AUDIT_EXIT',
-                `Owner concluded authorized inspection of ${schoolAuditSession.tenant.schoolName}.`
+                `Owner concluded authorized inspection of ${schoolAuditSession.tenant?.schoolName || 'school'}.`
               );
               setSchoolAuditSession(null);
             }}

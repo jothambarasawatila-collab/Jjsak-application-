@@ -13,7 +13,6 @@ import {
   RotateCcw,
   Building2,
   CreditCard,
-  UserCheck,
   ShieldCheck,
   Download,
   ChevronRight as ChevronRightIcon,
@@ -51,8 +50,8 @@ interface SettingsScreenProps {
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   schoolInfo,
   currentUser = INITIAL_USERS[0],
-  users = INITIAL_USERS,
-  onSwitchUser,
+  users: _users = INITIAL_USERS,
+  onSwitchUser: _onSwitchUser,
   onNavigate,
   onOpenDownloadApp,
   onOpenRoleGovernance,
@@ -593,56 +592,53 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             </div>
           ) : (
             /* Super Administrator / Platform Owner View */
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                  Super Administrator Diagnostic View Switcher. Platform owners may simulate school personnel views for testing. All formal role modifications must be routed through the Governance Center.
-                </p>
-                {onOpenRoleGovernance && (
-                  <button
-                    type="button"
-                    onClick={onOpenRoleGovernance}
-                    className="px-3 py-1.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition shrink-0 cursor-pointer"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Role Governance Center</span>
-                  </button>
-                )}
-              </div>
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-red-500" />
+                    <span className="text-xs font-black uppercase tracking-wider text-red-400">
+                      Platform Owner Domain Separation (Policy §7)
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md bg-red-950/80 text-red-300 border border-red-800/80 text-[10px] font-mono font-bold">
+                    INFRASTRUCTURE TIER
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {users.map((u) => {
-                  const isSelected = currentUser.id === u.id;
-                  return (
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  <strong>Multi-Tenant Privacy Mandate:</strong> As the Application Owner, you govern registered schools, licensing, and database isolation. You cannot view individual teachers or learners, nor onboard staff under school user accounts.
+                </p>
+
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2.5">
+                  <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-amber-300 block mb-0.5">Direct Portal Switching Prohibited:</strong>
+                    Direct switching from the Owner Governance Console to a Teacher Portal is strictly forbidden. To access a school's portal, the owner must be registered by that school with separate credentials and log in at the School Gateway with password and multi-channel OTP.
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {onOpenRoleGovernance && (
                     <button
-                      key={u.id}
                       type="button"
-                      onClick={() => onSwitchUser && onSwitchUser(u)}
-                      className={`p-2.5 rounded-xl border text-left flex items-center justify-between gap-2 transition cursor-pointer ${
-                        isSelected
-                          ? 'bg-red-50/80 border-[#C51E28] ring-1 ring-[#C51E28]'
-                          : 'bg-slate-50 hover:bg-slate-100 border-slate-200'
-                      }`}
+                      onClick={onOpenRoleGovernance}
+                      className="px-3 py-1.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-slate-900 truncate">
-                            {u.fullName}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-500">
-                          <span className="font-semibold px-1 py-0.2 rounded bg-slate-200 text-slate-800">
-                            {u.role}
-                          </span>
-                          <span>{u.employeeNumber || u.username}</span>
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <UserCheck className="w-4 h-4 text-[#C51E28] shrink-0" />
-                      )}
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Role Governance Center</span>
                     </button>
-                  );
-                })}
+                  )}
+                  {onNavigate && (
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('owner_dashboard')}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer border border-slate-700"
+                    >
+                      <span>Owner Governance Dashboard</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}

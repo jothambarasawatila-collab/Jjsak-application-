@@ -21,6 +21,8 @@ import {
   Trash2,
   UserCheck,
   Key,
+  KeyRound,
+  Inbox,
   Smartphone,
   Fingerprint,
   RefreshCw,
@@ -33,6 +35,8 @@ import {
   Sparkles,
   CreditCard,
 } from 'lucide-react';
+import { InstitutionalCredentialsModal } from './InstitutionalCredentialsModal';
+import { carrierInboxService } from '../services/carrierInboxService';
 import {
   User as UserType,
   UserRole,
@@ -96,6 +100,15 @@ interface SecurityCoreScreenProps {
   onPurgeRecycleItem?: (item: RecycleBinItem, reason: string) => void;
   onTriggerAlert?: (title: string, desc: string, severity: 'HIGH' | 'MEDIUM' | 'LOW') => void;
   onOpenRoleGovernance?: () => void;
+  onOpenCarrierInbox?: () => void;
+  onOpenSchoolActivation?: (params: {
+    schoolId?: string;
+    schoolName?: string;
+    registrationNumber?: string;
+    schoolAccount?: string;
+    otp?: string;
+    temporaryPassword?: string;
+  }) => void;
 }
 
 type TabType =
@@ -135,14 +148,27 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
   onPurgeRecycleItem,
   onTriggerAlert: _onTriggerAlert,
   onOpenRoleGovernance,
+  onOpenCarrierInbox,
+  onOpenSchoolActivation,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [toast, setToast] = useState<string | null>(null);
   const [showPaymentConfigModal, setShowPaymentConfigModal] = useState(false);
+  const [credentialsModalTenant, setCredentialsModalTenant] = useState<SchoolTenant | null>(null);
 
   // Active School Tenant Info
   const activeTenant = useMemo(() => {
-    return tenants.find((t) => t.schoolId === activeTenantId) || tenants[0];
+    return (
+      tenants.find((t) => t.schoolId === activeTenantId) ||
+      tenants[0] || {
+        schoolId: activeTenantId || 'sch-default',
+        schoolName: 'Registered School Portal',
+        schoolCode: 'SCH-001',
+        category: 'MIXED' as const,
+        status: 'ACTIVE' as const,
+        createdAt: new Date().toISOString(),
+      }
+    );
   }, [tenants, activeTenantId]);
 
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SYSTEM_ADMIN';
@@ -157,6 +183,11 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
   const [newSchoolAddress, setNewSchoolAddress] = useState('');
   const [newSchoolPhone, setNewSchoolPhone] = useState('+254 7');
   const [newSchoolEmail, setNewSchoolEmail] = useState('');
+  const [newSchoolSubdomain, setNewSchoolSubdomain] = useState('');
+  const [newSchoolRegNo, setNewSchoolRegNo] = useState('');
+  const [newSchoolAdminName, setNewSchoolAdminName] = useState('');
+  const [newSchoolAdminPhone, setNewSchoolAdminPhone] = useState('+254 7');
+  const [newSchoolAdminEmail, setNewSchoolAdminEmail] = useState('');
 
   // User Modal State (Code P2.2 & P2.3 & Policy Sections 4 & 5)
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -281,34 +312,90 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
       return;
     }
 
-    const cleanSlug = (newSchoolName || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
+    const cleanSlug = (
+      newSchoolSubdomain.trim() ||
+      newSchoolName ||
+      'school'
+    )
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .slice(0, 12);
     const newId = `sch-${cleanSlug}-${Math.floor(100 + Math.random() * 900)}`;
+
+    const adminName = newSchoolAdminName.trim() || `Headteacher (${newSchoolName.trim()})`;
+    const adminPhone = newSchoolAdminPhone.trim() || newSchoolPhone.trim() || '+254 741 478 813';
+    const adminEmail = newSchoolAdminEmail.trim() || newSchoolEmail.trim() || `head@${cleanSlug}.sc.ke`;
+    const regNo = newSchoolRegNo.trim() || `MOE/${newSchoolCode.trim().toUpperCase()}`;
 
     const newTenant: SchoolTenant = {
       schoolId: newId,
       schoolCode: newSchoolCode.trim().toUpperCase(),
       schoolName: newSchoolName.trim(),
       category: newSchoolCategory,
+      registrationNumber: regNo,
+      subdomain: cleanSlug,
+      tenantDomain: `${cleanSlug}.jjsak.edu.ke`,
       address: newSchoolAddress.trim() || 'P.O. Box, Kenya',
-      phone: newSchoolPhone.trim(),
-      email: newSchoolEmail.trim() || `admin@${cleanSlug}.sc.ke`,
+      phone: adminPhone,
+      email: adminEmail,
+      officialEmail: adminEmail,
       status: 'ACTIVE',
       createdAt: new Date().toISOString().split('T')[0],
+      administratorDetails: {
+        fullName: adminName,
+        phoneNumber: adminPhone,
+        emailAddress: adminEmail,
+      },
     };
 
     onAddTenant(newTenant);
+
+    // Automated dispatch of portal activation link, first-time password & OTP
+    const dispatchResult = carrierInboxService.ensureDispatchedForSchool(newTenant, { force: true });
+
+    // Provision initial administrative user record
+    const headUser: UserType = {
+      id: `usr-head-${newId}`,
+      username: `head.${cleanSlug}`,
+      fullName: adminName,
+      email: adminEmail,
+      phoneNumber: adminPhone,
+      role: 'HEAD',
+      designation: 'Head of Institution',
+      schoolId: newId,
+      schoolName: newSchoolName.trim(),
+      schoolAccountAlias: `${cleanSlug}@jjsak`,
+      activationStatus: 'PENDING_ACTIVATION',
+      active: true,
+      password: dispatchResult.firstTimePassword || 'Jjsak@2026!Adm',
+      firstTimePassword: dispatchResult.firstTimePassword || 'Jjsak@2026!Adm',
+    } as any;
+    onAddUser(headUser);
+
     onLogAudit(
       'TENANT_CREATE',
-      `Super Administrator registered new school tenant '${newTenant.schoolName}' [${newTenant.schoolId}].`,
+      `Super Administrator registered school tenant '${newTenant.schoolName}' [${newTenant.schoolId}]. Activation link, first-time password & single-use OTP dispatched to ${adminPhone} / ${adminEmail}.`,
       undefined,
-      JSON.stringify(newTenant)
+      JSON.stringify({ tenant: newTenant, dispatchResult })
     );
 
     setShowAddTenantModal(false);
     setNewSchoolName('');
     setNewSchoolCode('');
     setNewSchoolAddress('');
-    showNotification(`School tenant '${newTenant.schoolName}' created successfully.`);
+    setNewSchoolPhone('+254 7');
+    setNewSchoolEmail('');
+    setNewSchoolSubdomain('');
+    setNewSchoolRegNo('');
+    setNewSchoolAdminName('');
+    setNewSchoolAdminPhone('+254 7');
+    setNewSchoolAdminEmail('');
+
+    // Open credentials modal for immediate Super Admin inspection & copying
+    setCredentialsModalTenant(newTenant);
+    showNotification(
+      `✓ '${newTenant.schoolName}' registered! Activation link, first-time password & OTP dispatched to ${adminPhone} via SMS & WhatsApp.`
+    );
   };
 
   // Handle Add User (Code P2.1, P2.2, P2.3 & Policy Sections 4 & 5)
@@ -498,7 +585,7 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
   const testPwValidation = validateJJSAKPassword(testPassword);
 
   // Active simulated JWT payload
-  const currentJwt = activeJWTSession || (currentUser ? generateJWTSession(currentUser, activeTenantId, activeTenant.schoolName) : null);
+  const currentJwt = activeJWTSession || (currentUser ? generateJWTSession(currentUser, activeTenantId, activeTenant?.schoolName || 'Registered School') : null);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans pb-24 select-none">
@@ -545,8 +632,8 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
             <div className="bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 text-xs">
               <Building2 className="w-4 h-4 text-red-400" />
               <span className="text-slate-400">School:</span>
-              <strong className="text-white">{activeTenant.schoolName}</strong>
-              <span className="text-[10px] font-mono text-slate-400">({activeTenant.schoolCode})</span>
+              <strong className="text-white">{activeTenant?.schoolName || 'Registered School'}</strong>
+              <span className="text-[10px] font-mono text-slate-400">({activeTenant?.schoolCode || 'SCH'})</span>
             </div>
 
             {currentUser && (
@@ -635,8 +722,8 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
                     </>
                   ) : (
                     <>
-                      <span className="text-base font-black text-white truncate block">{activeTenant.schoolName}</span>
-                      <span className="text-xs text-red-400 font-mono block mt-0.5">Code: {activeTenant.schoolCode} (Isolated)</span>
+                      <span className="text-base font-black text-white truncate block">{activeTenant?.schoolName || 'Registered School'}</span>
+                      <span className="text-xs text-red-400 font-mono block mt-0.5">Code: {activeTenant?.schoolCode || 'SCH'} (Isolated)</span>
                     </>
                   )}
                 </div>
@@ -1025,21 +1112,35 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
                 </p>
               </div>
 
-              {isSuperAdmin ? (
-                <button
-                  type="button"
-                  id="add-school-tenant-btn"
-                  onClick={() => setShowAddTenantModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white text-xs font-bold shadow-md flex items-center gap-2 transition cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Register School Account (Super Admin)</span>
-                </button>
-              ) : (
-                <div className="text-xs text-slate-400 bg-slate-900 px-3 py-2 rounded-xl border border-slate-700">
-                  🔒 School account creation restricted to Super Admin
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {onOpenCarrierInbox && (
+                  <button
+                    type="button"
+                    onClick={onOpenCarrierInbox}
+                    className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-bold shadow-md flex items-center gap-1.5 transition cursor-pointer"
+                    title="Open Carrier Inbox (SMS, WhatsApp, Email messages)"
+                  >
+                    <Inbox className="w-4 h-4 text-amber-400" />
+                    <span>Carrier Messages Inbox</span>
+                  </button>
+                )}
+
+                {isSuperAdmin ? (
+                  <button
+                    type="button"
+                    id="add-school-tenant-btn"
+                    onClick={() => setShowAddTenantModal(true)}
+                    className="px-4 py-2.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white text-xs font-bold shadow-md flex items-center gap-2 transition cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Register School Account (Super Admin)</span>
+                  </button>
+                ) : (
+                  <div className="text-xs text-slate-400 bg-slate-900 px-3 py-2 rounded-xl border border-slate-700">
+                    🔒 School account creation restricted to Super Admin
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1102,6 +1203,17 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
                           Switch School
                         </button>
                       )}
+
+                      {/* Institutional Credentials & Multi-Channel OTP Inspector */}
+                      <button
+                        type="button"
+                        onClick={() => setCredentialsModalTenant(tenant)}
+                        className="px-2.5 py-1.5 rounded-xl bg-red-950/60 hover:bg-red-900/60 text-amber-300 text-[11px] font-bold border border-red-800/70 flex items-center gap-1 transition cursor-pointer"
+                        title="View or Resend Activation Link, First-Time Password & OTP"
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Credentials &amp; OTP</span>
+                      </button>
 
                       {isSuperAdmin && onUpdateTenantStatus && (
                         <button
@@ -1443,115 +1555,201 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-800/80 p-5 rounded-3xl border border-slate-700">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-red-400 block">
-                      Code P2.2 &amp; P2.3 User Governance
-                    </span>
-                    <h3 className="text-base font-bold text-white">Institutional Staff &amp; User Accounts</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Every user is strictly linked to {activeTenant.schoolName} [{activeTenant.schoolCode}] and assigned one of the approved institutional roles.
-                    </p>
-                  </div>
+                {isSuperAdmin ? (
+                  /* Platform Owner View: Show ONLY Registered Schools Directory (Mandate §1 & §7) */
+                  <div className="space-y-4">
+                    <div className="bg-slate-800/80 p-5 rounded-3xl border border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Building2 className="w-4 h-4 text-red-400" />
+                          <span className="text-[10px] font-black uppercase tracking-wider text-red-400">
+                            Registered Schools Directory (Platform Governance)
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold text-white">Registered School Institutional Tenancies</h3>
+                        <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">
+                          As the Application Owner, you govern registered institutions and their cryptographic database schemas. 
+                          Under tenant privacy laws, individual teacher and learner accounts are strictly isolated to school leadership.
+                        </p>
+                      </div>
 
-                  <button
-                    type="button"
-                    id="add-user-btn"
-                    onClick={() => setShowAddUserModal(true)}
-                    className="px-4 py-2.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white text-xs font-bold shadow-md flex items-center gap-2 transition cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Onboard New Staff / User</span>
-                  </button>
-                </div>
+                      <div className="px-3.5 py-2 rounded-2xl bg-amber-950/60 border border-amber-800/80 text-amber-200 text-xs flex items-center gap-2 shrink-0">
+                        <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                        <div>
+                          <span className="font-bold block">User Onboarding Delegated</span>
+                          <span className="text-[10px] text-amber-300/80">Only School Principals can onboard staff</span>
+                        </div>
+                      </div>
+                    </div>
 
-                <div className="bg-slate-800/80 rounded-3xl border border-slate-700 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-900 text-slate-400 uppercase font-mono text-[10px] tracking-wider border-b border-slate-700">
-                        <tr>
-                          <th className="p-4">User Details</th>
-                          <th className="p-4">Institutional Role</th>
-                          <th className="p-4">Phone / National ID</th>
-                          <th className="p-4">Activation Status</th>
-                          <th className="p-4">2FA / MFA</th>
-                          <th className="p-4 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-700/60 text-slate-300">
-                        {displayedUsers.map((user) => {
-                          const isPrivileged = isMfaRequiredForRole(user.role);
-                          const isPending = user.activationStatus === 'PENDING_ACTIVATION';
-                          return (
-                            <tr key={user.id} className="hover:bg-slate-750/50 transition">
-                              <td className="p-4">
-                                <div className="font-bold text-white text-sm">{user.fullName}</div>
-                                <div className="text-slate-400 text-[11px] font-mono">@{user.username} • {user.email}</div>
-                                {user.designation && (
-                                  <div className="text-[10px] text-red-300 mt-0.5">{user.designation}</div>
-                                )}
-                              </td>
-                              <td className="p-4">
-                                <span className="font-bold px-2.5 py-1 rounded-lg bg-slate-700 text-red-300 border border-slate-600">
-                                  {user.role}
-                                </span>
-                              </td>
-                              <td className="p-4 font-mono text-[11px] text-slate-300">
-                                <div>{user.phoneNumber || '—'}</div>
-                                <div className="text-[10px] text-slate-500">ID: {user.nationalId || user.employeeNumber || '—'}</div>
-                              </td>
-                              <td className="p-4">
-                                {isPending ? (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 w-fit">
-                                    <Clock className="w-3 h-3" />
-                                    <span>PENDING ACTIVATION</span>
+                    <div className="bg-slate-800/80 rounded-3xl border border-slate-700 overflow-hidden shadow-sm">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-900 text-slate-400 uppercase font-mono text-[10px] tracking-wider border-b border-slate-700">
+                            <tr>
+                              <th className="p-4">Registered School</th>
+                              <th className="p-4">Institutional Code</th>
+                              <th className="p-4">Isolated Schema / Subdomain</th>
+                              <th className="p-4">Category</th>
+                              <th className="p-4">Status</th>
+                              <th className="p-4 text-right">Owner Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-700/60 text-slate-300">
+                            {tenants.map((t) => (
+                              <tr key={t.schoolId} className="hover:bg-slate-750/50 transition">
+                                <td className="p-4">
+                                  <div className="font-bold text-white text-sm flex items-center gap-2">
+                                    <Building2 className="w-4 h-4 text-red-400 shrink-0" />
+                                    <span>{t.schoolName}</span>
+                                  </div>
+                                  <div className="text-slate-400 text-[11px] font-mono mt-0.5">
+                                    {t.email || t.phone || t.address || 'Registered Institution'}
+                                  </div>
+                                </td>
+                                <td className="p-4 font-mono font-bold text-red-300">
+                                  {t.schoolCode}
+                                </td>
+                                <td className="p-4 font-mono text-slate-400 text-[11px]">
+                                  {t.subdomain ? `${t.subdomain}.jjsak.com` : `${t.schoolId}.jjsak.internal`}
+                                </td>
+                                <td className="p-4">
+                                  <span className="px-2 py-0.5 rounded-md bg-slate-700 text-slate-300 text-[10px] font-semibold">
+                                    {t.category || 'MIXED'}
                                   </span>
-                                ) : (
+                                </td>
+                                <td className="p-4">
                                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 w-fit">
                                     <CheckCircle2 className="w-3 h-3" />
-                                    <span>ACTIVE</span>
+                                    <span>{t.status || 'ACTIVE'}</span>
                                   </span>
-                                )}
-                              </td>
-                              <td className="p-4">
-                                {isPrivileged ? (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center gap-1 w-fit">
-                                    <Fingerprint className="w-3 h-3" />
-                                    <span>{user.mfaMethod || 'Email OTP'}</span>
+                                </td>
+                                <td className="p-4 text-right">
+                                  <span className="text-[11px] text-slate-400 font-mono italic">
+                                    Governed in Owner Console
                                   </span>
-                                ) : (
-                                  <span className="text-[10px] text-slate-500 font-mono">Optional</span>
-                                )}
-                              </td>
-                              <td className="p-4 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenUserInvitation(user)}
-                                    className="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-200 border border-red-800 text-xs font-bold transition cursor-pointer flex items-center gap-1"
-                                  >
-                                    <Send className="w-3 h-3" />
-                                    <span>Smart Invitation</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      onLogAudit('USER_MANAGE', `Audited credentials for user ${user.username}.`);
-                                      showNotification(`Audited user ${user.username}`);
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold transition cursor-pointer"
-                                  >
-                                    Inspect
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  /* School Leadership View: Staff & User Management */
+                  <>
+                    <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-800/80 p-5 rounded-3xl border border-slate-700">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-red-400 block">
+                          Code P2.2 &amp; P2.3 User Governance
+                        </span>
+                        <h3 className="text-base font-bold text-white">Institutional Staff &amp; User Accounts</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Every user is strictly linked to {activeTenant?.schoolName || 'the registered school'} [{activeTenant?.schoolCode || 'SCH'}] and assigned one of the approved institutional roles.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        id="add-user-btn"
+                        onClick={() => setShowAddUserModal(true)}
+                        className="px-4 py-2.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white text-xs font-bold shadow-md flex items-center gap-2 transition cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Onboard New Staff / User</span>
+                      </button>
+                    </div>
+
+                    <div className="bg-slate-800/80 rounded-3xl border border-slate-700 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-900 text-slate-400 uppercase font-mono text-[10px] tracking-wider border-b border-slate-700">
+                            <tr>
+                              <th className="p-4">User Details</th>
+                              <th className="p-4">Institutional Role</th>
+                              <th className="p-4">Phone / National ID</th>
+                              <th className="p-4">Activation Status</th>
+                              <th className="p-4">2FA / MFA</th>
+                              <th className="p-4 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-700/60 text-slate-300">
+                            {displayedUsers.map((user) => {
+                              const isPrivileged = isMfaRequiredForRole(user.role);
+                              const isPending = user.activationStatus === 'PENDING_ACTIVATION';
+                              return (
+                                <tr key={user.id} className="hover:bg-slate-750/50 transition">
+                                  <td className="p-4">
+                                    <div className="font-bold text-white text-sm">{user.fullName}</div>
+                                    <div className="text-slate-400 text-[11px] font-mono">@{user.username} • {user.email}</div>
+                                    {user.designation && (
+                                      <div className="text-[10px] text-red-300 mt-0.5">{user.designation}</div>
+                                    )}
+                                  </td>
+                                  <td className="p-4">
+                                    <span className="font-bold px-2.5 py-1 rounded-lg bg-slate-700 text-red-300 border border-slate-600">
+                                      {user.role}
+                                    </span>
+                                  </td>
+                                  <td className="p-4 font-mono text-[11px] text-slate-300">
+                                    <div>{user.phoneNumber || '—'}</div>
+                                    <div className="text-[10px] text-slate-500">ID: {user.nationalId || user.employeeNumber || '—'}</div>
+                                  </td>
+                                  <td className="p-4">
+                                    {isPending ? (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 w-fit">
+                                        <Clock className="w-3 h-3" />
+                                        <span>PENDING ACTIVATION</span>
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 w-fit">
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        <span>ACTIVE</span>
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="p-4">
+                                    {isPrivileged ? (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center gap-1 w-fit">
+                                        <Fingerprint className="w-3 h-3" />
+                                        <span>{user.mfaMethod || 'Email OTP'}</span>
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-slate-500 font-mono">Optional</span>
+                                    )}
+                                  </td>
+                                  <td className="p-4 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenUserInvitation(user)}
+                                        className="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-200 border border-red-800 text-xs font-bold transition cursor-pointer flex items-center gap-1"
+                                      >
+                                        <Send className="w-3 h-3" />
+                                        <span>Smart Invitation</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          onLogAudit('USER_MANAGE', `Audited credentials for user ${user.username}.`);
+                                          showNotification(`Audited user ${user.username}`);
+                                        }}
+                                        className="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold transition cursor-pointer"
+                                      >
+                                        Inspect
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             );
           })()
@@ -2372,8 +2570,13 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
                 <input
                   type="text"
                   value={newSchoolName}
-                  onChange={(e) => setNewSchoolName(e.target.value)}
-                  placeholder="e.g. St. Jude Junior Academy"
+                  onChange={(e) => {
+                    setNewSchoolName(e.target.value);
+                    if (!newSchoolSubdomain) {
+                      setNewSchoolSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12));
+                    }
+                  }}
+                  placeholder="e.g. Yuya Primary School / Ngonyek Junior School"
                   className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-red-500"
                   required
                 />
@@ -2386,7 +2589,7 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
                     type="text"
                     value={newSchoolCode}
                     onChange={(e) => setNewSchoolCode(e.target.value)}
-                    placeholder="e.g. SJA-30200"
+                    placeholder="e.g. YPS-30200 / NJS-30200"
                     className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 font-mono text-white uppercase focus:outline-none focus:border-red-500"
                     required
                   />
@@ -2399,48 +2602,113 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
                     onChange={(e) => setNewSchoolCategory(e.target.value as any)}
                     className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-red-500"
                   >
-                    <option value="JUNIOR">Junior School</option>
-                    <option value="PRIMARY">Primary School</option>
+                    <option value="PRIMARY">Primary School (Pre-Primary &amp; Grade 1-6)</option>
+                    <option value="JUNIOR">Junior School (Grade 7-9)</option>
                     <option value="SECONDARY">Secondary School</option>
                     <option value="MIXED">Comprehensive School</option>
                   </select>
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">Ministry Registration No:</label>
+                  <input
+                    type="text"
+                    value={newSchoolRegNo}
+                    onChange={(e) => setNewSchoolRegNo(e.target.value)}
+                    placeholder="e.g. MOE/PRI/30200/YUYA"
+                    className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 font-mono text-white focus:outline-none focus:border-red-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-300 mb-1">Subdomain Slug:</label>
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      value={newSchoolSubdomain}
+                      onChange={(e) => setNewSchoolSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                      placeholder="yuya / ngonyek"
+                      className="w-full p-2.5 rounded-l-xl bg-slate-800 border border-slate-700 font-mono text-white focus:outline-none focus:border-red-500"
+                    />
+                    <span className="p-2.5 bg-slate-950 border border-l-0 border-slate-700 rounded-r-xl text-slate-400 font-mono text-[10px]">
+                      .jjsak.edu.ke
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <label className="block font-bold text-slate-300 mb-1">Postal Address:</label>
+                <label className="block font-bold text-slate-300 mb-1">Postal Address &amp; Location:</label>
                 <input
                   type="text"
                   value={newSchoolAddress}
                   onChange={(e) => setNewSchoolAddress(e.target.value)}
-                  placeholder="P.O. Box 123 - 30200, Kitale"
+                  placeholder="P.O. Box 450 - 30200, Kitale - Kiminini Ward"
                   className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-red-500"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Administrative Details for Automated Dispatches */}
+              <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-red-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Send className="w-3.5 h-3.5 text-amber-400" />
+                    Administrative Recipient (Automated Link &amp; OTP Dispatch)
+                  </span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    SMS • WhatsApp • Email
+                  </span>
+                </div>
+
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1">Phone Number:</label>
+                  <label className="block font-medium text-slate-300 mb-1">Headteacher / Principal Full Name:</label>
                   <input
                     type="text"
-                    value={newSchoolPhone}
-                    onChange={(e) => setNewSchoolPhone(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-red-500"
+                    value={newSchoolAdminName}
+                    onChange={(e) => setNewSchoolAdminName(e.target.value)}
+                    placeholder="e.g. Mr. J. Barasa (Headteacher)"
+                    className="w-full p-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-red-500"
                   />
                 </div>
-                <div>
-                  <label className="block font-bold text-slate-300 mb-1">Official Email:</label>
-                  <input
-                    type="email"
-                    value={newSchoolEmail}
-                    onChange={(e) => setNewSchoolEmail(e.target.value)}
-                    placeholder="info@school.sc.ke"
-                    className="w-full p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-red-500"
-                  />
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block font-medium text-slate-300 mb-1">Admin Mobile (SMS &amp; WhatsApp):</label>
+                    <input
+                      type="text"
+                      value={newSchoolAdminPhone}
+                      onChange={(e) => {
+                        setNewSchoolAdminPhone(e.target.value);
+                        setNewSchoolPhone(e.target.value);
+                      }}
+                      placeholder="+254 741 478 813"
+                      className="w-full p-2 rounded-xl bg-slate-800 border border-slate-700 font-mono text-amber-300 focus:outline-none focus:border-red-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-slate-300 mb-1">Official / Admin Email:</label>
+                    <input
+                      type="email"
+                      value={newSchoolAdminEmail}
+                      onChange={(e) => {
+                        setNewSchoolAdminEmail(e.target.value);
+                        setNewSchoolEmail(e.target.value);
+                      }}
+                      placeholder="head@school.sc.ke"
+                      className="w-full p-2 rounded-xl bg-slate-800 border border-slate-700 text-blue-300 focus:outline-none focus:border-red-500"
+                    />
+                  </div>
                 </div>
+
+                <p className="text-[10px] text-slate-400 italic">
+                  * On registration, JJSAK immediately dispatches an activation link, temporary password, and single-use OTP directly to this recipient.
+                </p>
               </div>
 
-              <div className="flex items-center gap-3 mt-3">
+              <div className="flex items-center gap-3 mt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddTenantModal(false)}
@@ -2450,9 +2718,10 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white font-bold transition shadow-md cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl bg-[#C51E28] hover:bg-red-700 text-white font-bold transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  Create School Account
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Register &amp; Dispatch Credentials</span>
                 </button>
               </div>
             </form>
@@ -2860,6 +3129,17 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
           isOpen={showPaymentConfigModal}
           onClose={() => setShowPaymentConfigModal(false)}
           currentUser={currentUser}
+        />
+      )}
+
+      {/* Institutional Credentials & Multi-Carrier Dispatch Inspector Modal */}
+      {credentialsModalTenant && (
+        <InstitutionalCredentialsModal
+          isOpen={!!credentialsModalTenant}
+          onClose={() => setCredentialsModalTenant(null)}
+          school={credentialsModalTenant}
+          onOpenCarrierInbox={onOpenCarrierInbox}
+          onOpenSchoolActivation={onOpenSchoolActivation}
         />
       )}
     </div>

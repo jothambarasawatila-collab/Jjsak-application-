@@ -22,6 +22,8 @@
 
 // Removed unused crypto imports (logic moved to backend per JJSAK-AUTH-OTP-004)
 
+import { carrierInboxService } from './carrierInboxService';
+
 export type OwnerDeliveryChannel = 'EMAIL' | 'SMS' | 'WHATSAPP';
 export type OwnerOtpPurpose = 'OWNER_LOGIN' | 'OWNER_RECOVERY' | 'OWNER_SECURITY_VERIFICATION';
 export type OwnerDeliveryStatus =
@@ -400,6 +402,7 @@ class OwnerOtpDeliveryService {
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem('jjsak_latest_backend_otp_session_id', sessionId);
+          carrierInboxService.syncWithBackend().catch(() => {});
         } catch {
           // Ignored
         }

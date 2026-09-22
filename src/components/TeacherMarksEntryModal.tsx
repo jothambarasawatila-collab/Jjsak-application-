@@ -15,6 +15,11 @@ import {
   Unlock,
   ShieldCheck,
   RotateCcw,
+  Mic,
+  MicOff,
+  Radio,
+  ChevronRight,
+  Globe,
 } from 'lucide-react';
 import { Student, Teacher, Assessment, User } from '../types';
 import {
@@ -29,6 +34,45 @@ import {
   getTeacherInitials,
 } from '../data/mockData';
 import { isDirectorOfAcademics } from '../utils/securityEngine';
+
+export interface DictationLanguageOption {
+  code: string;
+  name: string;
+  label: string;
+  flag: string;
+  description: string;
+}
+
+export const DICTATION_LANGUAGES: DictationLanguageOption[] = [
+  {
+    code: 'en-KE',
+    name: 'Kenyan English',
+    label: 'English (Kenya)',
+    flag: '🇰🇪',
+    description: 'Kenyan English accents, CBC curriculum terms & local names',
+  },
+  {
+    code: 'sw-KE',
+    name: 'Kiswahili',
+    label: 'Kiswahili (Kenya)',
+    flag: '🇰🇪',
+    description: 'Kiswahili sanifu kwa maneno ya kimasomo na tathmini',
+  },
+  {
+    code: 'en-GB',
+    name: 'British English',
+    label: 'English (UK)',
+    flag: '🇬🇧',
+    description: 'Standard UK English pronunciation',
+  },
+  {
+    code: 'en-US',
+    name: 'American English',
+    label: 'English (US)',
+    flag: '🇺🇸',
+    description: 'Standard American English pronunciation',
+  },
+];
 
 interface TeacherMarksEntryModalProps {
   isOpen: boolean;
@@ -163,6 +207,239 @@ export const TeacherMarksEntryModal: React.FC<TeacherMarksEntryModalProps> = ({
     setCustomRemarksMap(newRemarks);
     setSubmittedSuccess(false);
   }, [selectedClass, selectedSubject, scoreBase, students]);
+
+  // ==================== WEB SPEECH API VOICE-TO-TEXT ====================
+  const [activeDictatingStudentId, setActiveDictatingStudentId] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const [dictationLang, setDictationLang] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('jjsak_dictation_lang');
+      if (saved && DICTATION_LANGUAGES.some((l) => l.code === saved)) {
+        return saved;
+      }
+    }
+    return 'en-KE';
+  });
+  const remarksInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const recognitionRef = useRef<any>(null);
+
+  const handleDictationLangChange = (newLang: string) => {
+    setDictationLang(newLang);
+    try {
+      localStorage.setItem('jjsak_dictation_lang', newLang);
+    } catch {}
+
+    const selectedOption = DICTATION_LANGUAGES.find((l) => l.code === newLang);
+    showToast(`🎙️ Dictation language set to ${selectedOption?.label || newLang}`);
+
+    // If currently dictating, seamlessly re-initialize recognition with the newly selected language
+    if (isListening && activeDictatingStudentId) {
+      startDictation(activeDictatingStudentId, newLang);
+    }
+  };
+
+  const formatVoiceTranscript = (text: string): string => {
+    if (!text) return '';
+    let formatted = text
+      .replace(/\bfull stop\b/gi, '.')
+      .replace(/\bperiod\b/gi, '.')
+      .replace(/\bcomma\b/gi, ',')
+      .replace(/\bexclamation mark\b/gi, '!')
+      .replace(/\bquestion mark\b/gi, '?')
+      .replace(/\bcolon\b/gi, ':')
+      .replace(/\bsemi colon\b/gi, ';')
+      .replace(/\bsemicolon\b/gi, ';');
+
+    formatted = formatted
+      .replace(/\s+([.,!?:;])/g, '$1')
+      .replace(/([.,!?:;])(?=[^\s])/g, '$1 ')
+      .trim();
+
+    // Capitalize sentence beginnings
+    formatted = formatted.replace(/(^\w|[.!?]\s+\w)/g, (c) => c.toUpperCase());
+    return formatted;
+  };
+
+  const stopDictation = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.stop();
+      } catch {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    setActiveDictatingStudentId(null);
+    setInterimTranscript('');
+  };
+
+  const advanceToNextStudent = (currentStudentId: string) => {
+    const classSts = students.filter(
+      (s) => s.classArm === selectedClass || s.classArm.includes(selectedClass)
+    );
+    const currentIndex = classSts.findIndex((s) => s.id === currentStudentId);
+    if (currentIndex !== -1 && currentIndex + 1 < classSts.length) {
+      const nextStudent = classSts[currentIndex + 1];
+      startDictation(nextStudent.id);
+    } else {
+      stopDictation();
+      showToast('✓ Reached end of class roster.');
+    }
+  };
+
+  const startDictation = (studentId: string, overrideLang?: string) => {
+    const SpeechRecognitionAPI =
+      typeof window !== 'undefined'
+        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        : null;
+
+    if (!SpeechRecognitionAPI) {
+      showToast('⚠️ Web Speech API is not supported in this browser. Please use Google Chrome, Edge, or Safari.');
+      return;
+    }
+
+    if (activeDictatingStudentId === studentId && isListening && !overrideLang) {
+      stopDictation();
+      return;
+    }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.stop();
+      } catch {}
+      recognitionRef.current = null;
+    }
+
+    try {
+      const chosenLang = overrideLang || dictationLang;
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = chosenLang;
+      recognition.maxAlternatives = 1;
+
+      setActiveDictatingStudentId(studentId);
+      setIsListening(true);
+      setInterimTranscript('');
+
+      setTimeout(() => {
+        remarksInputRefs.current[studentId]?.focus();
+      }, 60);
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        const targetStudent = students.find((s) => s.id === studentId);
+        const langObj = DICTATION_LANGUAGES.find((l) => l.code === chosenLang);
+        showToast(
+          `🎙️ Dictating for ${targetStudent?.name || 'student'} in ${langObj?.name || chosenLang} (${chosenLang})`
+        );
+      };
+
+      recognition.onresult = (event: any) => {
+        let interim = '';
+        let final = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += transcript;
+          } else {
+            interim += transcript;
+          }
+        }
+
+        setInterimTranscript(interim);
+
+        if (final) {
+          const lowerFinal = final.toLowerCase().trim();
+          if (lowerFinal.includes('next student') || lowerFinal.includes('next learner')) {
+            showToast('Advancing to next learner...');
+            advanceToNextStudent(studentId);
+            return;
+          }
+
+          if (lowerFinal === 'clear remark' || lowerFinal === 'clear remarks') {
+            setCustomRemarksMap((prev) => ({
+              ...prev,
+              [studentId]: '',
+            }));
+            showToast('Remarks cleared.');
+            return;
+          }
+
+          const cleanFinal = formatVoiceTranscript(final);
+          setCustomRemarksMap((prev) => {
+            const existing = prev[studentId] ? prev[studentId].trim() : '';
+            const updated = existing ? `${existing} ${cleanFinal}` : cleanFinal;
+            return {
+              ...prev,
+              [studentId]: updated,
+            };
+          });
+
+          setInterimTranscript('');
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('[WebSpeechAPI] Dictation error:', event.error);
+        if (event.error === 'not-allowed') {
+          showToast('⚠️ Microphone permission blocked. Please allow mic access in your browser.');
+          stopDictation();
+        } else if (event.error === 'network') {
+          showToast('⚠️ Speech recognition network connection issue.');
+          stopDictation();
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err: any) {
+      console.error('[WebSpeechAPI] Recognition initialization error:', err);
+      showToast(`⚠️ Microphone error: ${err?.message || 'Failed to start'}`);
+      setIsListening(false);
+      setActiveDictatingStudentId(null);
+    }
+  };
+
+  const handleInsertQuickRemark = (studentId: string, phrase: string) => {
+    setCustomRemarksMap((prev) => {
+      const existing = prev[studentId] ? prev[studentId].trim() : '';
+      const updated = existing ? `${existing} - ${phrase}` : phrase;
+      return {
+        ...prev,
+        [studentId]: updated,
+      };
+    });
+    showToast(`✓ Added remark: "${phrase}"`);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.stop();
+        } catch {}
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      stopDictation();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -855,7 +1132,64 @@ export const TeacherMarksEntryModal: React.FC<TeacherMarksEntryModalProps> = ({
               </span>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Dictation Language Selector Dropdown */}
+              <div
+                className="flex items-center gap-1 bg-slate-50 hover:bg-slate-100/90 border border-slate-200 rounded-lg px-2 py-1 transition"
+                title="Dictation Language (Defaults to Kenyan English for accurate CBC terminology)"
+              >
+                <Globe className="w-3.5 h-3.5 text-[#C51E28] shrink-0" />
+                <label
+                  htmlFor="toolbar-dictation-lang-select"
+                  className="text-[10px] font-bold text-slate-500 uppercase tracking-tight hidden lg:inline"
+                >
+                  Dictate:
+                </label>
+                <select
+                  id="toolbar-dictation-lang-select"
+                  value={dictationLang}
+                  onChange={(e) => handleDictationLangChange(e.target.value)}
+                  className="bg-transparent text-[11px] font-bold text-slate-700 focus:outline-none cursor-pointer pr-1"
+                  aria-label="Dictation Language"
+                >
+                  {DICTATION_LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code} className="text-slate-900 bg-white">
+                      {lang.flag} {lang.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (isListening) {
+                    stopDictation();
+                  } else if (scoreEntries.length > 0) {
+                    startDictation(scoreEntries[0].student.id);
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  isListening
+                    ? 'bg-red-600 text-white border-red-700 shadow-xs animate-pulse'
+                    : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                }`}
+                title={`Dictate remarks using Web Speech API (${DICTATION_LANGUAGES.find((l) => l.code === dictationLang)?.name || dictationLang})`}
+              >
+                {isListening ? (
+                  <>
+                    <Radio className="w-3.5 h-3.5 text-white animate-spin" />
+                    <span>Dictating ({students.find((s) => s.id === activeDictatingStudentId)?.name.split(' ')[0] || 'Active'})...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-3.5 h-3.5 text-[#C51E28]" />
+                    <span className="hidden sm:inline">Voice Dictation</span>
+                    <span className="sm:hidden">Voice</span>
+                  </>
+                )}
+              </button>
+
               <button
                 type="button"
                 onClick={() => setShowPasteModal(true)}
@@ -910,6 +1244,106 @@ export const TeacherMarksEntryModal: React.FC<TeacherMarksEntryModalProps> = ({
 
         {/* Main Students Scores Entry Area */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-slate-100/70">
+          {/* Active Web Speech Dictation Command Bar */}
+          {activeDictatingStudentId && (
+            <div className="mb-3 bg-gradient-to-r from-red-950 via-slate-900 to-slate-900 text-white p-3 rounded-2xl shadow-md border border-red-800/50 flex flex-col md:flex-row md:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative shrink-0">
+                  <span className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-md">
+                    <Mic className="w-4 h-4 animate-pulse" />
+                  </span>
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-red-300">
+                      Web Speech Dictation Active
+                    </span>
+                    <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded text-slate-300 font-mono">
+                      {dictationLang}
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-medium hidden sm:inline">
+                      ● Voice commands: "Next student", "Clear remarks", "Full stop"
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-white truncate">
+                    Dictating for:{' '}
+                    <span className="text-amber-300">
+                      {students.find((s) => s.id === activeDictatingStudentId)?.name || 'Learner'}
+                    </span>
+                    {interimTranscript ? (
+                      <span className="ml-2 font-normal italic text-slate-300">
+                        "{interimTranscript}"
+                      </span>
+                    ) : (
+                      <span className="ml-2 font-normal text-slate-400 text-[11px]">
+                        (Speak assessment remarks directly into your microphone)
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 shrink-0 justify-end">
+                {/* Language switch */}
+                <select
+                  value={dictationLang}
+                  onChange={(e) => handleDictationLangChange(e.target.value)}
+                  className="bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold rounded-lg px-2 py-1 border border-white/20 focus:outline-none cursor-pointer"
+                  title="Speech Dictation Language"
+                >
+                  {DICTATION_LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code} className="text-slate-900 bg-white">
+                      {lang.flag} {lang.label}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Quick CBC remark insertion */}
+                <button
+                  type="button"
+                  onClick={() => handleInsertQuickRemark(activeDictatingStudentId, 'Exceeds Expectations')}
+                  className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-semibold transition cursor-pointer"
+                  title="Insert CBC phrase"
+                >
+                  + Exceeds
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertQuickRemark(activeDictatingStudentId, 'Meets Expectations')}
+                  className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-semibold transition cursor-pointer"
+                  title="Insert CBC phrase"
+                >
+                  + Meets
+                </button>
+
+                {/* Next student */}
+                <button
+                  type="button"
+                  onClick={() => advanceToNextStudent(activeDictatingStudentId)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                  title="Advance to next learner in class roster"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+
+                {/* Stop button */}
+                <button
+                  type="button"
+                  onClick={stopDictation}
+                  className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                  title="Stop voice dictation"
+                >
+                  <MicOff className="w-3 h-3" />
+                  <span>Stop</span>
+                </button>
+              </div>
+            </div>
+          )}
           {classStudents.length === 0 ? (
             <div className="bg-white rounded-2xl p-8 text-center text-slate-500 border border-slate-200">
               <Users className="w-8 h-8 mx-auto text-slate-400 mb-2" />
@@ -935,7 +1369,26 @@ export const TeacherMarksEntryModal: React.FC<TeacherMarksEntryModalProps> = ({
                         </th>
                       )}
                       <th className="py-2.5 px-3 w-24 text-center">CBC Level</th>
-                      <th className="py-2.5 px-3">Subject Remarks</th>
+                      <th className="py-2.5 px-3">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span>Subject Remarks</span>
+                          <div className="flex items-center gap-1 font-normal normal-case">
+                            <span className="text-[9px] text-slate-400 hidden xl:inline">Voice:</span>
+                            <select
+                              value={dictationLang}
+                              onChange={(e) => handleDictationLangChange(e.target.value)}
+                              className="text-[9px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none cursor-pointer hover:border-slate-300"
+                              title="Dictation Language for Subject Remarks (Default: en-KE Kenyan English)"
+                            >
+                              {DICTATION_LANGUAGES.map((lang) => (
+                                <option key={lang.code} value={lang.code}>
+                                  {lang.flag} {lang.code} ({lang.name})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </th>
                       <th className="py-2.5 px-3 w-16 text-center">Tr</th>
                     </tr>
                   </thead>
@@ -1014,20 +1467,55 @@ export const TeacherMarksEntryModal: React.FC<TeacherMarksEntryModalProps> = ({
                             </span>
                           </td>
 
-                          {/* Remarks */}
+                          {/* Remarks with Web Speech Voice Dictation */}
                           <td className="py-2 px-3">
-                            <input
-                              type="text"
-                              value={customRemarksMap[st.id] ?? entry.remarks}
-                              onChange={(e) =>
-                                setCustomRemarksMap((prev) => ({
-                                  ...prev,
-                                  [st.id]: e.target.value,
-                                }))
-                              }
-                              placeholder="Auto remarks..."
-                              className="w-full px-2 py-1 rounded-md border border-slate-200 text-[11px] text-slate-700 bg-white/90 focus:outline-none focus:border-[#C51E28]"
-                            />
+                            <div className="relative flex items-center">
+                              <input
+                                ref={(el) => {
+                                  remarksInputRefs.current[st.id] = el;
+                                }}
+                                type="text"
+                                value={customRemarksMap[st.id] ?? entry.remarks}
+                                onChange={(e) =>
+                                  setCustomRemarksMap((prev) => ({
+                                    ...prev,
+                                    [st.id]: e.target.value,
+                                  }))
+                                }
+                                placeholder="Auto remarks or dictate..."
+                                className={`w-full pl-2 pr-7 py-1 rounded-md border text-[11px] text-slate-700 bg-white/90 focus:outline-none transition ${
+                                  activeDictatingStudentId === st.id && isListening
+                                    ? 'border-red-500 ring-2 ring-red-200 bg-red-50/40'
+                                    : 'border-slate-200 focus:border-[#C51E28]'
+                                }`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (activeDictatingStudentId === st.id && isListening) {
+                                    stopDictation();
+                                  } else {
+                                    startDictation(st.id);
+                                  }
+                                }}
+                                className={`absolute right-1 w-5 h-5 rounded flex items-center justify-center transition cursor-pointer ${
+                                  activeDictatingStudentId === st.id && isListening
+                                    ? 'bg-red-600 text-white animate-pulse'
+                                    : 'text-slate-400 hover:text-[#C51E28] hover:bg-red-50'
+                                }`}
+                                title={
+                                  activeDictatingStudentId === st.id && isListening
+                                    ? 'Click to stop speech dictation'
+                                    : 'Dictate remarks using Web Speech API'
+                                }
+                              >
+                                {activeDictatingStudentId === st.id && isListening ? (
+                                  <Mic className="w-3 h-3 text-white animate-pulse" />
+                                ) : (
+                                  <Mic className="w-3 h-3" />
+                                )}
+                              </button>
+                            </div>
                           </td>
 
                           {/* Teacher Initials */}
@@ -1146,6 +1634,81 @@ export const TeacherMarksEntryModal: React.FC<TeacherMarksEntryModalProps> = ({
                         <span className="text-xs font-extrabold text-slate-900">
                           {hasScore ? `${entry.percentage}%` : '-'}
                         </span>
+                      </div>
+                    </div>
+
+                    {/* Remarks with Web Speech Voice Dictation for Mobile */}
+                    <div className="pt-2 border-t border-slate-100 flex flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
+                          <span>Subject Remarks</span>
+                          {activeDictatingStudentId === st.id && isListening && (
+                            <span className="text-[9px] text-red-600 font-extrabold animate-pulse">
+                              ● Dictating...
+                            </span>
+                          )}
+                        </span>
+                        {customRemarksMap[st.id] && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomRemarksMap((prev) => ({
+                                ...prev,
+                                [st.id]: '',
+                              }));
+                            }}
+                            className="text-[9px] text-slate-400 hover:text-red-500 cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative flex items-center">
+                        <input
+                          ref={(el) => {
+                            remarksInputRefs.current[st.id] = el;
+                          }}
+                          type="text"
+                          value={customRemarksMap[st.id] ?? entry.remarks}
+                          onChange={(e) =>
+                            setCustomRemarksMap((prev) => ({
+                              ...prev,
+                              [st.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Type or tap mic to dictate..."
+                          className={`w-full pl-2.5 pr-8 py-1.5 rounded-lg border text-xs text-slate-700 bg-white focus:outline-none transition ${
+                            activeDictatingStudentId === st.id && isListening
+                              ? 'border-red-500 ring-2 ring-red-200 bg-red-50/20'
+                              : 'border-slate-200 focus:border-[#C51E28]'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (activeDictatingStudentId === st.id && isListening) {
+                              stopDictation();
+                            } else {
+                              startDictation(st.id);
+                            }
+                          }}
+                          className={`absolute right-1 w-6 h-6 rounded-md flex items-center justify-center transition cursor-pointer ${
+                            activeDictatingStudentId === st.id && isListening
+                              ? 'bg-red-600 text-white shadow-xs animate-pulse'
+                              : 'text-slate-400 hover:text-[#C51E28] hover:bg-red-50'
+                          }`}
+                          title={
+                            activeDictatingStudentId === st.id && isListening
+                              ? 'Stop recording'
+                              : 'Tap to dictate with Web Speech API'
+                          }
+                        >
+                          {activeDictatingStudentId === st.id && isListening ? (
+                            <MicOff className="w-3.5 h-3.5 text-white" />
+                          ) : (
+                            <Mic className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>

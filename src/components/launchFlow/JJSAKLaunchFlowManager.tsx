@@ -13,9 +13,11 @@ interface JJSAKLaunchFlowManagerProps {
   activeTenantId: string;
   subscription?: SchoolSubscription;
   onUpdateTenants: (tenants: SchoolTenant[]) => void;
+  onDeleteTenant?: (schoolId: string) => void;
   onSelectTenant: (tenantId: string) => void;
   onLoginSuccess: (user: UserType, jwtSession: JWTSession) => void;
   onUpdateUser?: (updatedUser: UserType) => void;
+  onOpenCarrierInbox?: () => void;
   onLogAudit: (action: any, details: string) => void;
   children: React.ReactNode;
 }
@@ -27,9 +29,11 @@ export const JJSAKLaunchFlowManager: React.FC<JJSAKLaunchFlowManagerProps> = ({
   activeTenantId,
   subscription,
   onUpdateTenants,
+  onDeleteTenant,
   onSelectTenant,
   onLoginSuccess,
   onUpdateUser,
+  onOpenCarrierInbox,
   onLogAudit,
   children,
 }) => {
@@ -101,6 +105,17 @@ export const JJSAKLaunchFlowManager: React.FC<JJSAKLaunchFlowManagerProps> = ({
     onLogAudit('RECORD_EDIT', `School [${schoolId}] status transitioned to ${newStatus}.`);
   };
 
+  // Owner deletes school
+  const handleDeleteSchool = (schoolId: string) => {
+    if (onDeleteTenant) {
+      onDeleteTenant(schoolId);
+    } else {
+      const updated = tenants.filter((t) => t.schoolId !== schoolId);
+      onUpdateTenants(updated);
+      onLogAudit('RECORD_DELETE', `School [${schoolId}] deleted by Owner.`);
+    }
+  };
+
   // Owner activates school and immediately transitions to Stage 5 (Display JJSAK Profile)
   const handleActivateAndProceedToProfile = (school: SchoolTenant) => {
     const updated = tenants.map((t) => (t.schoolId === school.schoolId ? { ...t, status: 'ACTIVE' as SchoolStatus } : t));
@@ -143,6 +158,7 @@ export const JJSAKLaunchFlowManager: React.FC<JJSAKLaunchFlowManagerProps> = ({
           schools={tenants}
           onAddSchool={handleAddSchool}
           onUpdateSchoolStatus={handleUpdateSchoolStatus}
+          onDeleteSchool={handleDeleteSchool}
           onActivateAndProceedToProfile={handleActivateAndProceedToProfile}
           onLogoutToLockScreen={() => setStage('STAGE_2_NO_SCHOOL_REGISTERED')}
           onLogAudit={onLogAudit}
@@ -168,6 +184,7 @@ export const JJSAKLaunchFlowManager: React.FC<JJSAKLaunchFlowManagerProps> = ({
           onUpdateUser={onUpdateUser}
           onViewOrganizationalProfile={() => setStage('STAGE_5_ORGANIZATIONAL_PROFILE')}
           onOpenOwnerConsole={() => setStage('STAGE_3_OWNER_DASHBOARD')}
+          onOpenCarrierInbox={onOpenCarrierInbox}
           onLogAudit={onLogAudit}
         />
       )}

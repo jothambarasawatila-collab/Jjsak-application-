@@ -399,7 +399,46 @@ export class CleanDeploymentService {
    * Schools must be explicitly registered via the Stage 3 Onboarding Lifecycle.
    */
   public getSampleSchoolTemplates(): SchoolTemplateDefinition[] {
-    return [];
+    return [
+      {
+        id: 'sch-yuya-30200',
+        schoolName: 'Yuya Primary School',
+        schoolCode: 'YPS-30200',
+        subdomain: 'yuya',
+        category: 'PRIMARY',
+        schoolType: 'Public',
+        county: 'Trans Nzoia',
+        subCounty: 'Kiminini',
+        ward: 'Sirende',
+        physicalAddress: 'Sirende Ward, Off Kitale-Webuye Highway',
+        postalAddress: 'P.O. Box 450 - 30200, Kitale',
+        officialEmail: 'info@yuya.sc.ke',
+        officialPhone: '+254 741 478 813',
+        motto: 'Excellence in Knowledge & Character',
+        adminFullName: 'Headteacher (Yuya Primary School)',
+        adminEmail: 'head@yuya.sc.ke',
+        adminPhone: '+254 741 478 813',
+      },
+      {
+        id: 'sch-ngonyek-30200',
+        schoolName: 'Ngonyek Junior School',
+        schoolCode: 'NJS-30200',
+        subdomain: 'ngonyek',
+        category: 'JUNIOR',
+        schoolType: 'Public',
+        county: 'Trans Nzoia',
+        subCounty: 'Kiminini',
+        ward: 'Sirende',
+        physicalAddress: 'Ngonyek Centre, Sirende Ward, Kiminini',
+        postalAddress: 'P.O. Box 450 - 30200, Kitale',
+        officialEmail: 'info@ngonyek.sc.ke',
+        officialPhone: '+254 741 478 813',
+        motto: 'Knowledge, Integrity & Future Leadership',
+        adminFullName: 'Principal (Ngonyek Junior School)',
+        adminEmail: 'head@ngonyek.sc.ke',
+        adminPhone: '+254 741 478 813',
+      },
+    ];
   }
 }
 
