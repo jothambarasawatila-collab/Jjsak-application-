@@ -912,6 +912,38 @@ _Advisory:_ Credentials valid for 30 minutes. Keep confidential.`,
       );
 
       if (existing && existing.firstTimePassword && existing.otpCode) {
+        // Trigger live multi-channel carrier backend dispatch to ensure registered email and phone number receive credentials
+        try {
+          fetch('/api/teacher/dispatch-live', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              teacherId: existing.schoolAccount || schoolAccount,
+              teacherName: school.administratorDetails?.fullName || `Headteacher (${school.schoolName})`,
+              username: existing.schoolAccount || schoolAccount,
+              email: school.administratorDetails?.emailAddress || school.email || school.officialEmail || existing.recipientAddress,
+              phoneNumber: school.administratorDetails?.phoneNumber || school.phone || '+254 741 478 813',
+              schoolId: school.schoolId,
+              schoolName: school.schoolName,
+              firstTimePassword: existing.firstTimePassword,
+              otpCode: existing.otpCode,
+              activationLink: existing.activationLink || `${typeof window !== 'undefined' ? window.location.origin : 'https://portal.jjsak.edu.ke'}/#activate-school?school=${encodeURIComponent(school.schoolId)}&schoolName=${encodeURIComponent(school.schoolName)}&regNo=${encodeURIComponent(regNo)}&account=${encodeURIComponent(schoolAccount)}&otp=${encodeURIComponent(existing.otpCode)}&pwd=${encodeURIComponent(existing.firstTimePassword)}`,
+              channels: ['EMAIL', 'SMS', 'WHATSAPP'],
+            }),
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (typeof window !== 'undefined' && data?.channelResults) {
+                window.dispatchEvent(
+                  new CustomEvent('jjsak_live_dispatch_completed', {
+                    detail: data,
+                  })
+                );
+              }
+            })
+            .catch(() => {});
+        } catch {}
+
         return {
           success: true,
           schoolAccount: existing.schoolAccount || schoolAccount,

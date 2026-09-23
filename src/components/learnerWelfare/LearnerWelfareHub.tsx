@@ -8,6 +8,8 @@ import {
   ArrowRightLeft,
   MessageSquare,
   ShieldCheck,
+  QrCode,
+  Clock,
 } from 'lucide-react';
 import { Student, User } from '../../types';
 import {
@@ -21,7 +23,9 @@ import {
   TransferInRecord,
   TransferOutRecord,
   VulnerableLearnerRecord,
+  WelfareEventCheckInRecord,
 } from '../../types/learnerWelfare';
+import { INITIAL_WELFARE_CHECKINS } from '../../data/learnerWelfareData';
 import { LearnerProfileMasterTab } from './LearnerProfileMasterTab';
 import { DailyAttendanceRegisterTab } from './DailyAttendanceRegisterTab';
 import { DisciplineBehaviorTab } from './DisciplineBehaviorTab';
@@ -29,6 +33,9 @@ import { HealthClinicTab } from './HealthClinicTab';
 import { GuidanceCounselingWelfareTab } from './GuidanceCounselingWelfareTab';
 import { TransfersExitsGraduationTab } from './TransfersExitsGraduationTab';
 import { ParentEngagementAuditTab } from './ParentEngagementAuditTab';
+import { WelfareEventCheckInTab } from './qr/WelfareEventCheckInTab';
+import { WelfareQrHistoryModal } from './qr/WelfareQrHistoryModal';
+import { StudentHealthQrPassModal } from './qr/StudentHealthQrPassModal';
 
 export type LearnerWelfareTabKey =
   | 'profiles'
@@ -37,7 +44,8 @@ export type LearnerWelfareTabKey =
   | 'health'
   | 'counseling'
   | 'transfers'
-  | 'parent_audit';
+  | 'parent_audit'
+  | 'qr_checkin';
 
 interface LearnerWelfareHubProps {
   students: Student[];
@@ -58,6 +66,10 @@ interface LearnerWelfareHubProps {
   healthProfiles: Record<string, LearnerHealthProfile>;
   onAddHealthIncident: (incident: HealthIncidentRecord) => void;
   onUpdateHealthProfile: (profile: LearnerHealthProfile) => void;
+
+  welfareCheckIns?: WelfareEventCheckInRecord[];
+  onAddCheckIn?: (record: WelfareEventCheckInRecord) => void;
+  onUpdateCheckIn?: (record: WelfareEventCheckInRecord) => void;
 
   counselingSessions: CounselingSession[];
   vulnerableLearners: VulnerableLearnerRecord[];
@@ -102,6 +114,9 @@ export const LearnerWelfareHub: React.FC<LearnerWelfareHubProps> = ({
   healthProfiles,
   onAddHealthIncident,
   onUpdateHealthProfile,
+  welfareCheckIns,
+  onAddCheckIn,
+  onUpdateCheckIn,
   counselingSessions,
   vulnerableLearners,
   onAddCounselingSession,
@@ -119,6 +134,30 @@ export const LearnerWelfareHub: React.FC<LearnerWelfareHubProps> = ({
   onLogAudit,
 }) => {
   const [activeTab, setActiveTab] = useState<LearnerWelfareTabKey>('profiles');
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedStudentForPass, setSelectedStudentForPass] = useState<string | null>(null);
+
+  const [internalCheckIns, setInternalCheckIns] = useState<WelfareEventCheckInRecord[]>(
+    welfareCheckIns || INITIAL_WELFARE_CHECKINS
+  );
+
+  const activeCheckIns = welfareCheckIns || internalCheckIns;
+
+  const handleAddCheckIn = (record: WelfareEventCheckInRecord) => {
+    if (onAddCheckIn) {
+      onAddCheckIn(record);
+    } else {
+      setInternalCheckIns((prev) => [record, ...prev]);
+    }
+  };
+
+  const handleUpdateCheckIn = (record: WelfareEventCheckInRecord) => {
+    if (onUpdateCheckIn) {
+      onUpdateCheckIn(record);
+    } else {
+      setInternalCheckIns((prev) => prev.map((c) => (c.id === record.id ? record : c)));
+    }
+  };
 
   const tabs = [
     {
@@ -144,6 +183,12 @@ export const LearnerWelfareHub: React.FC<LearnerWelfareHubProps> = ({
       label: 'P6.6 Health & Sickbay',
       icon: HeartPulse,
       badge: healthIncidents.length,
+    },
+    {
+      key: 'qr_checkin' as const,
+      label: 'P6.X QR Welfare & Clinic Check-in',
+      icon: QrCode,
+      badge: 'Live',
     },
     {
       key: 'counseling' as const,
@@ -191,12 +236,27 @@ export const LearnerWelfareHub: React.FC<LearnerWelfareHubProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-stretch sm:self-auto bg-slate-800/80 p-2 rounded-2xl border border-slate-700/60">
-            <div className="text-right px-3 py-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Active Learners</span>
-              <span className="text-lg font-black text-white font-mono">
-                {students.filter((s) => s.enrollmentStatus !== 'Transferred Out' && s.enrollmentStatus !== 'Graduated').length}
+          <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setShowHistoryModal(true)}
+              className="px-3.5 py-2 rounded-2xl bg-indigo-600/90 hover:bg-indigo-600 text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-indigo-600/30 cursor-pointer border border-indigo-400/40"
+              title="Open QR Welfare Event Check-In History Ledger"
+            >
+              <Clock className="w-4 h-4 text-indigo-200" />
+              <span>QR Event History</span>
+              <span className="px-1.5 py-0.2 rounded-md bg-indigo-800/80 text-indigo-100 text-[10px] font-mono">
+                {activeCheckIns.length}
               </span>
+            </button>
+
+            <div className="bg-slate-800/80 p-2 rounded-2xl border border-slate-700/60">
+              <div className="text-right px-3 py-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Active Learners</span>
+                <span className="text-lg font-black text-white font-mono">
+                  {students.filter((s) => s.enrollmentStatus !== 'Transferred Out' && s.enrollmentStatus !== 'Graduated').length}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -276,6 +336,21 @@ export const LearnerWelfareHub: React.FC<LearnerWelfareHubProps> = ({
           healthProfiles={healthProfiles}
           onAddHealthIncident={onAddHealthIncident}
           onUpdateHealthProfile={onUpdateHealthProfile}
+          welfareCheckIns={activeCheckIns}
+          onLogAudit={onLogAudit}
+        />
+      )}
+
+      {activeTab === 'qr_checkin' && (
+        <WelfareEventCheckInTab
+          students={students}
+          healthProfiles={healthProfiles}
+          checkIns={activeCheckIns}
+          currentUser={currentUser}
+          onAddCheckIn={handleAddCheckIn}
+          onUpdateCheckIn={handleUpdateCheckIn}
+          onAddHealthIncident={onAddHealthIncident}
+          onAddCounselingSession={onAddCounselingSession}
           onLogAudit={onLogAudit}
         />
       )}
@@ -317,6 +392,33 @@ export const LearnerWelfareHub: React.FC<LearnerWelfareHubProps> = ({
           onLogAudit={onLogAudit}
         />
       )}
+
+      {/* Global QR Welfare Event Check-in History Modal */}
+      <WelfareQrHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        checkIns={activeCheckIns}
+        students={students}
+        healthProfiles={healthProfiles}
+        onOpenStudentPass={(studentId) => {
+          setSelectedStudentForPass(studentId);
+        }}
+        onUpdateStatus={(record, newStatus) => {
+          handleUpdateCheckIn({
+            ...record,
+            status: newStatus,
+          });
+        }}
+      />
+
+      {/* Student Health QR Pass Modal */}
+      <StudentHealthQrPassModal
+        isOpen={selectedStudentForPass !== null}
+        onClose={() => setSelectedStudentForPass(null)}
+        students={students}
+        healthProfiles={healthProfiles}
+        initialStudentId={selectedStudentForPass || undefined}
+      />
     </div>
   );
 };

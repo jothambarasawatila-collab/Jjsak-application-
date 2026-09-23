@@ -701,16 +701,25 @@ export class TwilioDeliveryProvider implements IOtpSmsProvider, IOtpWhatsAppProv
 
     if (!resolvedSid || !resolvedToken) {
       if (rawApiKey) {
-        if (rawApiKey.includes('-')) {
-          const parts = rawApiKey.split('-');
-          const first = parts[0];
-          const rest = parts.slice(1).join('-');
+        const sep = rawApiKey.includes(':')
+          ? ':'
+          : rawApiKey.includes('|')
+          ? '|'
+          : rawApiKey.includes(' ')
+          ? ' '
+          : rawApiKey.includes('-')
+          ? '-'
+          : '';
+
+        if (sep) {
+          const parts = rawApiKey.split(sep).map(p => p.trim()).filter(Boolean);
+          const first = parts[0] || '';
+          const rest = parts.slice(1).join(sep);
 
           if (first.startsWith('AC') || first.startsWith('SK')) {
             resolvedSid = resolvedSid || first;
             resolvedToken = resolvedToken || rest;
           } else if (first.length === 32 && /^[0-9a-fA-F]+$/.test(first)) {
-            // Twilio Account SID without AC prefix
             resolvedSid = resolvedSid || `AC${first}`;
             resolvedToken = resolvedToken || rest;
           } else {
@@ -1570,13 +1579,13 @@ class BackendOtpService {
       return hasResend || hasSmtp;
     }
     if (channel === 'SMS') {
-      const hasAt = Boolean(process.env.AFRICASTALKING_USERNAME && process.env.AFRICASTALKING_API_KEY);
-      const hasTwilio = Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+      const hasAt = this.africasTalkingProvider.isConfigured();
+      const hasTwilio = this.twilioProvider.isConfigured();
       return hasAt || hasTwilio;
     }
     if (channel === 'WHATSAPP') {
       const hasMeta = Boolean(process.env.WHATSAPP_BUSINESS_PHONE_ID && process.env.WHATSAPP_BUSINESS_ACCESS_TOKEN);
-      const hasTwilio = Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+      const hasTwilio = this.twilioProvider.isConfigured();
       return hasMeta || hasTwilio;
     }
     return false;

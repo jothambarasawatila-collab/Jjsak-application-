@@ -289,3 +289,61 @@ export interface ParentCommunicationRecord {
   parentResponse?: string;
   status: 'Delivered' | 'Attended' | 'No Response' | 'Follow-up Needed';
 }
+
+export type WelfareEventType =
+  | 'Sickbay Visit & Triage'
+  | 'Routine Health Screening'
+  | 'Deworming & Immunization'
+  | 'Guidance & Counseling Intake'
+  | 'Nutrition & Feeding Program'
+  | 'Sports & Physical Health Clearance'
+  | 'Emergency Medical Check-in';
+
+export type WelfareCheckInStatus =
+  | 'Completed'
+  | 'Admitted to Sickbay'
+  | 'Under Observation'
+  | 'Referred to Hospital'
+  | 'Treated & Returned to Class'
+  | 'Follow-up Required';
+
+export interface WelfareEventCheckInRecord {
+  id: string;
+  studentId: string;
+  admNo: string;
+  studentName: string;
+  className: string;
+  gender?: string;
+  eventType: WelfareEventType;
+  timestamp: string; // ISO string
+  temperatureCelsius?: number;
+  symptomsOrReason?: string;
+  bloodGroup?: string;
+  allergies?: string[];
+  firstAidOrAction?: string;
+  medicationGiven?: string;
+  checkedInBy: string;
+  parentNotified: boolean;
+  status: WelfareCheckInStatus;
+  notes?: string;
+  station?: string;
+}
+
+export interface StudentHealthQrData {
+  type: 'JJSAK_STUDENT_HEALTH_PASS';
+  v: number;
+  studentId: string;
+  admNo: string;
+  name: string;
+  grade: string;
+  stream?: string;
+  gender?: string;
+  bloodGroup?: string;
+  allergies?: string[];
+  chronicConditions?: string[];
+  emergencyPhone?: string;
+  parentName?: string;
+  schoolId?: string;
+  issuedAt: string;
+}
+

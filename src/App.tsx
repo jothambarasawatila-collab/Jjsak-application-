@@ -33,6 +33,7 @@ import {
   TransferInRecord,
   Grade9GraduationRecord,
   ParentCommunicationRecord,
+  WelfareEventCheckInRecord,
 } from './types';
 import {
   DEFAULT_SCHOOL_INFO,
@@ -65,6 +66,7 @@ import {
   INITIAL_TRANSFERS_IN,
   INITIAL_GRADUATION_RECORDS,
   INITIAL_PARENT_COMMUNICATIONS,
+  INITIAL_WELFARE_CHECKINS,
 } from './data/learnerWelfareData';
 import {
   INITIAL_CURRICULUM_FRAMEWORK,
@@ -753,6 +755,11 @@ export function App() {
     return saved ? JSON.parse(saved) : INITIAL_PARENT_COMMUNICATIONS;
   });
 
+  const [welfareCheckIns, setWelfareCheckIns] = useState<WelfareEventCheckInRecord[]>(() => {
+    const saved = localStorage.getItem('jjsak_welfare_checkins');
+    return saved ? JSON.parse(saved) : INITIAL_WELFARE_CHECKINS;
+  });
+
   // Phase 7: Master Academic Foundation State
   const [curriculum, setCurriculum] = useState<CurriculumFramework>(() => {
     const saved = localStorage.getItem('jjsak_curriculum');
@@ -1187,6 +1194,10 @@ export function App() {
     localStorage.setItem('jjsak_parent_communications', JSON.stringify(communications));
   }, [communications]);
 
+  useEffect(() => {
+    localStorage.setItem('jjsak_welfare_checkins', JSON.stringify(welfareCheckIns));
+  }, [welfareCheckIns]);
+
   // Phase 7: Sync to localStorage
   useEffect(() => {
     localStorage.setItem('jjsak_curriculum', JSON.stringify(curriculum));
@@ -1491,6 +1502,18 @@ export function App() {
       prev.map((v) => (v.id === record.id ? record : v))
     );
     triggerSaveNotification(`✓ Welfare record updated for ${record.studentName}`);
+  };
+
+  const handleAddWelfareCheckIn = (record: WelfareEventCheckInRecord) => {
+    setWelfareCheckIns((prev) => [record, ...prev]);
+    triggerSaveNotification(`✓ Welfare QR check-in recorded for ${record.studentName}`);
+  };
+
+  const handleUpdateWelfareCheckIn = (record: WelfareEventCheckInRecord) => {
+    setWelfareCheckIns((prev) =>
+      prev.map((item) => (item.id === record.id ? record : item))
+    );
+    triggerSaveNotification(`✓ Welfare check-in status updated`);
   };
 
   const handleProcessTransferOut = (record: TransferOutRecord) => {
@@ -3512,6 +3535,9 @@ export function App() {
               healthProfiles={healthProfiles}
               onAddHealthIncident={handleAddHealthIncident}
               onUpdateHealthProfile={handleUpdateHealthProfile}
+              welfareCheckIns={welfareCheckIns}
+              onAddCheckIn={handleAddWelfareCheckIn}
+              onUpdateCheckIn={handleUpdateWelfareCheckIn}
               counselingSessions={counselingSessions}
               vulnerableLearners={vulnerableLearners}
               onAddCounselingSession={handleAddCounselingSession}

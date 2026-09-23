@@ -17,10 +17,12 @@ import {
   Phone,
   Heart,
   AlertTriangle,
+  QrCode,
 } from 'lucide-react';
 import { Student, User } from '../../types';
 import { LearnerEnrollmentStatus } from '../../types/learnerWelfare';
 import { AVAILABLE_CLASSES, AVAILABLE_GRADES } from '../../data/mockData';
+import { StudentHealthQrPassModal } from './qr/StudentHealthQrPassModal';
 
 interface LearnerProfileMasterTabProps {
   students: Student[];
@@ -64,6 +66,7 @@ export const LearnerProfileMasterTab: React.FC<LearnerProfileMasterTabProps> = (
   const [bulkCsvText, setBulkCsvText] = useState('');
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkSuccess, setBulkSuccess] = useState<string | null>(null);
+  const [qrPassStudentId, setQrPassStudentId] = useState<string | null>(null);
 
   // Form State
   const [formAdmNo, setFormAdmNo] = useState('');
@@ -539,6 +542,16 @@ export const LearnerProfileMasterTab: React.FC<LearnerProfileMasterTabProps> = (
 
             <button
               type="button"
+              onClick={() => setQrPassStudentId(students[0]?.id || '')}
+              className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-emerald-200"
+              title="Generate & Print Student Health Passes"
+            >
+              <QrCode className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">Health Passes</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowBulkModal(true)}
               className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-slate-200"
               title="Bulk Import Learners"
@@ -764,6 +777,15 @@ export const LearnerProfileMasterTab: React.FC<LearnerProfileMasterTabProps> = (
 
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setQrPassStudentId(s.id)}
+                            className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+                            title="View / Print Student Health QR Pass"
+                          >
+                            <QrCode className="w-4 h-4 text-emerald-600" />
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => onOpenLearnerDossier?.(s)}
@@ -1148,6 +1170,22 @@ export const LearnerProfileMasterTab: React.FC<LearnerProfileMasterTabProps> = (
             </div>
           </div>
         </div>
+      )}
+
+      {/* Student Health QR Pass Generator Modal */}
+      {qrPassStudentId !== null && (
+        <StudentHealthQrPassModal
+          isOpen={true}
+          onClose={() => setQrPassStudentId(null)}
+          students={students}
+          healthProfiles={students.reduce((acc, s) => {
+            if (s.healthProfile) {
+              acc[s.id] = s.healthProfile;
+            }
+            return acc;
+          }, {} as Record<string, any>)}
+          initialStudentId={qrPassStudentId || undefined}
+        />
       )}
     </div>
   );

@@ -1112,6 +1112,41 @@ export class StaffAuthOtpSecurityService {
       carrierMessage,
       code: params.code,
     });
+
+    const inboxChannel = params.channel === 'WHATSAPP' ? 'WHATSAPP' : (params.channel === 'SMS' ? 'SMS' : 'EMAIL');
+
+    carrierInboxService.dispatchDirectOtpMessage({
+      recipientId: params.recipient,
+      recipientName: params.userName,
+      recipientAddress: params.recipient,
+      channel: inboxChannel,
+      sender: `JJSAK Security Authority (${params.schoolName})`,
+      subject: `Single-Use Security Verification Code: ${params.code}`,
+      body: carrierMessage,
+      otpCode: params.code,
+      schoolName: params.schoolName,
+      purpose: 'STAFF_LOGIN_AUTHENTICATION',
+      validityMs: params.expiresAt - Date.now(),
+    });
+
+    try {
+      fetch('/api/teacher/dispatch-live', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teacherId: params.recipient,
+          teacherName: params.userName,
+          username: params.recipient,
+          email: params.channel === 'EMAIL' ? params.recipient : undefined,
+          phoneNumber: params.channel !== 'EMAIL' ? params.recipient : undefined,
+          schoolId: 'TENANT',
+          schoolName: params.schoolName,
+          otpCode: params.code,
+          activationLink: typeof window !== 'undefined' ? window.location.origin : '',
+          channels: [inboxChannel],
+        }),
+      }).catch(() => {});
+    } catch {}
   }
 
   private verifySimulatedCarrierCode(channel: ApprovedOtpChannel, candidateCode: string): boolean {

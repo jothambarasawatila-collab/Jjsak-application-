@@ -10,6 +10,9 @@ import {
   Thermometer,
   Pill,
   X,
+  Camera,
+  QrCode,
+  Clock,
 } from 'lucide-react';
 import { Student, User as CurrentUser } from '../../types';
 import {
@@ -17,8 +20,12 @@ import {
   HealthIncidentType,
   LearnerHealthProfile,
   BloodGroup,
+  WelfareEventCheckInRecord,
 } from '../../types/learnerWelfare';
 import { AVAILABLE_CLASSES } from '../../data/mockData';
+import { WelfareQrScannerModal } from './qr/WelfareQrScannerModal';
+import { StudentHealthQrPassModal } from './qr/StudentHealthQrPassModal';
+import { WelfareQrHistoryModal } from './qr/WelfareQrHistoryModal';
 
 interface HealthClinicTabProps {
   students: Student[];
@@ -27,6 +34,7 @@ interface HealthClinicTabProps {
   healthProfiles: Record<string, LearnerHealthProfile>;
   onAddHealthIncident: (incident: HealthIncidentRecord) => void;
   onUpdateHealthProfile: (profile: LearnerHealthProfile) => void;
+  welfareCheckIns?: WelfareEventCheckInRecord[];
   onLogAudit?: (action: any, details: string, beforeVal?: string, afterVal?: string) => void;
 }
 
@@ -46,6 +54,7 @@ export const HealthClinicTab: React.FC<HealthClinicTabProps> = ({
   healthProfiles,
   onAddHealthIncident,
   onUpdateHealthProfile,
+  welfareCheckIns = [],
   onLogAudit,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'incidents' | 'profiles'>('incidents');
@@ -55,6 +64,10 @@ export const HealthClinicTab: React.FC<HealthClinicTabProps> = ({
   const [showLogModal, setShowLogModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState<Student | null>(null);
   const [viewingIncident, setViewingIncident] = useState<HealthIncidentRecord | null>(null);
+  const [showQrScanner, setShowQrScanner] = useState(false);
+  const [showQrPassModal, setShowQrPassModal] = useState(false);
+  const [showQrHistory, setShowQrHistory] = useState(false);
+  const [selectedQrPassStudentId, setSelectedQrPassStudentId] = useState<string | undefined>(undefined);
 
   // Health Incident Form State
   const [formStudentId, setFormStudentId] = useState('');
@@ -274,14 +287,44 @@ export const HealthClinicTab: React.FC<HealthClinicTabProps> = ({
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenLogModal}
-          className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Log Clinic Visit</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowQrScanner(true)}
+            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <Camera className="w-3.5 h-3.5" />
+            <span>QR Rapid Check-in</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowQrPassModal(true)}
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <QrCode className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Health Passes</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowQrHistory(true)}
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+            title="View sorted history of all QR welfare check-ins"
+          >
+            <Clock className="w-3.5 h-3.5 text-indigo-600" />
+            <span>QR History ({welfareCheckIns.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenLogModal}
+            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Log Clinic Visit</span>
+          </button>
+        </div>
       </div>
 
       {/* Tab 1: Clinic & Sickbay Visits Log */}
@@ -491,13 +534,26 @@ export const HealthClinicTab: React.FC<HealthClinicTabProps> = ({
                     <span className="text-[10px] text-slate-400 font-mono">
                       {profile?.nhifOrInsuranceNumber || 'SHA Insured'}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditProfile(student)}
-                      className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg text-[11px] transition cursor-pointer"
-                    >
-                      Update Health Card
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedQrPassStudentId(student.id);
+                          setShowQrPassModal(true);
+                        }}
+                        className="p-1 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition"
+                        title="View / Print Student Health QR Pass"
+                      >
+                        <QrCode className="w-4 h-4 text-emerald-600" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditProfile(student)}
+                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg text-[11px] transition cursor-pointer"
+                      >
+                        Update Health Card
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -885,6 +941,52 @@ export const HealthClinicTab: React.FC<HealthClinicTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* QR Scanner Modal for Clinic Check-ins */}
+      <WelfareQrScannerModal
+        isOpen={showQrScanner}
+        onClose={() => setShowQrScanner(false)}
+        students={students}
+        healthProfiles={healthProfiles}
+        currentUser={currentUser}
+        defaultEventType="Sickbay Visit & Triage"
+        onCheckInCompleted={(record) => {
+          // Sync with health incidents
+          if (onLogAudit) {
+            onLogAudit(
+              'HEALTH_INCIDENT_RECORDED' as any,
+              `Clinic check-in via QR for ${record.studentName} (${record.admNo}): ${record.symptomsOrReason}. Temp: ${record.temperatureCelsius}°C.`
+            );
+          }
+        }}
+        onAddHealthIncident={onAddHealthIncident}
+        onLogAudit={onLogAudit}
+      />
+
+      {/* Student Health QR Pass Generator Modal */}
+      <StudentHealthQrPassModal
+        isOpen={showQrPassModal}
+        onClose={() => {
+          setShowQrPassModal(false);
+          setSelectedQrPassStudentId(undefined);
+        }}
+        students={students}
+        healthProfiles={healthProfiles}
+        initialStudentId={selectedQrPassStudentId}
+      />
+
+      {/* QR Check-in History Modal */}
+      <WelfareQrHistoryModal
+        isOpen={showQrHistory}
+        onClose={() => setShowQrHistory(false)}
+        checkIns={welfareCheckIns}
+        students={students}
+        healthProfiles={healthProfiles}
+        onOpenStudentPass={(studentId) => {
+          setSelectedQrPassStudentId(studentId);
+          setShowQrPassModal(true);
+        }}
+      />
     </div>
   );
 };
