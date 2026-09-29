@@ -749,7 +749,80 @@ async function startServer() {
       const { tenantId } = req.params;
       const partialBundle = req.body;
       const updated = multiTenantStorageService.saveTenantData(tenantId, partialBundle);
-      return res.status(200).json({ success: true, tenantId, data: updated });
+      return res.status(200).json({ success: true, tenantId, data: updated, message: 'Institutional portal data saved persistently.' });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 23a. Direct Student Save / Update
+  app.post('/api/tenants/:tenantId/students', (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const student = req.body;
+      const result = multiTenantStorageService.saveStudent(tenantId, student);
+      return res.status(200).json({ success: true, tenantId, student: result.student, totalStudents: result.allStudents.length });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 23b. Direct Student Delete
+  app.delete('/api/tenants/:tenantId/students/:studentId', (req, res) => {
+    try {
+      const { tenantId, studentId } = req.params;
+      const result = multiTenantStorageService.deleteStudent(tenantId, studentId);
+      return res.status(200).json({ success: true, tenantId, studentId, totalStudents: result.allStudents.length });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 23c. Direct Assessment Marks Save
+  app.post('/api/tenants/:tenantId/assessments', (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const { assessment, updatedStudents } = req.body;
+      const result = multiTenantStorageService.saveAssessmentMarks(tenantId, assessment, updatedStudents);
+      return res.status(200).json({ success: true, tenantId, assessment: result.assessment });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 23d. Direct Attendance Save
+  app.post('/api/tenants/:tenantId/attendance', (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const register = req.body;
+      const registers = multiTenantStorageService.saveAttendanceRegister(tenantId, register);
+      return res.status(200).json({ success: true, tenantId, count: registers.length });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 23e. Direct Teacher Save
+  app.post('/api/tenants/:tenantId/teachers', (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const teacher = req.body;
+      const result = multiTenantStorageService.saveTeacher(tenantId, teacher);
+      return res.status(200).json({ success: true, tenantId, teacher: result.teacher, count: result.teachers.length });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 23f. Export Complete School Database
+  app.get('/api/tenants/:tenantId/export', (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const data = multiTenantStorageService.getTenantData(tenantId);
+      const tenant = multiTenantStorageService.getTenant(tenantId);
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${tenant?.subdomain || tenantId}_database_backup.json"`);
+      return res.status(200).send(JSON.stringify({ tenant, data, exportedAt: new Date().toISOString() }, null, 2));
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }

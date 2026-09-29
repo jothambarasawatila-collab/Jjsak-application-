@@ -2,14 +2,39 @@ import { SchoolTenant, User } from '../types';
 
 export interface TenantDataBundle {
   tenantId: string;
-  students: any[];
-  teachers: any[];
-  assessments: any[];
-  grades: any[];
-  timetables: any[];
-  classes: any[];
-  settings: Record<string, any>;
-  auditLogs: any[];
+  students?: any[];
+  teachers?: any[];
+  assessments?: any[];
+  grades?: any[];
+  timetables?: any[];
+  classes?: any[];
+  attendanceRegisters?: any[];
+  behaviorRecords?: any[];
+  disciplineIncidents?: any[];
+  healthIncidents?: any[];
+  healthProfiles?: Record<string, any>;
+  counselingSessions?: any[];
+  vulnerableLearners?: any[];
+  welfareCheckIns?: any[];
+  transfersOut?: any[];
+  transfersIn?: any[];
+  graduations?: any[];
+  parentCommunications?: any[];
+  curriculum?: any;
+  academicYears?: any[];
+  terms?: any[];
+  learningLevels?: any[];
+  academicGrades?: any[];
+  academicStreams?: any[];
+  academicSubjects?: any[];
+  teacherSubjectAllocations?: any[];
+  classTeacherAllocations?: any[];
+  placementRules?: any[];
+  promotionPolicies?: any[];
+  schoolInfo?: any;
+  schoolProfile?: any;
+  settings?: Record<string, any>;
+  auditLogs?: any[];
   lastUpdated?: string;
 }
 
@@ -21,6 +46,9 @@ class TenantDataSyncService {
   private syncChannel: BroadcastChannel | null = null;
   private deleteListeners: Set<(schoolId: string) => void> = new Set();
   private savedListeners: Set<(tenant: SchoolTenant) => void> = new Set();
+  private dataListeners: Set<(tenantId: string, bundle: TenantDataBundle) => void> = new Set();
+  private saveDebounceTimers: Map<string, any> = new Map();
+  private pendingBundles: Map<string, Partial<TenantDataBundle>> = new Map();
 
   private constructor() {
     if (typeof window !== 'undefined') {
@@ -33,6 +61,8 @@ class TenantDataSyncService {
                 this.handleIncomingTenantDeletion(event.data.schoolId, false);
               } else if (event.data.type === 'TENANT_SAVED' && event.data.tenant) {
                 this.handleIncomingTenantSaved(event.data.tenant, false);
+              } else if (event.data.type === 'TENANT_DATA_SAVED' && event.data.tenantId) {
+                this.handleIncomingDataUpdated(event.data.tenantId, event.data.data, false);
               }
             }
           };
@@ -56,6 +86,12 @@ class TenantDataSyncService {
             if (Array.isArray(parsed)) {
               window.dispatchEvent(new CustomEvent('jjsak:tenants_synced', { detail: { tenants: parsed } }));
             }
+          } catch {}
+        } else if (event.key && event.key.startsWith('jjsak_tenant_data_') && event.newValue) {
+          try {
+            const tenantId = event.key.replace('jjsak_tenant_data_', '');
+            const parsed = JSON.parse(event.newValue);
+            this.handleIncomingDataUpdated(tenantId, parsed, false);
           } catch {}
         }
       });
@@ -200,6 +236,44 @@ class TenantDataSyncService {
         console.warn('[TenantDataSync] Listener error on tenant saved', e);
       }
     });
+  }
+
+  private handleIncomingDataUpdated(tenantId: string, data: TenantDataBundle, broadcast = false) {
+    if (broadcast && this.syncChannel) {
+      try {
+        this.syncChannel.postMessage({
+          type: 'TENANT_DATA_SAVED',
+          tenantId,
+          data,
+          timestamp: Date.now(),
+        });
+      } catch (e) {
+        console.warn('[TenantDataSync] Failed to post to BroadcastChannel', e);
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('jjsak:tenant_data_saved', {
+          detail: { tenantId, data },
+        })
+      );
+    }
+
+    this.dataListeners.forEach((listener) => {
+      try {
+        listener(tenantId, data);
+      } catch (e) {
+        console.warn('[TenantDataSync] Listener error on tenant data updated', e);
+      }
+    });
+  }
+
+  public onTenantDataUpdated(callback: (tenantId: string, data: TenantDataBundle) => void): () => void {
+    this.dataListeners.add(callback);
+    return () => {
+      this.dataListeners.delete(callback);
+    };
   }
 
   public onTenantDeleted(callback: (schoolId: string) => void): () => void {
@@ -412,33 +486,197 @@ class TenantDataSyncService {
   }
 
   // ===================== TENANT ISOLATED DATA =====================
+  public getCachedTenantData(tenantId: string): TenantDataBundle | null {
+    if (!tenantId) return null;
+    try {
+      const cached = localStorage.getItem(`jjsak_tenant_data_${tenantId}`);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+
   public async fetchTenantData(tenantId: string): Promise<TenantDataBundle | null> {
     if (!tenantId) return null;
+    const localCached = this.getCachedTenantData(tenantId);
+
     try {
       const res = await fetch(`/api/tenants/${tenantId}/data`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
-          return json.data;
+          const serverBundle: TenantDataBundle = json.data;
+          try {
+            localStorage.setItem(`jjsak_tenant_data_${tenantId}`, JSON.stringify(serverBundle));
+          } catch {}
+          this.handleIncomingDataUpdated(tenantId, serverBundle, false);
+          return serverBundle;
         }
       }
     } catch (err) {
-      console.warn(`[TenantDataSync] Failed to fetch data for tenant ${tenantId}`, err);
+      console.warn(`[TenantDataSync] Server fetch failed for tenant ${tenantId}, using local cache`, err);
     }
-    return null;
+    return localCached;
   }
 
-  public async saveTenantData(tenantId: string, partialBundle: Partial<TenantDataBundle>): Promise<void> {
-    if (!tenantId) return;
+  public async saveTenantData(tenantId: string, partialBundle: Partial<TenantDataBundle>): Promise<TenantDataBundle | null> {
+    if (!tenantId) return null;
+
+    // 1. Immediately update local scoped cache
+    const current = this.getCachedTenantData(tenantId) || { tenantId };
+    const merged: TenantDataBundle = {
+      ...current,
+      ...partialBundle,
+      tenantId,
+      lastUpdated: new Date().toISOString(),
+    };
     try {
-      await fetch(`/api/tenants/${tenantId}/data`, {
+      localStorage.setItem(`jjsak_tenant_data_${tenantId}`, JSON.stringify(merged));
+    } catch (e) {
+      console.warn('[TenantDataSync] Failed to write to local storage cache', e);
+    }
+
+    // 2. Broadcast immediately so other views update
+    this.handleIncomingDataUpdated(tenantId, merged, true);
+
+    // 3. Persist to authoritative backend database
+    try {
+      const res = await fetch(`/api/tenants/${tenantId}/data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(partialBundle),
       });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          try {
+            localStorage.setItem(`jjsak_tenant_data_${tenantId}`, JSON.stringify(json.data));
+          } catch {}
+          return json.data;
+        }
+      }
     } catch (err) {
-      console.warn(`[TenantDataSync] Failed to persist data for tenant ${tenantId}`, err);
+      console.warn(`[TenantDataSync] Failed to persist data to server for tenant ${tenantId}`, err);
     }
+    return merged;
+  }
+
+  public debouncedSaveTenantData(
+    tenantId: string,
+    partialBundle: Partial<TenantDataBundle>,
+    delayMs = 600
+  ): void {
+    if (!tenantId) return;
+
+    // Merge into pending
+    const existingPending = this.pendingBundles.get(tenantId) || {};
+    this.pendingBundles.set(tenantId, { ...existingPending, ...partialBundle });
+
+    if (this.saveDebounceTimers.has(tenantId)) {
+      clearTimeout(this.saveDebounceTimers.get(tenantId));
+    }
+
+    const timer = setTimeout(async () => {
+      this.saveDebounceTimers.delete(tenantId);
+      const toSend = this.pendingBundles.get(tenantId);
+      if (toSend) {
+        this.pendingBundles.delete(tenantId);
+        await this.saveTenantData(tenantId, toSend);
+      }
+    }, delayMs);
+
+    this.saveDebounceTimers.set(tenantId, timer);
+  }
+
+  public async saveStudent(tenantId: string, student: any): Promise<any> {
+    if (!tenantId || !student) return null;
+    try {
+      const res = await fetch(`/api/tenants/${tenantId}/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(student),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return json.student;
+      }
+    } catch (err) {
+      console.warn('[TenantDataSync] Direct save student error', err);
+    }
+    return student;
+  }
+
+  public async deleteStudent(tenantId: string, studentId: string): Promise<boolean> {
+    if (!tenantId || !studentId) return false;
+    try {
+      const res = await fetch(`/api/tenants/${tenantId}/students/${studentId}`, {
+        method: 'DELETE',
+      });
+      return res.ok;
+    } catch (err) {
+      console.warn('[TenantDataSync] Direct delete student error', err);
+      return false;
+    }
+  }
+
+  public async saveAssessmentMarks(
+    tenantId: string,
+    assessment: any,
+    updatedStudents?: any[]
+  ): Promise<any> {
+    if (!tenantId || !assessment) return null;
+    try {
+      const res = await fetch(`/api/tenants/${tenantId}/assessments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assessment, updatedStudents }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return json.assessment;
+      }
+    } catch (err) {
+      console.warn('[TenantDataSync] Direct save assessment marks error', err);
+    }
+    return assessment;
+  }
+
+  public async saveAttendanceRegister(tenantId: string, register: any): Promise<any> {
+    if (!tenantId || !register) return null;
+    try {
+      const res = await fetch(`/api/tenants/${tenantId}/attendance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(register),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('[TenantDataSync] Direct save attendance error', err);
+    }
+    return null;
+  }
+
+  public async saveTeacher(tenantId: string, teacher: any): Promise<any> {
+    if (!tenantId || !teacher) return null;
+    try {
+      const res = await fetch(`/api/tenants/${tenantId}/teachers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(teacher),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return json.teacher;
+      }
+    } catch (err) {
+      console.warn('[TenantDataSync] Direct save teacher error', err);
+    }
+    return teacher;
   }
 
   // ===================== AI ASSESSMENT GENERATION =====================

@@ -162,6 +162,17 @@ export class CleanDeploymentService {
         if (!id && !name) return false;
         const lowerId = (id || '').toLowerCase();
         const lowerName = (name || '').toLowerCase();
+        // NEVER treat official institutions (e.g. Ngonyek Junior, Yuya Primary) as test schools
+        if (
+          lowerId === 'sch-ngonyek-30200' ||
+          lowerId === 'sch-yuya-30200' ||
+          lowerId.startsWith('sch-central-') ||
+          lowerName.includes('yuya') ||
+          lowerName.includes('ngonyek junior') ||
+          (lowerId.includes('30200') && !lowerId.includes('kitale-002'))
+        ) {
+          return false;
+        }
         return (
           lowerId === 'sch-ngonyek-001' ||
           lowerId === 'sch-stmarys-004' ||
@@ -169,11 +180,8 @@ export class CleanDeploymentService {
           lowerId === 'sch-greenhill-005' ||
           lowerId === 'sch-kitale-002' ||
           lowerId === 'sch-chep-003' ||
-          lowerId.includes('ngonyek') ||
-          lowerId.includes('stmary') ||
-          lowerId.includes('greenhill') ||
-          lowerId.includes('chep') ||
-          lowerName.includes('ngonyek') ||
+          lowerId.startsWith('sch-mock-') ||
+          lowerId.startsWith('sch-test-') ||
           lowerName.includes('cheptiret') ||
           lowerName.includes('st mary') ||
           lowerName.includes('st. mary') ||

@@ -36,6 +36,7 @@ export interface DailyAttendanceEntry {
 
 export interface ClassAttendanceRegister {
   id: string;
+  schoolId?: string;
   className: string;
   grade: string;
   stream: string;
@@ -82,6 +83,7 @@ export type DisciplineWorkflowStatus =
 
 export interface DisciplineIncident {
   id: string;
+  schoolId?: string;
   studentId: string;
   studentName: string;
   admNo: string;
@@ -117,6 +119,7 @@ export type BloodGroup =
 
 export interface LearnerHealthProfile {
   studentId: string;
+  schoolId?: string;
   bloodGroup: BloodGroup;
   allergies: string[];
   chronicConditions: string[];
@@ -140,6 +143,7 @@ export type HealthIncidentType =
 
 export interface HealthIncidentRecord {
   id: string;
+  schoolId?: string;
   studentId: string;
   studentName: string;
   admNo: string;
@@ -170,6 +174,7 @@ export type CounselingCategory =
 
 export interface CounselingSession {
   id: string;
+  schoolId?: string;
   studentId: string;
   studentName: string;
   admNo: string;
@@ -194,6 +199,7 @@ export type VulnerabilityType =
 
 export interface VulnerableLearnerRecord {
   id: string;
+  schoolId?: string;
   studentId: string;
   studentName: string;
   admNo: string;
@@ -217,6 +223,7 @@ export interface ClearanceItem {
 
 export interface TransferOutRecord {
   id: string;
+  schoolId?: string;
   studentId: string;
   studentName: string;
   admNo: string;
@@ -235,6 +242,7 @@ export interface TransferOutRecord {
 
 export interface TransferInRecord {
   id: string;
+  schoolId?: string;
   studentId: string;
   studentName: string;
   admNo: string;
@@ -252,6 +260,7 @@ export interface TransferInRecord {
 
 export interface Grade9GraduationRecord {
   id: string;
+  schoolId?: string;
   studentId: string;
   studentName: string;
   admNo: string;
@@ -275,6 +284,7 @@ export type ParentCommChannel =
 
 export interface ParentCommunicationRecord {
   id: string;
+  schoolId?: string;
   studentId: string;
   studentName: string;
   admNo: string;
@@ -309,6 +319,7 @@ export type WelfareCheckInStatus =
 
 export interface WelfareEventCheckInRecord {
   id: string;
+  schoolId?: string;
   studentId: string;
   admNo: string;
   studentName: string;

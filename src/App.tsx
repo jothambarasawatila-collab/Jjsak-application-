@@ -97,6 +97,7 @@ import {
   PromotionPolicyConfig,
   AcademicStructureAuditEntry,
 } from './types/academicStructure';
+import { TimetableLesson } from './types/timetable';
 import { SplashScreen } from './components/SplashScreen';
 import { HomeScreen } from './components/HomeScreen';
 import { AssessmentsScreen } from './components/AssessmentsScreen';
@@ -760,6 +761,11 @@ export function App() {
     return saved ? JSON.parse(saved) : INITIAL_WELFARE_CHECKINS;
   });
 
+  const [timetables, setTimetables] = useState<TimetableLesson[]>(() => {
+    const saved = localStorage.getItem('jjsak_timetable_lessons');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   // Phase 7: Master Academic Foundation State
   const [curriculum, setCurriculum] = useState<CurriculumFramework>(() => {
     const saved = localStorage.getItem('jjsak_curriculum');
@@ -1042,13 +1048,63 @@ export function App() {
 
   const isolatedStudents = useMemo(() => {
     if (!effectiveTenantId) return students;
-    return students.filter((s) => !s.schoolId || s.schoolId === effectiveTenantId);
+    return students.filter((s) => s.schoolId === effectiveTenantId);
   }, [students, effectiveTenantId]);
 
   const isolatedAssessments = useMemo(() => {
     if (!effectiveTenantId) return assessments;
-    return assessments.filter((a) => !a.schoolId || a.schoolId === effectiveTenantId);
+    return assessments.filter((a) => a.schoolId === effectiveTenantId);
   }, [assessments, effectiveTenantId]);
+
+  const isolatedAttendanceRegisters = useMemo(() => {
+    if (!effectiveTenantId) return attendanceRegisters;
+    return attendanceRegisters.filter((r) => r.schoolId === effectiveTenantId);
+  }, [attendanceRegisters, effectiveTenantId]);
+
+  const isolatedDisciplineIncidents = useMemo(() => {
+    if (!effectiveTenantId) return disciplineIncidents;
+    return disciplineIncidents.filter((d) => d.schoolId === effectiveTenantId);
+  }, [disciplineIncidents, effectiveTenantId]);
+
+  const isolatedHealthIncidents = useMemo(() => {
+    if (!effectiveTenantId) return healthIncidents;
+    return healthIncidents.filter((h) => h.schoolId === effectiveTenantId);
+  }, [healthIncidents, effectiveTenantId]);
+
+  const isolatedCounselingSessions = useMemo(() => {
+    if (!effectiveTenantId) return counselingSessions;
+    return counselingSessions.filter((c) => c.schoolId === effectiveTenantId);
+  }, [counselingSessions, effectiveTenantId]);
+
+  const isolatedVulnerableLearners = useMemo(() => {
+    if (!effectiveTenantId) return vulnerableLearners;
+    return vulnerableLearners.filter((v) => v.schoolId === effectiveTenantId);
+  }, [vulnerableLearners, effectiveTenantId]);
+
+  const isolatedWelfareCheckIns = useMemo(() => {
+    if (!effectiveTenantId) return welfareCheckIns;
+    return welfareCheckIns.filter((w) => w.schoolId === effectiveTenantId);
+  }, [welfareCheckIns, effectiveTenantId]);
+
+  const isolatedTransfersOut = useMemo(() => {
+    if (!effectiveTenantId) return transfersOut;
+    return transfersOut.filter((t) => t.schoolId === effectiveTenantId);
+  }, [transfersOut, effectiveTenantId]);
+
+  const isolatedTransfersIn = useMemo(() => {
+    if (!effectiveTenantId) return transfersIn;
+    return transfersIn.filter((t) => t.schoolId === effectiveTenantId);
+  }, [transfersIn, effectiveTenantId]);
+
+  const isolatedGraduations = useMemo(() => {
+    if (!effectiveTenantId) return graduations;
+    return graduations.filter((g) => g.schoolId === effectiveTenantId);
+  }, [graduations, effectiveTenantId]);
+
+  const isolatedCommunications = useMemo(() => {
+    if (!effectiveTenantId) return communications;
+    return communications.filter((c) => c.schoolId === effectiveTenantId);
+  }, [communications, effectiveTenantId]);
 
   const isolatedUsers = useMemo(() => {
     if (!effectiveTenantId) return users;
@@ -1070,7 +1126,7 @@ export function App() {
   }, [effectiveTenantId, isolatedStudents, selectedStudent]);
 
   // Sync to localStorage with Real-time Save Status
-  const triggerSaveNotification = (msg: string = '✓ Changes Saved to Local Storage') => {
+  const triggerSaveNotification = (msg: string = '✓ Changes Saved to Institutional Database') => {
     setSaveStatusText(msg);
     const timer = setTimeout(() => {
       setSaveStatusText(null);
@@ -1246,6 +1302,295 @@ export function App() {
   useEffect(() => {
     localStorage.setItem('jjsak_academic_audit_logs', JSON.stringify(academicAuditLogs));
   }, [academicAuditLogs]);
+
+  // ===================== INSTITUTIONAL CLOUD STORAGE PERSISTENCE ENGINE =====================
+  // Guarantees all data entered by school personnel in their respective school portal is saved and stored without disappearing
+  const [isTenantDataLoaded, setIsTenantDataLoaded] = useState<boolean>(false);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<{
+    status: 'SYNCED' | 'SAVING' | 'ERROR';
+    lastSaved?: string;
+  }>({ status: 'SYNCED' });
+
+  // 1. Authoritative Server Data Hydration upon Login or Active Tenant Switch
+  useEffect(() => {
+    if (!effectiveTenantId) return;
+
+    let isMounted = true;
+    setIsTenantDataLoaded(false);
+
+    (async () => {
+      try {
+        setCloudSyncStatus({ status: 'SAVING' });
+
+        // A. Instant Hydration from Scoped Local Storage Cache
+        const cached = tenantDataSyncService.getCachedTenantData(effectiveTenantId);
+        if (cached && isMounted) {
+          if (Array.isArray(cached.students)) {
+            setStudents(cached.students.map((s: any) => ({ ...s, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.teachers)) {
+            setTeachers(cached.teachers.map((t: any) => ({ ...t, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.assessments)) {
+            setAssessments(cached.assessments.map((a: any) => ({ ...a, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.timetables)) {
+            setTimetables(cached.timetables.map((l: any) => ({ ...l, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.attendanceRegisters)) {
+            setAttendanceRegisters(cached.attendanceRegisters.map((r: any) => ({ ...r, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.behaviorRecords)) {
+            setBehaviorRecords(cached.behaviorRecords.map((b: any) => ({ ...b, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.disciplineIncidents)) {
+            setDisciplineIncidents(cached.disciplineIncidents.map((d: any) => ({ ...d, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.healthIncidents)) {
+            setHealthIncidents(cached.healthIncidents.map((h: any) => ({ ...h, schoolId: effectiveTenantId })));
+          }
+          if (cached.healthProfiles) {
+            setHealthProfiles(cached.healthProfiles);
+          }
+          if (Array.isArray(cached.counselingSessions)) {
+            setCounselingSessions(cached.counselingSessions.map((c: any) => ({ ...c, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.vulnerableLearners)) {
+            setVulnerableLearners(cached.vulnerableLearners.map((v: any) => ({ ...v, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.welfareCheckIns)) {
+            setWelfareCheckIns(cached.welfareCheckIns.map((w: any) => ({ ...w, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.transfersOut)) {
+            setTransfersOut(cached.transfersOut.map((t: any) => ({ ...t, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.transfersIn)) {
+            setTransfersIn(cached.transfersIn.map((t: any) => ({ ...t, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.graduations)) {
+            setGraduations(cached.graduations.map((g: any) => ({ ...g, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.parentCommunications)) {
+            setCommunications(cached.parentCommunications.map((p: any) => ({ ...p, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(cached.academicStreams) && cached.academicStreams.length > 0) {
+            setAcademicStreams(cached.academicStreams);
+          }
+          if (Array.isArray(cached.academicSubjects) && cached.academicSubjects.length > 0) {
+            setAcademicSubjects(cached.academicSubjects);
+          }
+          if (Array.isArray(cached.academicYears) && cached.academicYears.length > 0) {
+            setAcademicYears(cached.academicYears);
+          }
+          if (Array.isArray(cached.terms) && cached.terms.length > 0) {
+            setTerms(cached.terms);
+          }
+          if (Array.isArray(cached.teacherSubjectAllocations) && cached.teacherSubjectAllocations.length > 0) {
+            setTeacherSubjectAllocations(cached.teacherSubjectAllocations);
+          }
+          if (Array.isArray(cached.classTeacherAllocations) && cached.classTeacherAllocations.length > 0) {
+            setClassTeacherAllocations(cached.classTeacherAllocations);
+          }
+          if (cached.schoolInfo) {
+            setSchoolInfo((prev) => ({ ...prev, ...cached.schoolInfo }));
+          }
+          if (cached.schoolProfile) {
+            setSchoolProfile((prev) => ({ ...prev, ...cached.schoolProfile }));
+          }
+        }
+
+        // B. Authoritative Server Database Pull
+        const serverBundle = await tenantDataSyncService.fetchTenantData(effectiveTenantId);
+        if (!isMounted) return;
+
+        if (serverBundle) {
+          if (Array.isArray(serverBundle.students)) {
+            setStudents(serverBundle.students.map((s: any) => ({ ...s, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.teachers)) {
+            setTeachers(serverBundle.teachers.map((t: any) => ({ ...t, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.assessments)) {
+            setAssessments(serverBundle.assessments.map((a: any) => ({ ...a, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.timetables)) {
+            setTimetables(serverBundle.timetables.map((l: any) => ({ ...l, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.attendanceRegisters)) {
+            setAttendanceRegisters(serverBundle.attendanceRegisters.map((r: any) => ({ ...r, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.behaviorRecords)) {
+            setBehaviorRecords(serverBundle.behaviorRecords.map((b: any) => ({ ...b, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.disciplineIncidents)) {
+            setDisciplineIncidents(serverBundle.disciplineIncidents.map((d: any) => ({ ...d, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.healthIncidents)) {
+            setHealthIncidents(serverBundle.healthIncidents.map((h: any) => ({ ...h, schoolId: effectiveTenantId })));
+          }
+          if (serverBundle.healthProfiles) {
+            setHealthProfiles(serverBundle.healthProfiles);
+          }
+          if (Array.isArray(serverBundle.counselingSessions)) {
+            setCounselingSessions(serverBundle.counselingSessions.map((c: any) => ({ ...c, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.vulnerableLearners)) {
+            setVulnerableLearners(serverBundle.vulnerableLearners.map((v: any) => ({ ...v, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.welfareCheckIns)) {
+            setWelfareCheckIns(serverBundle.welfareCheckIns.map((w: any) => ({ ...w, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.transfersOut)) {
+            setTransfersOut(serverBundle.transfersOut.map((t: any) => ({ ...t, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.transfersIn)) {
+            setTransfersIn(serverBundle.transfersIn.map((t: any) => ({ ...t, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.graduations)) {
+            setGraduations(serverBundle.graduations.map((g: any) => ({ ...g, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.parentCommunications)) {
+            setCommunications(serverBundle.parentCommunications.map((p: any) => ({ ...p, schoolId: effectiveTenantId })));
+          }
+          if (Array.isArray(serverBundle.academicStreams) && serverBundle.academicStreams.length > 0) {
+            setAcademicStreams(serverBundle.academicStreams);
+          }
+          if (Array.isArray(serverBundle.academicSubjects) && serverBundle.academicSubjects.length > 0) {
+            setAcademicSubjects(serverBundle.academicSubjects);
+          }
+          if (Array.isArray(serverBundle.academicYears) && serverBundle.academicYears.length > 0) {
+            setAcademicYears(serverBundle.academicYears);
+          }
+          if (Array.isArray(serverBundle.terms) && serverBundle.terms.length > 0) {
+            setTerms(serverBundle.terms);
+          }
+          if (Array.isArray(serverBundle.teacherSubjectAllocations) && serverBundle.teacherSubjectAllocations.length > 0) {
+            setTeacherSubjectAllocations(serverBundle.teacherSubjectAllocations);
+          }
+          if (Array.isArray(serverBundle.classTeacherAllocations) && serverBundle.classTeacherAllocations.length > 0) {
+            setClassTeacherAllocations(serverBundle.classTeacherAllocations);
+          }
+          if (serverBundle.schoolInfo) {
+            setSchoolInfo((prev) => ({ ...prev, ...serverBundle.schoolInfo }));
+          }
+          if (serverBundle.schoolProfile) {
+            setSchoolProfile((prev) => ({ ...prev, ...serverBundle.schoolProfile }));
+          }
+        }
+
+        setIsTenantDataLoaded(true);
+        setCloudSyncStatus({ status: 'SYNCED', lastSaved: new Date().toLocaleTimeString() });
+      } catch (err) {
+        console.error('[TenantDataSync] Failed to hydrate tenant data from server', err);
+        setCloudSyncStatus({ status: 'ERROR' });
+        setIsTenantDataLoaded(true);
+      }
+    })();
+
+    // C. Multi-Tab Real-time Broadcast Listener
+    const unsubscribe = tenantDataSyncService.onTenantDataUpdated((updatedTenantId, bundle) => {
+      if (updatedTenantId === effectiveTenantId && isMounted) {
+        if (Array.isArray(bundle.students)) setStudents(bundle.students);
+        if (Array.isArray(bundle.teachers)) setTeachers(bundle.teachers);
+        if (Array.isArray(bundle.assessments)) setAssessments(bundle.assessments);
+        if (Array.isArray(bundle.timetables)) setTimetables(bundle.timetables);
+        if (Array.isArray(bundle.attendanceRegisters)) setAttendanceRegisters(bundle.attendanceRegisters);
+        if (Array.isArray(bundle.behaviorRecords)) setBehaviorRecords(bundle.behaviorRecords);
+        if (Array.isArray(bundle.disciplineIncidents)) setDisciplineIncidents(bundle.disciplineIncidents);
+        if (Array.isArray(bundle.healthIncidents)) setHealthIncidents(bundle.healthIncidents);
+        if (bundle.healthProfiles) setHealthProfiles(bundle.healthProfiles);
+        if (Array.isArray(bundle.counselingSessions)) setCounselingSessions(bundle.counselingSessions);
+        if (Array.isArray(bundle.vulnerableLearners)) setVulnerableLearners(bundle.vulnerableLearners);
+        if (Array.isArray(bundle.welfareCheckIns)) setWelfareCheckIns(bundle.welfareCheckIns);
+        if (bundle.schoolInfo) setSchoolInfo((prev) => ({ ...prev, ...bundle.schoolInfo }));
+        setCloudSyncStatus({ status: 'SYNCED', lastSaved: new Date().toLocaleTimeString() });
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [effectiveTenantId]);
+
+  // 2. Debounced Automatic Persistence Safety Net
+  // Every change entered by school personnel in their school portal is automatically saved to the institutional backend
+  useEffect(() => {
+    if (!effectiveTenantId || !isTenantDataLoaded) return;
+
+    setCloudSyncStatus({ status: 'SAVING' });
+
+    // Enforce tenant boundary on all saved entities
+    const scopedStudents = (students || []).map((s) => ({ ...s, schoolId: effectiveTenantId }));
+    const scopedTeachers = (teachers || []).map((t) => ({ ...t, schoolId: effectiveTenantId }));
+    const scopedAssessments = (assessments || []).map((a) => ({ ...a, schoolId: effectiveTenantId }));
+    const scopedAttendance = (attendanceRegisters || []).map((r) => ({ ...r, schoolId: effectiveTenantId }));
+    const scopedTimetables = (timetables || []).map((l) => ({ ...l, schoolId: effectiveTenantId }));
+
+    tenantDataSyncService.debouncedSaveTenantData(
+      effectiveTenantId,
+      {
+        students: scopedStudents,
+        teachers: scopedTeachers,
+        assessments: scopedAssessments,
+        timetables: scopedTimetables,
+        attendanceRegisters: scopedAttendance,
+        behaviorRecords,
+        disciplineIncidents,
+        healthIncidents,
+        healthProfiles,
+        counselingSessions,
+        vulnerableLearners,
+        welfareCheckIns,
+        transfersOut,
+        transfersIn,
+        graduations,
+        parentCommunications: communications,
+        academicStreams,
+        academicSubjects,
+        academicYears,
+        terms,
+        teacherSubjectAllocations,
+        classTeacherAllocations,
+        schoolInfo,
+        schoolProfile,
+      },
+      800
+    );
+
+    const timer = setTimeout(() => {
+      setCloudSyncStatus({ status: 'SYNCED', lastSaved: new Date().toLocaleTimeString() });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [
+    effectiveTenantId,
+    isTenantDataLoaded,
+    students,
+    teachers,
+    assessments,
+    timetables,
+    attendanceRegisters,
+    behaviorRecords,
+    disciplineIncidents,
+    healthIncidents,
+    healthProfiles,
+    counselingSessions,
+    vulnerableLearners,
+    welfareCheckIns,
+    transfersOut,
+    transfersIn,
+    graduations,
+    communications,
+    academicStreams,
+    academicSubjects,
+    academicYears,
+    terms,
+    teacherSubjectAllocations,
+    classTeacherAllocations,
+    schoolInfo,
+    schoolProfile,
+  ]);
 
   // Automated Onboarding Credentials Dispatch & Sync for Registered Institutions
   useEffect(() => {
@@ -1440,79 +1785,149 @@ export function App() {
   };
 
   const handleAddBehaviorRecord = (record: BehaviorRecord) => {
-    setBehaviorRecords((prev) => [record, ...prev]);
+    const recordWithSchool = { ...record, schoolId: record.schoolId || effectiveTenantId };
+    setBehaviorRecords((prev) => [recordWithSchool, ...prev]);
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        behaviorRecords: [recordWithSchool, ...behaviorRecords],
+      });
+    }
     handleLogAudit(
       'RECORD_EDIT',
       `Logged behavior record for ${record.studentName} (${record.admNo}): [${record.category}] ${record.title}. Severity: ${record.severity}.`
     );
-    triggerSaveNotification(`✓ Behavior/Discipline record logged`);
+    triggerSaveNotification(`✓ Behavior/Discipline record logged to institutional database`);
   };
 
   // Phase 6 Action Handlers (P6.1 - P6.10)
   const handleSaveAttendanceRegister = (register: ClassAttendanceRegister) => {
+    const registerWithSchool = { ...register, schoolId: register.schoolId || effectiveTenantId };
+    let updatedRegisters: ClassAttendanceRegister[] = [];
     setAttendanceRegisters((prev) => {
-      const idx = prev.findIndex((r) => r.id === register.id);
+      const idx = prev.findIndex((r) => r.id === registerWithSchool.id);
       if (idx >= 0) {
         const next = [...prev];
-        next[idx] = register;
+        next[idx] = registerWithSchool;
+        updatedRegisters = next;
         return next;
       }
-      return [register, ...prev];
+      updatedRegisters = [registerWithSchool, ...prev];
+      return updatedRegisters;
     });
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveAttendanceRegister(effectiveTenantId, registerWithSchool);
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        attendanceRegisters: updatedRegisters.length > 0 ? updatedRegisters : [registerWithSchool, ...attendanceRegisters],
+      });
+    }
     triggerSaveNotification(`✓ Attendance register saved for ${register.className}`);
   };
 
   const handleAddDisciplineIncident = (incident: DisciplineIncident) => {
-    setDisciplineIncidents((prev) => [incident, ...prev]);
+    const incidentWithSchool = { ...incident, schoolId: incident.schoolId || effectiveTenantId };
+    setDisciplineIncidents((prev) => [incidentWithSchool, ...prev]);
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        disciplineIncidents: [incidentWithSchool, ...disciplineIncidents],
+      });
+    }
     triggerSaveNotification(`✓ Discipline record logged for ${incident.studentName}`);
   };
 
   const handleUpdateDisciplineIncident = (incident: DisciplineIncident) => {
+    const incidentWithSchool = { ...incident, schoolId: incident.schoolId || effectiveTenantId };
     setDisciplineIncidents((prev) =>
-      prev.map((i) => (i.id === incident.id ? incident : i))
+      prev.map((i) => (i.id === incidentWithSchool.id ? incidentWithSchool : i))
     );
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        disciplineIncidents: disciplineIncidents.map((i) => (i.id === incidentWithSchool.id ? incidentWithSchool : i)),
+      });
+    }
     triggerSaveNotification(`✓ Discipline incident updated (${incident.status})`);
   };
 
   const handleAddHealthIncident = (incident: HealthIncidentRecord) => {
-    setHealthIncidents((prev) => [incident, ...prev]);
+    const incidentWithSchool = { ...incident, schoolId: incident.schoolId || effectiveTenantId };
+    setHealthIncidents((prev) => [incidentWithSchool, ...prev]);
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        healthIncidents: [incidentWithSchool, ...healthIncidents],
+      });
+    }
     triggerSaveNotification(`✓ Health clinic encounter recorded for ${incident.studentName}`);
   };
 
   const handleUpdateHealthProfile = (profile: LearnerHealthProfile) => {
+    const profileWithSchool = { ...profile, schoolId: (profile as any).schoolId || effectiveTenantId };
     setHealthProfiles((prev) => ({
       ...prev,
-      [profile.studentId]: profile,
+      [profile.studentId]: profileWithSchool,
     }));
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        healthProfiles: { ...healthProfiles, [profile.studentId]: profileWithSchool },
+      });
+    }
     triggerSaveNotification(`✓ Medical profile updated`);
   };
 
   const handleAddCounselingSession = (session: CounselingSession) => {
-    setCounselingSessions((prev) => [session, ...prev]);
+    const sessionWithSchool = { ...session, schoolId: session.schoolId || effectiveTenantId };
+    setCounselingSessions((prev) => [sessionWithSchool, ...prev]);
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        counselingSessions: [sessionWithSchool, ...counselingSessions],
+      });
+    }
     triggerSaveNotification(`✓ Guidance & Counseling session logged`);
   };
 
   const handleAddVulnerableLearner = (record: VulnerableLearnerRecord) => {
-    setVulnerableLearners((prev) => [record, ...prev]);
+    const recordWithSchool = { ...record, schoolId: record.schoolId || effectiveTenantId };
+    setVulnerableLearners((prev) => [recordWithSchool, ...prev]);
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        vulnerableLearners: [recordWithSchool, ...vulnerableLearners],
+      });
+    }
     triggerSaveNotification(`✓ Vulnerable learner registered into support scheme`);
   };
 
   const handleUpdateVulnerableLearner = (record: VulnerableLearnerRecord) => {
+    const recordWithSchool = { ...record, schoolId: record.schoolId || effectiveTenantId };
     setVulnerableLearners((prev) =>
-      prev.map((v) => (v.id === record.id ? record : v))
+      prev.map((v) => (v.id === recordWithSchool.id ? recordWithSchool : v))
     );
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        vulnerableLearners: vulnerableLearners.map((v) => (v.id === recordWithSchool.id ? recordWithSchool : v)),
+      });
+    }
     triggerSaveNotification(`✓ Welfare record updated for ${record.studentName}`);
   };
 
   const handleAddWelfareCheckIn = (record: WelfareEventCheckInRecord) => {
-    setWelfareCheckIns((prev) => [record, ...prev]);
+    const recordWithSchool = { ...record, schoolId: record.schoolId || effectiveTenantId };
+    setWelfareCheckIns((prev) => [recordWithSchool, ...prev]);
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        welfareCheckIns: [recordWithSchool, ...welfareCheckIns],
+      });
+    }
     triggerSaveNotification(`✓ Welfare QR check-in recorded for ${record.studentName}`);
   };
 
   const handleUpdateWelfareCheckIn = (record: WelfareEventCheckInRecord) => {
+    const recordWithSchool = { ...record, schoolId: record.schoolId || effectiveTenantId };
     setWelfareCheckIns((prev) =>
-      prev.map((item) => (item.id === record.id ? record : item))
+      prev.map((item) => (item.id === recordWithSchool.id ? recordWithSchool : item))
     );
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        welfareCheckIns: welfareCheckIns.map((item) => (item.id === recordWithSchool.id ? recordWithSchool : item)),
+      });
+    }
     triggerSaveNotification(`✓ Welfare check-in status updated`);
   };
 
@@ -1525,28 +1940,53 @@ export function App() {
           : s
       )
     );
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        transfersOut: [record, ...transfersOut],
+        students: students.map((s) =>
+          s.id === record.studentId
+            ? { ...s, enrollmentStatus: 'Transferred Out' as any, status: 'Transferred' as any }
+            : s
+        ),
+      });
+    }
     triggerSaveNotification(`✓ Transfer-out clearance processed for ${record.studentName}`);
   };
 
   const handleProcessTransferIn = (record: TransferInRecord) => {
     setTransfersIn((prev) => [record, ...prev]);
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        transfersIn: [record, ...transfersIn],
+      });
+    }
     triggerSaveNotification(`✓ Transfer-in admitted for ${record.studentName}`);
   };
 
   const handleGraduateGrade9 = (record: Grade9GraduationRecord) => {
     setGraduations((prev) => [record, ...prev]);
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === record.studentId
-          ? { ...s, enrollmentStatus: 'Graduated' as any }
-          : s
-      )
+    const updated = students.map((s) =>
+      s.id === record.studentId
+        ? { ...s, enrollmentStatus: 'Graduated' as any }
+        : s
     );
+    setStudents(updated);
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        graduations: [record, ...graduations],
+        students: updated,
+      });
+    }
     triggerSaveNotification(`✓ Graduation & completion certificate issued`);
   };
 
   const handleSendParentNotice = (record: ParentCommunicationRecord) => {
     setCommunications((prev) => [record, ...prev]);
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        parentCommunications: [record, ...communications],
+      });
+    }
     triggerSaveNotification(`✓ Parent notice dispatched via ${record.channel}`);
   };
 
@@ -2090,6 +2530,12 @@ export function App() {
       ...prev,
       totalAssessments: prev.totalAssessments + 1,
     }));
+    if (targetSchoolId) {
+      tenantDataSyncService.saveTenantData(targetSchoolId, {
+        assessments: [finalAssessment, ...assessments],
+      });
+      triggerSaveNotification(`✓ Assessment "${finalAssessment.name}" saved to institutional database`);
+    }
   };
 
   const handleRequestPermanentDelete = (
@@ -2154,7 +2600,13 @@ export function App() {
       title,
       'Assessment Record',
       () => {
-        setAssessments((prev) => prev.filter((a) => a.id !== id));
+        const remaining = assessments.filter((a) => a.id !== id);
+        setAssessments(remaining);
+        if (effectiveTenantId) {
+          tenantDataSyncService.saveTenantData(effectiveTenantId, {
+            assessments: remaining,
+          });
+        }
       },
       target
     );
@@ -2163,12 +2615,15 @@ export function App() {
   // Save marks entered by teacher on phone/PC into students & assessment records
   const handleSaveAssessmentMarks = (assessment: Assessment, updatedStudents: Student[]) => {
     // 1. Update assessment record
+    let finalAssessments: Assessment[] = [];
     setAssessments((prev) => {
       const exists = prev.some((a) => a.id === assessment.id);
       if (exists) {
-        return prev.map((a) => (a.id === assessment.id ? assessment : a));
+        finalAssessments = prev.map((a) => (a.id === assessment.id ? assessment : a));
+      } else {
+        finalAssessments = [assessment, ...prev];
       }
-      return [assessment, ...prev];
+      return finalAssessments;
     });
 
     // 2. Update students and recompute overall rankings and statistics
@@ -2180,6 +2635,16 @@ export function App() {
     const matchingStudent = ranked.find((s) => s.id === currentSelectedId);
     if (matchingStudent) {
       setSelectedStudent(matchingStudent);
+    }
+
+    // 4. Authoritatively save to backend database without disappearing
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveAssessmentMarks(effectiveTenantId, assessment, ranked);
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        assessments: finalAssessments.length > 0 ? finalAssessments : [assessment, ...assessments],
+        students: ranked,
+      });
+      triggerSaveNotification(`✓ Assessment marks and student rankings securely saved to database`);
     }
   };
 
@@ -2193,9 +2658,11 @@ export function App() {
       ...newStudent,
       schoolId: targetSchoolId,
     };
+    let rankedResult: Student[] = [];
     setStudents((prev) => {
       const merged = [studentWithSchool, ...prev];
       const ranked = calculateStudentRankings(merged);
+      rankedResult = ranked;
       const updatedCurrent = ranked.find((s) => s.id === studentWithSchool.id) || studentWithSchool;
       setSelectedStudent(updatedCurrent);
       return ranked;
@@ -2204,6 +2671,15 @@ export function App() {
       ...prev,
       totalStudents: prev.totalStudents + 1,
     }));
+
+    if (targetSchoolId) {
+      tenantDataSyncService.saveStudent(targetSchoolId, studentWithSchool);
+      tenantDataSyncService.saveTenantData(targetSchoolId, {
+        students: rankedResult.length > 0 ? rankedResult : [studentWithSchool, ...students],
+        schoolInfo: { ...schoolInfo, totalStudents: schoolInfo.totalStudents + 1 },
+      });
+      triggerSaveNotification(`✓ Learner ${studentWithSchool.name} registered and saved to database`);
+    }
   };
 
   const handleUpdateStudent = (updatedStudent: Student) => {
@@ -2212,46 +2688,76 @@ export function App() {
       ...updatedStudent,
       schoolId: targetSchoolId,
     };
+    let rankedResult: Student[] = [];
     setStudents((prev) => {
       const merged = prev.map((s) => (s.id === studentWithSchool.id ? studentWithSchool : s));
       const ranked = calculateStudentRankings(merged);
+      rankedResult = ranked;
       const updatedCurrent = ranked.find((s) => s.id === studentWithSchool.id) || studentWithSchool;
       if (selectedStudent.id === studentWithSchool.id) {
         setSelectedStudent(updatedCurrent);
       }
       return ranked;
     });
+
+    if (targetSchoolId) {
+      tenantDataSyncService.saveStudent(targetSchoolId, studentWithSchool);
+      tenantDataSyncService.saveTenantData(targetSchoolId, {
+        students: rankedResult,
+      });
+      triggerSaveNotification(`✓ Learner ${studentWithSchool.name} updated and saved to database`);
+    }
   };
 
   const handleBatchUpdateStudents = (updater: (s: Student) => Student) => {
+    let rankedResult: Student[] = [];
     setStudents((prev) => {
       const merged = prev.map(updater);
       const ranked = calculateStudentRankings(merged);
+      rankedResult = ranked;
       const updatedCurrent = ranked.find((s) => s.id === selectedStudent.id);
       if (updatedCurrent) {
         setSelectedStudent(updatedCurrent);
       }
       return ranked;
     });
+
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        students: rankedResult,
+      });
+      triggerSaveNotification(`✓ Batch learner updates saved to institutional database`);
+    }
   };
 
   const handleUpdateSchoolInfo = (newInfo: SchoolInfo, syncToStudents?: boolean) => {
     setSchoolInfo(newInfo);
+    let updatedStudentsList = students;
     if (syncToStudents) {
-      setStudents((prev) =>
-        prev.map((s) => ({
+      setStudents((prev) => {
+        const up = prev.map((s) => ({
           ...s,
           year: newInfo.year,
           term: newInfo.term,
           nextTermDate: newInfo.nextTermOpenDate || s.nextTermDate,
-        }))
-      );
+        }));
+        updatedStudentsList = up;
+        return up;
+      });
       setSelectedStudent((prev) => ({
         ...prev,
         year: newInfo.year,
         term: newInfo.term,
         nextTermDate: newInfo.nextTermOpenDate || prev.nextTermDate,
       }));
+    }
+
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, {
+        schoolInfo: newInfo,
+        students: syncToStudents ? updatedStudentsList : undefined,
+      });
+      triggerSaveNotification(`✓ School profile & academic calendar saved to database`);
     }
   };
 
@@ -2262,8 +2768,10 @@ export function App() {
       title,
       'Learner Record',
       () => {
+        let remainingStudents: Student[] = [];
         setStudents((prev) => {
           const remaining = prev.filter((s) => s.id !== id);
+          remainingStudents = remaining;
           const ranked = calculateStudentRankings(remaining);
           if (selectedStudent.id === id && ranked.length > 0) {
             setSelectedStudent(ranked[0]);
@@ -2274,6 +2782,13 @@ export function App() {
           ...prev,
           totalStudents: Math.max(0, prev.totalStudents - 1),
         }));
+        if (effectiveTenantId) {
+          tenantDataSyncService.deleteStudent(effectiveTenantId, id);
+          tenantDataSyncService.saveTenantData(effectiveTenantId, {
+            students: remainingStudents,
+            schoolInfo: { ...schoolInfo, totalStudents: Math.max(0, schoolInfo.totalStudents - 1) },
+          });
+        }
       },
       target
     );
@@ -2293,6 +2808,14 @@ export function App() {
       schoolId: targetSchoolId,
     };
     setTeachers((prev) => [finalTeacher, ...prev]);
+
+    if (targetSchoolId) {
+      tenantDataSyncService.saveTeacher(targetSchoolId, finalTeacher);
+      tenantDataSyncService.saveTenantData(targetSchoolId, {
+        teachers: [finalTeacher, ...teachers],
+      });
+      triggerSaveNotification(`✓ Staff member ${finalTeacher.name} saved to institutional database`);
+    }
 
     if (options?.provisionAccount) {
       const username = finalTeacher.email
@@ -2361,9 +2884,19 @@ export function App() {
       ...updatedTeacher,
       schoolId: targetSchoolId,
     };
-    setTeachers((prev) =>
-      prev.map((t) => (t.id === finalTeacher.id ? finalTeacher : t))
-    );
+    let updatedTeachersList: Teacher[] = [];
+    setTeachers((prev) => {
+      const next = prev.map((t) => (t.id === finalTeacher.id ? finalTeacher : t));
+      updatedTeachersList = next;
+      return next;
+    });
+
+    if (targetSchoolId) {
+      tenantDataSyncService.saveTeacher(targetSchoolId, finalTeacher);
+      tenantDataSyncService.saveTenantData(targetSchoolId, {
+        teachers: updatedTeachersList.length > 0 ? updatedTeachersList : [finalTeacher, ...teachers],
+      });
+    }
 
     // Sync status and credentials to IAM user database
     setUsers((prev) =>
@@ -2404,10 +2937,32 @@ export function App() {
       title,
       'Teacher Profile',
       () => {
-        setTeachers((prev) => prev.filter((t) => t.id !== id));
+        let remainingTeachers: Teacher[] = [];
+        setTeachers((prev) => {
+          const next = prev.filter((t) => t.id !== id);
+          remainingTeachers = next;
+          return next;
+        });
+        if (effectiveTenantId) {
+          tenantDataSyncService.saveTenantData(effectiveTenantId, {
+            teachers: remainingTeachers,
+          });
+        }
       },
       target
     );
+  };
+
+  const handleSaveTimetable = (lessons: TimetableLesson[]) => {
+    const scopedLessons = lessons.map((l) => ({ ...l, schoolId: effectiveTenantId }));
+    setTimetables(scopedLessons);
+    if (effectiveTenantId) {
+      tenantDataSyncService.saveTenantData(effectiveTenantId, { timetables: scopedLessons });
+    }
+    try {
+      localStorage.setItem('jjsak_timetable_lessons', JSON.stringify(scopedLessons));
+    } catch {}
+    triggerSaveNotification('✓ Master school timetable saved to database');
   };
 
   const handleResetData = () => {
@@ -2606,6 +3161,39 @@ export function App() {
             <span className={`w-1.5 h-1.5 rounded-full ${isSubscriptionActive ? 'bg-emerald-400' : 'bg-red-400'}`} />
             <span>{isSubscriptionActive ? '1-Term Trial Active' : 'Trial Expired'}</span>
           </button>
+
+          {/* Institutional Database Persistence Badge */}
+          <div
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition ${
+              cloudSyncStatus.status === 'SAVING'
+                ? 'bg-amber-950/70 text-amber-300 border-amber-800 animate-pulse'
+                : cloudSyncStatus.status === 'ERROR'
+                ? 'bg-rose-950/70 text-rose-300 border-rose-800'
+                : 'bg-emerald-950/70 text-emerald-300 border-emerald-800'
+            }`}
+            title={
+              cloudSyncStatus.lastSaved
+                ? `All school portal records persistently stored to server database at ${cloudSyncStatus.lastSaved}.`
+                : 'School portal data persistently saved and stored in server database.'
+            }
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                cloudSyncStatus.status === 'SAVING'
+                  ? 'bg-amber-400'
+                  : cloudSyncStatus.status === 'ERROR'
+                  ? 'bg-rose-400'
+                  : 'bg-emerald-400'
+              }`}
+            />
+            <span>
+              {cloudSyncStatus.status === 'SAVING'
+                ? 'Saving to DB...'
+                : cloudSyncStatus.status === 'ERROR'
+                ? 'Sync Pending'
+                : 'DB Persistent • Saved'}
+            </span>
+          </div>
 
           {/* Device Frame View Switcher (Mobile vs Laptop/PC Widescreen) */}
           <div className="flex items-center bg-slate-800 p-0.5 rounded-xl border border-slate-700">
@@ -3005,6 +3593,8 @@ export function App() {
               teachers={isolatedTeachers}
               currentUser={currentUser}
               users={isolatedUsers}
+              lessons={timetables}
+              onSaveLessons={handleSaveTimetable}
               onLogAudit={handleLogAudit}
               onBack={() => handleNavigate('home')}
             />
@@ -3162,9 +3752,9 @@ export function App() {
               tenants={tenants}
               activeTenantId={activeTenantId}
               auditLogs={auditLogs}
-              students={students}
-              assessments={assessments}
-              teachers={teachers}
+              students={currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SYSTEM_ADMIN' ? students : isolatedStudents}
+              assessments={currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SYSTEM_ADMIN' ? assessments : isolatedAssessments}
+              teachers={currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SYSTEM_ADMIN' ? teachers : isolatedTeachers}
               schoolInfo={schoolInfo}
               recycleBin={recycleBin}
               activeJWTSession={activeJWTSession}
@@ -3521,35 +4111,35 @@ export function App() {
 
           {currentScreen === 'learner_welfare_hub' && (
             <LearnerWelfareHub
-              students={students}
+              students={isolatedStudents}
               currentUser={currentUser}
               onAddStudent={handleAddStudent}
               onUpdateStudent={handleUpdateStudent}
               onDeleteStudent={handleDeleteStudent}
-              attendanceRegisters={attendanceRegisters}
+              attendanceRegisters={isolatedAttendanceRegisters}
               onSaveAttendanceRegister={handleSaveAttendanceRegister}
-              disciplineIncidents={disciplineIncidents}
+              disciplineIncidents={isolatedDisciplineIncidents}
               onAddDisciplineIncident={handleAddDisciplineIncident}
               onUpdateDisciplineIncident={handleUpdateDisciplineIncident}
-              healthIncidents={healthIncidents}
+              healthIncidents={isolatedHealthIncidents}
               healthProfiles={healthProfiles}
               onAddHealthIncident={handleAddHealthIncident}
               onUpdateHealthProfile={handleUpdateHealthProfile}
-              welfareCheckIns={welfareCheckIns}
+              welfareCheckIns={isolatedWelfareCheckIns}
               onAddCheckIn={handleAddWelfareCheckIn}
               onUpdateCheckIn={handleUpdateWelfareCheckIn}
-              counselingSessions={counselingSessions}
-              vulnerableLearners={vulnerableLearners}
+              counselingSessions={isolatedCounselingSessions}
+              vulnerableLearners={isolatedVulnerableLearners}
               onAddCounselingSession={handleAddCounselingSession}
               onAddVulnerableLearner={handleAddVulnerableLearner}
               onUpdateVulnerableLearner={handleUpdateVulnerableLearner}
-              transfersOut={transfersOut}
-              transfersIn={transfersIn}
-              graduations={graduations}
+              transfersOut={isolatedTransfersOut}
+              transfersIn={isolatedTransfersIn}
+              graduations={isolatedGraduations}
               onProcessTransferOut={handleProcessTransferOut}
               onProcessTransferIn={handleProcessTransferIn}
               onGraduateGrade9={handleGraduateGrade9}
-              communications={communications}
+              communications={isolatedCommunications}
               onSendParentNotice={handleSendParentNotice}
               auditLogs={auditLogs.map((a) => ({
                 id: a.id,

@@ -89,6 +89,7 @@ export type BehaviorCategory =
 
 export interface BehaviorRecord {
   id: string;
+  schoolId?: string;
   studentId: string;
   studentName: string;
   admNo: string;

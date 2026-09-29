@@ -100,11 +100,17 @@ class AiAssessmentService {
     const gemini = this.getGeminiClient();
     const papers: GeneratedSubjectPaper[] = [];
 
+    let usedAi = false;
     for (const subject of subjectsToGenerate) {
       try {
         let paper: GeneratedSubjectPaper | null = null;
         if (gemini) {
-          paper = await this.generateWithGemini(gemini, subject, request);
+          try {
+            paper = await this.generateWithGemini(gemini, subject, request);
+            if (paper) usedAi = true;
+          } catch (apiErr: any) {
+            console.warn(`[AI Engine] Gemini API fallback to Pedagogical Engine for ${subject}:`, apiErr?.message || apiErr);
+          }
         }
         if (!paper) {
           paper = this.generateWithPedagogicalEngine(subject, request);
@@ -120,7 +126,7 @@ class AiAssessmentService {
     return {
       success: true,
       papers,
-      provider: gemini ? 'GEMINI_AI' : 'PEDAGOGICAL_ENGINE',
+      provider: usedAi ? 'GEMINI_AI' : 'PEDAGOGICAL_ENGINE',
     };
   }
 
@@ -202,7 +208,7 @@ Format the response strictly as valid JSON with NO markdown formatting, backtick
 }`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
