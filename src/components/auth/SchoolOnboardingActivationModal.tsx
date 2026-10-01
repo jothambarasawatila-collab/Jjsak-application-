@@ -29,7 +29,7 @@ interface SchoolOnboardingActivationModalProps {
   tenants: SchoolTenant[];
   users: User[];
   onActivationSuccess: (user: User, tenant: SchoolTenant, jwtSession: JWTSession) => void;
-  onUpdateSchoolStatus?: (schoolId: string, status: 'ACTIVE' | 'PENDING' | 'SUSPENDED') => void;
+  onUpdateSchoolStatus?: (schoolId: string, status: 'TRIAL' | 'ACTIVE' | 'PENDING' | 'SUSPENDED') => void;
   onLogAudit?: (action: any, details: string) => void;
 }
 
@@ -312,9 +312,9 @@ export const SchoolOnboardingActivationModal: React.FC<SchoolOnboardingActivatio
         };
       }
 
-      // Update school status in global state and localStorage
+      // Update school status in global state and localStorage (All registered schools start under 1-term trial)
       if (onUpdateSchoolStatus) {
-        onUpdateSchoolStatus(targetTenant.schoolId, 'ACTIVE');
+        onUpdateSchoolStatus(targetTenant.schoolId, 'TRIAL');
       }
 
       // Generate authorized session
@@ -322,11 +322,11 @@ export const SchoolOnboardingActivationModal: React.FC<SchoolOnboardingActivatio
 
       onLogAudit?.(
         'STAFF_APPROVED',
-        `School [${targetTenant.schoolName}] (${targetTenant.registrationNumber}) officially activated by Head of Institution (${activeHead.fullName}) using account ${cleanAcc}. Full personnel onboarding governance unlocked.`
+        `School [${targetTenant.schoolName}] (${targetTenant.registrationNumber}) officially activated under 1-Term Free Trial by Head of Institution (${activeHead.fullName}) using account ${cleanAcc}. Full personnel onboarding governance unlocked.`
       );
 
       setSuccessMessage(
-        `🎉 School [${targetTenant.schoolName}] successfully activated! Directing to School Portal to onboard school personnel...`
+        `🎉 School [${targetTenant.schoolName}] successfully activated under 1-Term Free Trial! Directing to School Portal to onboard school personnel...`
       );
 
       setTimeout(() => {

@@ -163,6 +163,7 @@ import {
 } from './services/cleanDeploymentService';
 import { carrierInboxService } from './services/carrierInboxService';
 import { tenantDataSyncService } from './services/tenantDataSyncService';
+import { institutionalSubscriptionService } from './services/institutionalSubscriptionService';
 
 // Registered Institutions: Yuya Primary School and Ngonyek Junior School
 const INITIAL_ONBOARDED_SCHOOLS: SchoolTenant[] = [
@@ -178,7 +179,7 @@ const INITIAL_ONBOARDED_SCHOOLS: SchoolTenant[] = [
     phone: '+254 741 478 813',
     email: 'info@yuya.sc.ke',
     officialEmail: 'info@yuya.sc.ke',
-    status: 'ACTIVE',
+    status: 'TRIAL',
     createdAt: '2026-03-01',
     administratorDetails: {
       fullName: 'Headteacher (Yuya Primary School)',
@@ -198,7 +199,7 @@ const INITIAL_ONBOARDED_SCHOOLS: SchoolTenant[] = [
     phone: '+254 741 478 813',
     email: 'info@ngonyek.sc.ke',
     officialEmail: 'info@ngonyek.sc.ke',
-    status: 'ACTIVE',
+    status: 'TRIAL',
     createdAt: '2026-03-01',
     administratorDetails: {
       fullName: 'Principal (Ngonyek Junior School)',
@@ -440,8 +441,12 @@ export function App() {
           return [];
         }
         const filteredParsed = parsed.filter((t) => t && t.schoolId && !deletedSet.has(t.schoolId));
-        const existingIds = new Set(filteredParsed.map((t) => t.schoolId));
-        const merged = [...filteredParsed];
+        const normalizedParsed: SchoolTenant[] = filteredParsed.map((t) => ({
+          ...t,
+          status: ((t.status === 'DISABLED' || t.status === 'SUSPENDED') ? t.status : 'TRIAL') as SchoolStatus,
+        }));
+        const existingIds = new Set(normalizedParsed.map((t) => t.schoolId));
+        const merged: SchoolTenant[] = [...normalizedParsed];
         defaultSchools.forEach((dt) => {
           if (!deletedSet.has(dt.schoolId) && !existingIds.has(dt.schoolId)) {
             merged.push(dt);
@@ -451,7 +456,7 @@ export function App() {
               merged[idx] = {
                 ...dt,
                 ...merged[idx],
-                status: (merged[idx].status as SchoolStatus) || dt.status,
+                status: ((merged[idx].status === 'DISABLED' || merged[idx].status === 'SUSPENDED') ? merged[idx].status : 'TRIAL') as SchoolStatus,
                 administratorDetails: merged[idx].administratorDetails || dt.administratorDetails,
                 subdomain: merged[idx].subdomain || dt.subdomain,
                 tenantDomain: merged[idx].tenantDomain || dt.tenantDomain,
@@ -3043,10 +3048,14 @@ export function App() {
           tenants={tenants}
           users={users}
           onActivationSuccess={(activatedHeadUser, targetTenant, jwtSession) => {
+            const tenantUnderTrial: SchoolTenant = {
+              ...targetTenant,
+              status: 'TRIAL' as const,
+            };
             setTenants((prev) => {
-              const updated = prev.map((t) => (t.schoolId === targetTenant.schoolId ? { ...targetTenant, status: 'ACTIVE' as const } : t));
+              const updated = prev.map((t) => (t.schoolId === targetTenant.schoolId ? tenantUnderTrial : t));
               if (!updated.some((t) => t.schoolId === targetTenant.schoolId)) {
-                updated.unshift(targetTenant);
+                updated.unshift(tenantUnderTrial);
               }
               localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
               return updated;
@@ -3776,8 +3785,12 @@ export function App() {
                 }
               }}
               onAddTenant={(newT) => {
+                const tenantWithTrial: SchoolTenant = {
+                  ...newT,
+                  status: newT.status || 'TRIAL',
+                };
                 setTenants((prev) => {
-                  const updated = [newT, ...prev];
+                  const updated = [tenantWithTrial, ...prev];
                   try {
                     localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
                   } catch (e) {
@@ -3785,7 +3798,7 @@ export function App() {
                   }
                   return updated;
                 });
-                tenantDataSyncService.saveTenant(newT).catch(console.warn);
+                tenantDataSyncService.saveTenant(tenantWithTrial).catch(console.warn);
               }}
               onUpdateTenantStatus={handleUpdateTenantStatus}
               onAddUser={(newU) => {
@@ -3963,8 +3976,12 @@ export function App() {
                   setIsSchoolActivationOpen(true);
                 }}
                 onAddSchool={(newSchool) => {
+                  const schoolWithTrial: SchoolTenant = {
+                    ...newSchool,
+                    status: 'TRIAL',
+                  };
                   setTenants((prev) => {
-                    const updated = [newSchool, ...prev];
+                    const updated = [schoolWithTrial, ...prev];
                     try {
                       localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
                     } catch (e) {
@@ -3972,25 +3989,33 @@ export function App() {
                     }
                     return updated;
                   });
-                  tenantDataSyncService.saveTenant(newSchool).catch(console.warn);
+                  tenantDataSyncService.saveTenant(schoolWithTrial).catch(console.warn);
+
+                  // Auto-initialize 1-term approved free trial subscription (120 days, 0 charges)
+                  institutionalSubscriptionService.getSchoolSubscription(
+                    schoolWithTrial.schoolId,
+                    schoolWithTrial.schoolName,
+                    schoolWithTrial.schoolCode,
+                    0
+                  );
 
                   // Auto-dispatch portal activation link, first-time password & OTP
-                  const dispatchResult = carrierInboxService.ensureDispatchedForSchool(newSchool, { force: true });
+                  const dispatchResult = carrierInboxService.ensureDispatchedForSchool(schoolWithTrial, { force: true });
 
                   // Auto-provision initial Head of Institution account in compliance with Part B, Rule §6
                   const initialHeadUser: User = {
-                    id: `usr-${(newSchool.subdomain || newSchool.schoolCode).toLowerCase().replace(/[^a-z0-9]/g, '')}-head`,
-                    schoolId: newSchool.schoolId,
-                    schoolName: newSchool.schoolName,
-                    fullName: newSchool.administratorDetails?.fullName || `Headteacher (${newSchool.schoolName})`,
-                    username: `head.${(newSchool.subdomain || newSchool.schoolCode).toLowerCase().replace(/[^a-z0-9]/g, '')}`,
-                    email: newSchool.administratorDetails?.emailAddress || newSchool.email || `head@${newSchool.subdomain || 'school'}.sc.ke`,
-                    phoneNumber: newSchool.administratorDetails?.phoneNumber || newSchool.phone || '+254 741 478 813',
+                    id: `usr-${(schoolWithTrial.subdomain || schoolWithTrial.schoolCode).toLowerCase().replace(/[^a-z0-9]/g, '')}-head`,
+                    schoolId: schoolWithTrial.schoolId,
+                    schoolName: schoolWithTrial.schoolName,
+                    fullName: schoolWithTrial.administratorDetails?.fullName || `Headteacher (${schoolWithTrial.schoolName})`,
+                    username: `head.${(schoolWithTrial.subdomain || schoolWithTrial.schoolCode).toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+                    email: schoolWithTrial.administratorDetails?.emailAddress || schoolWithTrial.email || `head@${schoolWithTrial.subdomain || 'school'}.sc.ke`,
+                    phoneNumber: schoolWithTrial.administratorDetails?.phoneNumber || schoolWithTrial.phone || '+254 741 478 813',
                     role: 'HEAD',
                     designation: 'Head of Institution / Principal',
                     password: dispatchResult.firstTimePassword || 'Password@2026!',
                     firstTimePassword: dispatchResult.firstTimePassword || 'Password@2026!',
-                    schoolAccountAlias: `${(newSchool.subdomain || newSchool.schoolCode).toLowerCase().replace(/[^a-z0-9]/g, '')}@jjsak`,
+                    schoolAccountAlias: `${(schoolWithTrial.subdomain || schoolWithTrial.schoolCode).toLowerCase().replace(/[^a-z0-9]/g, '')}@jjsak`,
                     active: true,
                     mfaEnabled: true,
                     mfaMethod: 'SMS_OTP',
@@ -4471,10 +4496,14 @@ export function App() {
         tenants={tenants}
         users={users}
         onActivationSuccess={(activatedHeadUser, targetTenant, jwtSession) => {
+          const tenantUnderTrial: SchoolTenant = {
+            ...targetTenant,
+            status: 'TRIAL' as const,
+          };
           setTenants((prev) => {
-            const updated = prev.map((t) => (t.schoolId === targetTenant.schoolId ? { ...targetTenant, status: 'ACTIVE' as const } : t));
+            const updated = prev.map((t) => (t.schoolId === targetTenant.schoolId ? tenantUnderTrial : t));
             if (!updated.some((t) => t.schoolId === targetTenant.schoolId)) {
-              updated.unshift(targetTenant);
+              updated.unshift(tenantUnderTrial);
             }
             localStorage.setItem('jjsak_tenants', JSON.stringify(updated));
             return updated;

@@ -41,6 +41,7 @@ import {
   User as UserType,
   UserRole,
   SchoolTenant,
+  SchoolStatus,
   AuditLogEntry,
   AuditActionType,
   SecurityAlert,
@@ -92,7 +93,7 @@ interface SecurityCoreScreenProps {
   onBack: () => void;
   onSwitchTenant: (tenantId: string) => void;
   onAddTenant: (tenant: SchoolTenant) => void;
-  onUpdateTenantStatus?: (tenantId: string, status: 'ACTIVE' | 'SUSPENDED') => void;
+  onUpdateTenantStatus?: (tenantId: string, status: SchoolStatus) => void;
   onAddUser: (user: UserType) => void;
   onUpdateUser?: (user: UserType) => void;
   onLogAudit: (action: AuditActionType, details: string, before?: string, after?: string) => void;
@@ -1162,12 +1163,14 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
                         </span>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            tenant.status === 'ACTIVE'
+                            tenant.status === 'TRIAL'
+                              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                              : tenant.status === 'ACTIVE'
                               ? 'bg-emerald-500/20 text-emerald-300'
                               : 'bg-red-500/20 text-red-300'
                           }`}
                         >
-                          {tenant.status}
+                          {tenant.status === 'TRIAL' ? '1-TERM TRIAL' : tenant.status}
                         </span>
                       </div>
 
@@ -1216,25 +1219,27 @@ export const SecurityCoreScreen: React.FC<SecurityCoreScreenProps> = ({
                       </button>
 
                       {isSuperAdmin && onUpdateTenantStatus && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newStatus = tenant.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-                            onUpdateTenantStatus(tenant.schoolId, newStatus);
-                            onLogAudit(
-                              'TENANT_SWITCH',
-                              `Super Admin changed status of school '${tenant.schoolName}' to ${newStatus}`
-                            );
-                            showNotification(`Updated status of ${tenant.schoolName} to ${newStatus}`);
-                          }}
-                          className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition cursor-pointer border ${
-                            tenant.status === 'ACTIVE'
-                              ? 'bg-amber-950/40 text-amber-300 border-amber-800/60 hover:bg-amber-900/60'
-                              : 'bg-emerald-950/40 text-emerald-300 border-emerald-800/60 hover:bg-emerald-900/60'
-                          }`}
-                        >
-                          {tenant.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-400 font-bold">Status:</span>
+                          <select
+                            value={tenant.status}
+                            onChange={(e) => {
+                              const newStatus = e.target.value as SchoolStatus;
+                              onUpdateTenantStatus(tenant.schoolId, newStatus);
+                              onLogAudit(
+                                'TENANT_SWITCH',
+                                `Super Admin changed status of school '${tenant.schoolName}' to ${newStatus}`
+                              );
+                              showNotification(`Updated status of ${tenant.schoolName} to ${newStatus}`);
+                            }}
+                            className="px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-[11px] font-bold text-white cursor-pointer focus:outline-none"
+                          >
+                            <option value="TRIAL">TRIAL</option>
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="SUSPENDED">SUSPENDED</option>
+                            <option value="DISABLED">DISABLED</option>
+                          </select>
+                        </div>
                       )}
                     </div>
                   </div>

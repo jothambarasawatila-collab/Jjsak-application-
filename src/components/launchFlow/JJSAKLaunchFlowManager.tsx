@@ -42,7 +42,7 @@ export const JJSAKLaunchFlowManager: React.FC<JJSAKLaunchFlowManagerProps> = ({
     if (currentUser) {
       return 'LAUNCH_COMPLETE';
     }
-    const hasActiveSchool = tenants.some((t) => t.status === 'ACTIVE');
+    const hasActiveSchool = tenants.some((t) => t.status === 'ACTIVE' || t.status === 'TRIAL');
     if (!hasActiveSchool) {
       return 'STAGE_2_NO_SCHOOL_REGISTERED';
     }
@@ -93,9 +93,10 @@ export const JJSAKLaunchFlowManager: React.FC<JJSAKLaunchFlowManagerProps> = ({
 
   // Owner adds new school
   const handleAddSchool = (newSchool: SchoolTenant) => {
-    const updated = [...tenants, newSchool];
+    const schoolWithTrial: SchoolTenant = { ...newSchool, status: newSchool.status || 'TRIAL' };
+    const updated = [...tenants, schoolWithTrial];
     onUpdateTenants(updated);
-    onLogAudit('RECORD_CREATE', `Owner created new school registration [${newSchool.schoolName}].`);
+    onLogAudit('RECORD_CREATE', `Owner created new school registration [${schoolWithTrial.schoolName}] under 1-Term Trial.`);
   };
 
   // Owner updates school status (PENDING, ACTIVE, SUSPENDED, DISABLED)
@@ -118,10 +119,11 @@ export const JJSAKLaunchFlowManager: React.FC<JJSAKLaunchFlowManagerProps> = ({
 
   // Owner activates school and immediately transitions to Stage 5 (Display JJSAK Profile)
   const handleActivateAndProceedToProfile = (school: SchoolTenant) => {
-    const updated = tenants.map((t) => (t.schoolId === school.schoolId ? { ...t, status: 'ACTIVE' as SchoolStatus } : t));
+    const finalStatus: SchoolStatus = school.status === 'ACTIVE' ? 'ACTIVE' : 'TRIAL';
+    const updated = tenants.map((t) => (t.schoolId === school.schoolId ? { ...t, status: finalStatus } : t));
     onUpdateTenants(updated);
     onSelectTenant(school.schoolId);
-    onLogAudit('RECORD_EDIT', `Owner ACTIVATED school [${school.schoolName}] and launched Stage 5 JJSAK Organizational Profile.`);
+    onLogAudit('RECORD_EDIT', `Owner approved school [${school.schoolName}] (${finalStatus}) and launched Stage 5 JJSAK Organizational Profile.`);
     setStage('STAGE_5_ORGANIZATIONAL_PROFILE');
   };
 

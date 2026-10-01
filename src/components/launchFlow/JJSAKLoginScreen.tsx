@@ -69,7 +69,7 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
   onOpenCarrierInbox,
   onLogAudit,
 }) => {
-  const activeSchools = tenants.filter((t) => t.status === 'ACTIVE');
+  const activeSchools = tenants.filter((t) => t.status === 'ACTIVE' || t.status === 'TRIAL');
   const [portalMode, setPortalMode] = useState<'SCHOOL_PORTAL' | 'OWNER_GATEWAY' | 'FIRST_LOGIN_ACTIVATION' | 'ACCOUNT_RECOVERY'>('SCHOOL_PORTAL');
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>(
     activeSchools.find((t) => t.schoolId === activeTenantId)?.schoolId || activeSchools[0]?.schoolId || ''
@@ -475,13 +475,13 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
 
   const currentSchool =
     tenants.find((t) => t.schoolId === selectedSchoolId) ||
-    tenants.find((t) => t.status === 'ACTIVE') ||
+    tenants.find((t) => t.status === 'ACTIVE' || t.status === 'TRIAL') ||
     tenants[0] || {
       schoolId: selectedSchoolId || 'sch-default',
       schoolName: 'Registered School Portal',
       schoolCode: 'SCH-001',
       category: 'MIXED' as const,
-      status: 'ACTIVE' as const,
+      status: 'TRIAL' as const,
       createdAt: new Date().toISOString(),
     };
 
@@ -571,10 +571,10 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
       {
         id: 'chk-1',
         ruleCode: 'SEC-7.1',
-        title: 'School Status = ACTIVE',
-        description: 'Verify school tenant is officially registered and ACTIVE (Rule P1.50)',
-        status: school.status === 'ACTIVE' ? 'PASSED' : 'FAILED',
-        errorMessage: school.status !== 'ACTIVE' ? `School is currently ${school.status}. Platform access is denied.` : undefined,
+        title: 'School Status = ACTIVE / TRIAL',
+        description: 'Verify school tenant is officially registered and under authorized 1-term trial or active license (Rule P1.50)',
+        status: (school.status === 'ACTIVE' || school.status === 'TRIAL') ? 'PASSED' : 'FAILED',
+        errorMessage: (school.status !== 'ACTIVE' && school.status !== 'TRIAL') ? `School is currently ${school.status}. Platform access is denied.` : undefined,
       },
       {
         id: 'chk-2',
@@ -1736,7 +1736,7 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
                     >
                       {activeSchools.map((s) => (
                         <option key={s.schoolId} value={s.schoolId}>
-                          {s.schoolName} ({s.schoolCode}) — ACTIVE
+                          {s.schoolName} ({s.schoolCode}) — {s.status === 'TRIAL' ? '1-TERM TRIAL' : s.status}
                         </option>
                       ))}
                     </select>
@@ -1747,8 +1747,16 @@ export const JJSAKLoginScreen: React.FC<JJSAKLoginScreenProps> = ({
                         <span className="font-bold text-white truncate">{currentSchool?.schoolName}</span>
                         <span className="text-[10px] text-slate-400 font-mono">({currentSchool?.schoolCode})</span>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold border border-emerald-800/60 shrink-0">
-                        {portalMode === 'SCHOOL_PORTAL' ? 'ISOLATED TENANT' : 'ACTIVE TENANT'}
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold border shrink-0 ${
+                        currentSchool?.status === 'TRIAL'
+                          ? 'bg-blue-950 text-blue-300 border-blue-800/60'
+                          : 'bg-emerald-950 text-emerald-300 border-emerald-800/60'
+                      }`}>
+                        {currentSchool?.status === 'TRIAL'
+                          ? '1-TERM TRIAL ACTIVE'
+                          : portalMode === 'SCHOOL_PORTAL'
+                          ? 'ISOLATED TENANT'
+                          : 'ACTIVE TENANT'}
                       </span>
                     </div>
                   )}

@@ -39,7 +39,7 @@ export interface ServerSchoolTenant {
   logoUrl?: string;
   stampUrl?: string;
   motto?: string;
-  status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
+  status: 'TRIAL' | 'ACTIVE' | 'PENDING' | 'SUSPENDED' | 'DISABLED';
   createdAt: string;
 }
 
@@ -141,7 +141,8 @@ class MultiTenantStorageService {
         address: 'P.O. Box 45, Yuya',
         email: 'info@yuya.sc.ke',
         phone: '+254 712 345 678',
-        status: 'ACTIVE',
+        status: 'TRIAL',
+        createdAt: '2026-03-01',
       },
       {
         schoolId: 'sch-ngonyek-30200',
@@ -153,7 +154,8 @@ class MultiTenantStorageService {
         address: 'P.O. Box 78, Ngonyek',
         email: 'admin@ngonyek.sc.ke',
         phone: '+254 722 000 111',
-        status: 'ACTIVE',
+        status: 'TRIAL',
+        createdAt: '2026-03-01',
       },
     ];
 
@@ -397,7 +399,13 @@ class MultiTenantStorageService {
         if (Array.isArray(data.tenants)) {
           data.tenants.forEach((t: ServerSchoolTenant) => {
             if (t && t.schoolId && !this.deletedTenantIds.has(t.schoolId)) {
-              this.tenants.set(t.schoolId, t);
+              // Policy: All schools registered and that will be registered should be placed under trial first
+              const isLocked = t.status === 'DISABLED' || t.status === 'SUSPENDED';
+              const normalizedTenant: ServerSchoolTenant = {
+                ...t,
+                status: isLocked ? t.status : (t.status === 'ACTIVE' ? 'TRIAL' : (t.status || 'TRIAL')),
+              };
+              this.tenants.set(t.schoolId, normalizedTenant);
             }
           });
         }
@@ -481,7 +489,13 @@ class MultiTenantStorageService {
   public saveTenant(tenant: ServerSchoolTenant): ServerSchoolTenant {
     // If being re-created or updated, clear from deleted tombstone
     this.deletedTenantIds.delete(tenant.schoolId);
-    this.tenants.set(tenant.schoolId, tenant);
+    const existing = this.tenants.get(tenant.schoolId);
+    // Policy: All schools registered and that will be registered should be placed under trial first
+    const finalTenant: ServerSchoolTenant = {
+      ...tenant,
+      status: tenant.status || existing?.status || 'TRIAL',
+    };
+    this.tenants.set(tenant.schoolId, finalTenant);
     if (!this.tenantData.has(tenant.schoolId)) {
       this.tenantData.set(tenant.schoolId, {
         tenantId: tenant.schoolId,
@@ -497,7 +511,7 @@ class MultiTenantStorageService {
       });
     }
     this.saveToDisk();
-    return tenant;
+    return finalTenant;
   }
 
   public updateTenantStatus(schoolId: string, status: ServerSchoolTenant['status']): boolean {

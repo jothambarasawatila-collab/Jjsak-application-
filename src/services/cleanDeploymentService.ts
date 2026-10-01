@@ -337,7 +337,7 @@ export class CleanDeploymentService {
       motto: params.motto || 'Strive for Excellence and Integrity',
       logoUrl: params.logoUrl || '',
       stampUrl: params.stampUrl || '',
-      status: 'ACTIVE', // Fully Activated after Owner verification & provisioning (§5)
+      status: 'TRIAL', // All registered schools are placed under 1-term trial first (§5)
       verifiedAt: nowIso,
       verifiedBy: 'Jotham Barasa Watila (Platform Owner)',
       activatedAt: nowIso,

@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   Lock,
   HardDrive,
-  Clock,
+  Sparkles,
   Eye,
   Sliders,
   ShieldCheck,
@@ -85,8 +85,9 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
 
   // Platform Aggregated Metrics Calculation
   const totalSchools = tenants.length;
+  const trialSchools = tenants.filter((t) => t.status === 'TRIAL').length;
   const activeSchools = tenants.filter((t) => t.status === 'ACTIVE').length;
-  const trialOrPendingSchools = tenants.filter((t) => t.status === 'PENDING').length;
+  const pendingSchools = tenants.filter((t) => t.status === 'PENDING').length;
   const suspendedSchools = tenants.filter((t) => t.status === 'SUSPENDED' || t.status === 'DISABLED').length;
 
   // Subscription & Revenue Metrics
@@ -312,13 +313,13 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
             <div className="text-[10px] text-emerald-600 font-medium">Fully Verified &amp; Licensed</div>
           </div>
 
-          <div className="bg-white rounded-2xl p-3.5 border border-amber-100 shadow-xs space-y-1">
+          <div className="bg-white rounded-2xl p-3.5 border border-blue-100 shadow-xs space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-amber-700 uppercase tracking-tight">Schools on Trial</span>
-              <Clock className="w-4 h-4 text-amber-600" />
+              <span className="text-[11px] font-bold text-blue-700 uppercase tracking-tight">Schools on Trial</span>
+              <Sparkles className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="text-2xl font-black text-amber-700 tracking-tight">{trialOrPendingSchools}</div>
-            <div className="text-[10px] text-amber-600 font-medium">Evaluating Platform / KYC</div>
+            <div className="text-2xl font-black text-blue-700 tracking-tight">{trialSchools}</div>
+            <div className="text-[10px] text-blue-600 font-medium">1-Term Free Trial Active</div>
           </div>
 
           <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs space-y-1">
@@ -349,7 +350,7 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
             </div>
             <div className="text-2xl font-black text-slate-900">{totalSchools} <span className="text-xs font-normal text-slate-500">Schools</span></div>
             <div className="text-[11px] text-slate-600 font-medium flex items-center justify-between border-t border-slate-100 pt-2">
-              <span>{activeSchools} Active • {trialOrPendingSchools} Pending</span>
+              <span>{trialSchools} Trial • {activeSchools} Active{pendingSchools > 0 ? ` • ${pendingSchools} Pending` : ''}</span>
               <span className="text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded">Isolated Schemas</span>
             </div>
           </div>
@@ -576,6 +577,7 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
             .map((school) => {
               const isDisabled = school.status === 'DISABLED';
               const isSuspended = school.status === 'SUSPENDED';
+              const isTrial = school.status === 'TRIAL';
               const isActive = school.status === 'ACTIVE';
 
               return (
@@ -621,6 +623,11 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-xs">
                           <AlertTriangle className="w-3 h-3" />
                           <span>SUSPENDED</span>
+                        </span>
+                      ) : isTrial ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 text-blue-900 border border-blue-300 text-[10px] font-black uppercase tracking-wider">
+                          <Sparkles className="w-3 h-3 text-blue-600 animate-pulse" />
+                          <span>1-TERM TRIAL</span>
                         </span>
                       ) : isActive ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black uppercase tracking-wider">
@@ -686,6 +693,7 @@ export const OwnerPlatformDashboard: React.FC<OwnerPlatformDashboardProps> = ({
                           }}
                           className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-none focus:ring-1 focus:ring-red-500"
                         >
+                          <option value="TRIAL">TRIAL (1-Term Free)</option>
                           <option value="ACTIVE">ACTIVE</option>
                           <option value="DISABLED">DISABLED</option>
                           <option value="SUSPENDED">SUSPENDED</option>

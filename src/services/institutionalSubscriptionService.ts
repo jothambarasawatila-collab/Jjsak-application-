@@ -43,6 +43,22 @@ class InstitutionalSubscriptionService {
       const s = localStorage.getItem(STORAGE_KEY_SUBSCRIPTIONS);
       this.subscriptions = s ? JSON.parse(s) : { ...DEFAULT_INSTITUTIONAL_SUBSCRIPTIONS };
 
+      // Policy Mandate: All schools registered and that will be registered should be placed under trial first
+      const now = Date.now();
+      Object.keys(this.subscriptions).forEach((schId) => {
+        const sub = this.subscriptions[schId];
+        if (sub && sub.status !== 'SUSPENDED' && sub.status !== 'EXPIRED' && (!sub.amountPaid || sub.amountPaid === 0)) {
+          sub.status = 'TRIAL';
+          sub.paymentStatus = 'TRIAL_EXEMPT';
+          sub.billableLearnerCount = 0;
+          sub.amountDue = 0;
+          if (!sub.trialStartDate) sub.trialStartDate = now;
+          if (!sub.trialEndDate || sub.trialEndDate < now) {
+            sub.trialEndDate = now + FREE_TRIAL_TERM_DAYS * 86400000;
+          }
+        }
+      });
+
       const inv = localStorage.getItem(STORAGE_KEY_INVOICES);
       this.invoices = inv ? JSON.parse(inv) : [...DEFAULT_INVOICES];
 

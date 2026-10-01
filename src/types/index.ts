@@ -469,7 +469,7 @@ export * from './roleGovernance';
 
 export type MfaMethod = 'EMAIL_OTP' | 'SMS_OTP' | 'WHATSAPP_OTP' | 'AUTHENTICATOR_APP';
 
-export type SchoolStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
+export type SchoolStatus = 'TRIAL' | 'ACTIVE' | 'PENDING' | 'SUSPENDED' | 'DISABLED';
 
 export type UserActivationStatus =
   | 'REGISTERED_FIRST_LOGIN_REQUIRED'

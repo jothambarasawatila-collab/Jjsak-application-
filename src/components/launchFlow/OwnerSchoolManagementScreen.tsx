@@ -156,7 +156,7 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
       logoUrl,
       stampUrl,
       motto,
-      status: 'PENDING', // Starts at Stage 4 Lifecycle: PENDING
+      status: 'TRIAL', // All registered schools are placed under 1-Term Free Trial first
       createdAt: new Date().toISOString().split('T')[0],
     };
 
@@ -173,18 +173,18 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
     });
 
     onAddSchool(newTenant);
-    onLogAudit?.('RECORD_CREATE', `Owner registered new school [${newTenant.schoolName}] (${newTenant.schoolCode}, Reg: ${regNo}). Dispatched activation link & credentials to school account ${schoolAccount} via Email, SMS & WhatsApp.`);
-    triggerToast(`✓ Registered "${newTenant.schoolName}"! Onboarding link & OTP sent to ${schoolAccount} (${dispatch.channelsDispatched.join(', ')}).`);
+    onLogAudit?.('RECORD_CREATE', `Owner registered new school [${newTenant.schoolName}] (${newTenant.schoolCode}, Reg: ${regNo}) placed under approved 1-Term Free Trial. Dispatched activation link & credentials to school account ${schoolAccount} via Email, SMS & WhatsApp.`);
+    triggerToast(`✓ Registered "${newTenant.schoolName}" under 1-Term Free Trial! Onboarding link & OTP sent to ${schoolAccount} (${dispatch.channelsDispatched.join(', ')}).`);
     setSelectedSchoolForVerify(newTenant);
     setActiveView('VERIFY');
   };
 
   const handleQuickApproveAndActivate = (school: SchoolTenant) => {
-    onUpdateSchoolStatus(school.schoolId, 'ACTIVE');
-    onLogAudit?.('RECORD_EDIT', `Owner verified, approved, and ACTIVATED school [${school.schoolName}] (${school.schoolCode}).`);
-    triggerToast(`✓ School [${school.schoolName}] is now ACTIVE! Launching JJSAK Organizational Profile...`);
+    onUpdateSchoolStatus(school.schoolId, 'TRIAL');
+    onLogAudit?.('RECORD_EDIT', `Owner verified, approved, and placed school [${school.schoolName}] (${school.schoolCode}) under approved 1-Term Free Trial.`);
+    triggerToast(`✓ School [${school.schoolName}] is now under 1-Term Free Trial! Launching JJSAK Organizational Profile...`);
     setTimeout(() => {
-      onActivateAndProceedToProfile(school);
+      onActivateAndProceedToProfile({ ...school, status: 'TRIAL' });
     }, 800);
   };
 
@@ -223,10 +223,10 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
       schoolAccount,
     });
 
-    tenant.status = 'ACTIVE';
+    tenant.status = 'TRIAL';
     onAddSchool(tenant);
-    onLogAudit?.('RECORD_CREATE', `Owner onboarded school [${tenant.schoolName}] (${tenant.schoolCode}) from verified template. Onboarding credentials sent to ${schoolAccount}.`);
-    triggerToast(`✓ Registered and Activated [${tenant.schoolName}]! Credentials & activation link sent to ${schoolAccount}.`);
+    onLogAudit?.('RECORD_CREATE', `Owner onboarded school [${tenant.schoolName}] (${tenant.schoolCode}) from verified template under 1-Term Trial. Onboarding credentials sent to ${schoolAccount}.`);
+    triggerToast(`✓ Registered [${tenant.schoolName}] under 1-Term Free Trial! Credentials & activation link sent to ${schoolAccount}.`);
   };
 
   const filteredSchools = schools.filter((s) => {
@@ -239,6 +239,7 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
     );
   });
 
+  const trialCount = schools.filter((s) => s.status === 'TRIAL').length;
   const activeCount = schools.filter((s) => s.status === 'ACTIVE').length;
   const pendingCount = schools.filter((s) => s.status === 'PENDING').length;
   const otherCount = schools.filter((s) => s.status === 'SUSPENDED' || s.status === 'DISABLED').length;
@@ -333,14 +334,20 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
         </div>
 
         <div className="flex items-center gap-3 text-xs">
+          <span className="text-blue-400 font-bold flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-blue-400" />
+            {trialCount} Under 1-Term Trial
+          </span>
           <span className="text-emerald-400 font-bold flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
             {activeCount} Active
           </span>
-          <span className="text-amber-400 font-bold flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
-            {pendingCount} Pending
-          </span>
+          {pendingCount > 0 && (
+            <span className="text-amber-400 font-bold flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              {pendingCount} Pending
+            </span>
+          )}
         </div>
       </div>
 
@@ -350,7 +357,7 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
         {activeView === 'LIST' && (
           <div className="space-y-6">
             {/* Top Stat Summary Banner */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/80 flex items-center justify-between">
                 <div>
                   <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -358,15 +365,27 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
                   </div>
                   <div className="text-2xl font-black text-white mt-0.5">{schools.length}</div>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-slate-700/50 text-slate-300 flex items-center justify-center">
                   <Building2 className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-800/60 border border-blue-900/40 flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
+                    1-Term Free Trial (Active)
+                  </div>
+                  <div className="text-2xl font-black text-blue-400 mt-0.5">{trialCount}</div>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5" />
                 </div>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-800/60 border border-emerald-900/40 flex items-center justify-between">
                 <div>
                   <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
-                    Active & Verified (P1.50)
+                    Licensed &amp; Active
                   </div>
                   <div className="text-2xl font-black text-emerald-400 mt-0.5">{activeCount}</div>
                 </div>
@@ -541,6 +560,7 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
               /* School Cards Grid */
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredSchools.map((school) => {
+                  const isTrial = school.status === 'TRIAL';
                   const isActive = school.status === 'ACTIVE';
                   const isPending = school.status === 'PENDING';
 
@@ -548,7 +568,9 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
                     <div
                       key={school.schoolId}
                       className={`p-5 rounded-2xl bg-slate-800/70 border transition-all ${
-                        isActive
+                        isTrial
+                          ? 'border-blue-600/50 bg-blue-950/20 hover:border-blue-400'
+                          : isActive
                           ? 'border-emerald-700/50 hover:border-emerald-500'
                           : isPending
                           ? 'border-amber-600/50 bg-amber-950/10 hover:border-amber-400'
@@ -594,14 +616,17 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
                         {/* Status Badge */}
                         <span
                           className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
-                            isActive
+                            isTrial
+                              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1'
+                              : isActive
                               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                               : isPending
                               ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                               : 'bg-red-500/20 text-red-400 border border-red-500/30'
                           }`}
                         >
-                          {school.status}
+                          {isTrial && <Sparkles className="w-3 h-3 text-blue-400 animate-pulse" />}
+                          {isTrial ? '1-Term Free Trial' : school.status}
                         </span>
                       </div>
 
@@ -644,7 +669,7 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
                             </button>
                           )}
 
-                          {isActive && (
+                          {(isTrial || isActive) && (
                             <button
                               type="button"
                               onClick={() => onActivateAndProceedToProfile(school)}
@@ -697,8 +722,9 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
                               }}
                               className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-[11px] font-bold cursor-pointer focus:ring-1 focus:ring-amber-500"
                             >
-                              <option value="PENDING">PENDING</option>
+                              <option value="TRIAL">TRIAL (1-Term Free)</option>
                               <option value="ACTIVE">ACTIVE</option>
+                              <option value="PENDING">PENDING</option>
                               <option value="SUSPENDED">SUSPENDED</option>
                               <option value="DISABLED">DISABLED</option>
                             </select>

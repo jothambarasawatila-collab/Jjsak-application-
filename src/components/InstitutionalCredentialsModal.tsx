@@ -185,8 +185,16 @@ export const InstitutionalCredentialsModal: React.FC<InstitutionalCredentialsMod
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
                   {school.schoolCode}
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  {school.status}
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    school.status === 'TRIAL'
+                      ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                      : school.status === 'ACTIVE'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                  }`}
+                >
+                  {school.status === 'TRIAL' ? '1-TERM TRIAL' : school.status}
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">

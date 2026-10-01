@@ -10,7 +10,7 @@
       "address": "P.O. Box 45, Yuya",
       "email": "info@yuya.sc.ke",
       "phone": "+254 712 345 678",
-      "status": "ACTIVE"
+      "status": "TRIAL"
     },
     {
       "schoolId": "sch-ngonyek-30200",
@@ -22,7 +22,7 @@
       "address": "P.O. Box 78, Ngonyek",
       "email": "admin@ngonyek.sc.ke",
       "phone": "+254 722 000 111",
-      "status": "ACTIVE"
+      "status": "TRIAL"
     }
   ],
   "users": [
@@ -258,7 +258,8 @@
           ],
           "allCleared": true,
           "authorizedBy": "Head Teacher Dr. P. Barasa",
-          "status": "Completed"
+          "status": "Completed",
+          "schoolId": "platform-governance"
         }
       ],
       "transfersIn": [
@@ -276,7 +277,8 @@
           "priorMeanScore": 79.4,
           "priorAttendanceRate": 97.5,
           "specialNotes": "Top student in Agriculture and Creative Arts in former school. Transferred due to family relocation to Kitale.",
-          "admittedBy": "Head Teacher Dr. P. Barasa"
+          "admittedBy": "Head Teacher Dr. P. Barasa",
+          "schoolId": "platform-governance"
         }
       ],
       "graduations": [
@@ -292,7 +294,8 @@
           "recommendedPathway": "STEM",
           "completionCertificateNumber": "KJSEA-JJSAK-2025-001",
           "exitDate": "2025-11-28",
-          "status": "Certificate Issued"
+          "status": "Certificate Issued",
+          "schoolId": "platform-governance"
         },
         {
           "id": "grad-2",
@@ -306,7 +309,8 @@
           "recommendedPathway": "Social Sciences",
           "completionCertificateNumber": "KJSEA-JJSAK-2025-002",
           "exitDate": "2025-11-28",
-          "status": "Certificate Issued"
+          "status": "Certificate Issued",
+          "schoolId": "platform-governance"
         }
       ],
       "parentCommunications": [
@@ -324,7 +328,8 @@
           "details": "Dear Parent, learner Mercy Mutheu (ADM-2025-011) was marked ABSENT today 28/08/2026 at JJSAK. Please contact class teacher Madam Wekesa if this is an unexpected absence.",
           "staffName": "Automated Attendance Dispatcher",
           "parentResponse": "Acknowledged via SMS: \"Child was unwell in the morning, will report on Monday.\"",
-          "status": "Delivered"
+          "status": "Delivered",
+          "schoolId": "platform-governance"
         },
         {
           "id": "pcomm-2",
@@ -340,7 +345,8 @@
           "details": "Formal summons to discuss boarding adjustment, attendance compliance, and guidance intervention plan with Deputy Principal.",
           "staffName": "Deputy Principal J. Barasa",
           "parentResponse": "Parent confirmed attendance for Friday 29th August at 09:00 AM.",
-          "status": "Attended"
+          "status": "Attended",
+          "schoolId": "platform-governance"
         },
         {
           "id": "pcomm-3",
@@ -356,7 +362,8 @@
           "details": "Congratulations! Wanjiku Kamau was awarded the School Integrity Certificate during assembly today for exemplary honesty.",
           "staffName": "Head Teacher Dr. P. Barasa",
           "parentResponse": "Thank you so much school administration! We are proud of her.",
-          "status": "Delivered"
+          "status": "Delivered",
+          "schoolId": "platform-governance"
         }
       ],
       "academicStreams": [
@@ -1427,7 +1434,7 @@
       },
       "settings": {},
       "auditLogs": [],
-      "lastUpdated": "2026-09-29T09:45:43.699Z"
+      "lastUpdated": "2026-10-01T09:08:32.849Z"
     },
     "sch-ngonyek-30200": {
       "tenantId": "sch-ngonyek-30200",
@@ -1635,6 +1642,8 @@
       "lastUpdated": "2026-09-29T09:45:44.638Z"
     }
   },
-  "deletedTenantIds": [],
-  "savedAt": "2026-09-29T09:45:44.638Z"
+  "deletedTenantIds": [
+    "sch-test-trial"
+  ],
+  "savedAt": "2026-10-01T09:08:32.849Z"
 }

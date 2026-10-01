@@ -664,6 +664,7 @@ OFFICIAL SCHOOL PORTAL ACCOUNT & PERSONNEL ONBOARDING CREDENTIALS:
 ======================================================================
 • School Name: ${cleanName}
 • Ministry / Institutional Registration No: ${regNo}
+• Status: 1-Term Free Trial Active (120 Days — 0 Learner Charges During Trial)
 • Official School Account: ${schoolAccount}
 • Headteacher Alternate Username: head.${cleanSubdomain}
 • Temporary First-Time Password: ${firstTimePassword}
@@ -723,7 +724,7 @@ Republic of Kenya`,
         recipientAddress: phone,
         channel: 'SMS',
         sender: 'JJSAK-ONBOARD',
-        body: `[JJSAK Alert] ${cleanName}: School registered successfully! Reg No: ${regNo}. School Account: ${schoolAccount} | Temp Password: ${firstTimePassword} | OTP: ${otpCode} | Activation Link: ${activationLink}. Use your credentials to activate the school portal and onboard school personnel immediately.`,
+        body: `[JJSAK Alert] ${cleanName}: School registered under 1-Term Free Trial! Reg No: ${regNo}. School Account: ${schoolAccount} | Temp Password: ${firstTimePassword} | OTP: ${otpCode} | Activation Link: ${activationLink}. Use your credentials to activate the school portal and onboard school personnel immediately.`,
         otpCode,
         firstTimePassword,
         activationLink,
@@ -765,6 +766,7 @@ Your educational institution has been registered and provisioned on the JJSAK As
 
 🏫 *School Name:* *${cleanName}*
 📋 *Registration Number:* *${regNo}*
+🎁 *Status:* *1-Term Free Trial Active (120 Days — 0 Charges)*
 👤 *School Account:* *${schoolAccount}*
 🔐 *Temporary Password:* *${firstTimePassword}*
 🔑 *Verification OTP:* *${otpCode}*
