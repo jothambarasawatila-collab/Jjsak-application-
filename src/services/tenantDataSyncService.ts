@@ -491,7 +491,25 @@ class TenantDataSyncService {
     try {
       const cached = localStorage.getItem(`jjsak_tenant_data_${tenantId}`);
       if (cached) {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        // If Ngonyek has incomplete cached data (e.g. fewer than 40 learners) or old placeholder teachers, invalidate stale cache
+        if (tenantId === 'sch-ngonyek-30200') {
+          if (Array.isArray(parsed.students) && parsed.students.length < 40) {
+            return null;
+          }
+          if (
+            Array.isArray(parsed.teachers) &&
+            parsed.teachers.some(
+              (t: any) =>
+                (t.name || '').includes('Kiprono') ||
+                (t.name || '').includes('Kiprop Cherono') ||
+                (t.name || '').includes('Muthoni Waweru')
+            )
+          ) {
+            return null;
+          }
+        }
+        return parsed;
       }
     } catch {
       // ignore
@@ -527,6 +545,18 @@ class TenantDataSyncService {
 
     // 1. Immediately update local scoped cache
     const current = this.getCachedTenantData(tenantId) || { tenantId };
+
+    // Prevent overwriting 40 Grade 7 North students if stale array sent
+    if (tenantId === 'sch-ngonyek-30200' && partialBundle.students && partialBundle.students.length < 40) {
+      const currentStudents = (current as any).students || [];
+      if (currentStudents.length >= 40) {
+        const currentIds = new Set(currentStudents.map((s: any) => s.id));
+        const newAdditions = partialBundle.students.filter(
+          (s: any) => !currentIds.has(s.id) && s.id !== 'std-ngon-001' && s.id !== 'std-ngon-002'
+        );
+        partialBundle.students = [...currentStudents, ...newAdditions];
+      }
+    }
     const merged: TenantDataBundle = {
       ...current,
       ...partialBundle,

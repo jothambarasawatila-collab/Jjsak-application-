@@ -27,6 +27,7 @@ import {
   Send,
   KeyRound,
   ExternalLink,
+  UserCheck,
 } from 'lucide-react';
 import {
   Teacher,
@@ -126,7 +127,20 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
   const classesList: string[] =
     availableClasses && availableClasses.length > 0
       ? availableClasses
-      : ['G7 N', 'G7 S', 'G8 N', 'G8 S', 'G9 N', 'G9 S'];
+      : [
+          'Grade 7 North',
+          'Grade 7 South',
+          'Grade 8 North',
+          'Grade 8 South',
+          'Grade 9 North',
+          'Grade 9 South',
+          'G7 N',
+          'G7 S',
+          'G8 N',
+          'G8 S',
+          'G9 N',
+          'G9 S',
+        ];
 
   const subjectsList: string[] =
     availableSubjects && availableSubjects.length > 0
@@ -167,6 +181,8 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
   const [employmentStatus, setEmploymentStatus] = useState<EmploymentStatus>('Permanent & Pensionable');
   const [reportingOfficer, setReportingOfficer] = useState('Mrs. J. Barasa (Head of Institution)');
   const [avatarColor, setAvatarColor] = useState('#C51E28');
+  const [isClassTeacher, setIsClassTeacher] = useState<boolean>(false);
+  const [assignedClass, setAssignedClass] = useState<string>('Grade 7 North');
 
   // Step 3: Academic & Professional Information
   const [academicQualifications, setAcademicQualifications] = useState<AcademicQualification[]>([
@@ -341,6 +357,8 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
       setEmploymentStatus(editingTeacher.employmentStatus || 'Permanent & Pensionable');
       setReportingOfficer(editingTeacher.reportingOfficer || 'Mrs. J. Barasa (Head of Institution)');
       setAvatarColor(editingTeacher.avatarHex || '#C51E28');
+      setIsClassTeacher(editingTeacher.isClassTeacher ?? (editingTeacher.designation === 'Class Teacher' || Boolean(editingTeacher.assignedClass)));
+      setAssignedClass(editingTeacher.assignedClass || editingTeacher.classes?.[0] || 'Grade 7 North');
 
       if (editingTeacher.academicQualifications && editingTeacher.academicQualifications.length > 0) {
         setAcademicQualifications(editingTeacher.academicQualifications);
@@ -551,17 +569,24 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
       email.trim() ||
       `${fullName.toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.')}@jjsak.ac.ke`;
 
+    const finalClasses = [...allClasses];
+    if (isClassTeacher && assignedClass && !finalClasses.includes(assignedClass)) {
+      finalClasses.unshift(assignedClass);
+    }
+
     const teacherData: Teacher = {
       ...(editingTeacher || {}),
       id: editingTeacher?.id || `tch-${Date.now()}`,
       schoolId: targetSchool || currentSchoolId || editingTeacher?.schoolId,
       name: fullName.trim(),
       email: generatedEmail,
-      role: `${designation} (${department})`,
-      classes: allClasses,
+      role: isClassTeacher && !designation.includes('Class Teacher') ? `Class Teacher (${department})` : `${designation} (${department})`,
+      classes: finalClasses,
       subjects: allSubjects,
       allocations: finalAllocations,
       avatarHex: avatarColor,
+      isClassTeacher,
+      assignedClass: isClassTeacher ? assignedClass : undefined,
       phoneNumber: phoneNumber.trim(),
       employeeNumber: staffNumber.trim(),
       staffNumber: staffNumber.trim(),
@@ -576,7 +601,7 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
         relationship: emergencyRelation.trim(),
       },
       dateOfEmployment,
-      designation,
+      designation: isClassTeacher && (designation === 'Teacher' || !designation) ? 'Class Teacher' : designation,
       department,
       employmentStatus,
       reportingOfficer,
@@ -1242,6 +1267,67 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Class Teacher & Assigned Class Control (Step 1 Quick Access) */}
+              <div className="p-4 bg-indigo-50/90 border border-indigo-200 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-indigo-950 uppercase tracking-wider block flex items-center gap-1.5">
+                      <UserCheck className="w-4 h-4 text-indigo-600" />
+                      Class Teacher Role &amp; Assigned Class / Stream
+                    </span>
+                    <p className="text-xs text-indigo-700 mt-0.5">
+                      Check if this staff member is appointed as a Class Teacher in charge of a specific stream.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isClassTeacher}
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        setIsClassTeacher(val);
+                        if (val && (designation === 'Teacher' || !designation)) {
+                          setDesignation('Class Teacher');
+                        }
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {isClassTeacher && (
+                  <div className="pt-3 border-t border-indigo-200 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-indigo-950 uppercase tracking-wider mb-1">
+                        Assigned Class / Stream <span className="text-red-600">*</span>
+                      </label>
+                      <select
+                        value={assignedClass}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setAssignedClass(val);
+                          if (val && !classAllocations[val]) {
+                            setClassAllocations((prev) => ({
+                              ...prev,
+                              [val]: ['Pretechnical Studies', 'Social Studies'],
+                            }));
+                          }
+                        }}
+                        className="w-full px-3.5 py-2 rounded-lg border border-indigo-300 bg-white text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                      >
+                        {classesList.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="sm:w-72 text-xs text-indigo-900 bg-white/90 p-2.5 rounded-lg border border-indigo-200">
+                      <span className="font-bold">Assigned Class:</span> Designated as Class Teacher for <strong className="text-indigo-700">{assignedClass}</strong>.
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -1321,7 +1407,13 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
                   </label>
                   <select
                     value={designation}
-                    onChange={(e) => setDesignation(e.target.value as StaffDesignation)}
+                    onChange={(e) => {
+                      const val = e.target.value as StaffDesignation;
+                      setDesignation(val);
+                      if (val === 'Class Teacher') {
+                        setIsClassTeacher(true);
+                      }
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500"
                   >
                     {STAFF_DESIGNATIONS.map((d) => (
@@ -1364,6 +1456,72 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Class Teacher & Assigned Class Control */}
+                <div className="md:col-span-2 p-4 bg-indigo-50/80 border border-indigo-200 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-indigo-950 uppercase tracking-wider block flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-indigo-600" />
+                        Class Teacher Responsibility &amp; Assigned Stream
+                      </span>
+                      <p className="text-xs text-indigo-700 mt-0.5">
+                        Designate if this staff member is a Class Teacher with pastoral care, daily attendance roll call, and termly remark authority.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isClassTeacher}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setIsClassTeacher(val);
+                          if (val && designation === 'Teacher') {
+                            setDesignation('Class Teacher');
+                          }
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+
+                  {isClassTeacher && (
+                    <div className="pt-3 border-t border-indigo-200 flex flex-col sm:flex-row sm:items-center gap-4">
+                      <div className="flex-1">
+                        <label className="block text-xs font-bold text-indigo-950 uppercase tracking-wider mb-1">
+                          Assigned Class / Stream <span className="text-red-600">*</span>
+                        </label>
+                        <select
+                          value={assignedClass}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setAssignedClass(val);
+                            if (val && !classAllocations[val]) {
+                              setClassAllocations((prev) => ({
+                                ...prev,
+                                [val]: ['Pretechnical Studies', 'Social Studies'],
+                              }));
+                            }
+                          }}
+                          className="w-full px-3.5 py-2 rounded-lg border border-indigo-300 bg-white text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                        >
+                          {classesList.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                          {!classesList.includes('Grade 7 North') && <option value="Grade 7 North">Grade 7 North</option>}
+                          {!classesList.includes('Grade 7 South') && <option value="Grade 7 South">Grade 7 South</option>}
+                          {!classesList.includes('Grade 8 North') && <option value="Grade 8 North">Grade 8 North</option>}
+                          {!classesList.includes('Grade 8 South') && <option value="Grade 8 South">Grade 8 South</option>}
+                          {!classesList.includes('Grade 9 North') && <option value="Grade 9 North">Grade 9 North</option>}
+                        </select>
+                      </div>
+                      <div className="sm:w-72 text-xs text-indigo-900 bg-white/90 p-2.5 rounded-lg border border-indigo-200">
+                        <span className="font-bold">Official Class:</span> Designated as primary Class Teacher for <strong className="text-indigo-700">{assignedClass}</strong>.
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

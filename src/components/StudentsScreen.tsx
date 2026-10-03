@@ -18,6 +18,7 @@ import {
   QrCode,
   Check,
   Copy,
+  CheckCircle2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Student, User, ParentContact } from '../types';
@@ -102,6 +103,7 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
   const [showRankings, setShowRankings] = useState(true);
   const [sortBy, setSortBy] = useState<'stream' | 'grade' | 'score' | 'name'>('stream');
   const [showBatchReportModal, setShowBatchReportModal] = useState(false);
+  const [successNotification, setSuccessNotification] = useState<string | null>(null);
 
   // Modal states
   const [showModal, setShowModal] = useState(false);
@@ -150,11 +152,11 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
   const [emergencyContact, setEmergencyContact] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
 
-  // Subject Scores for student registration / editing
+  // Subject Scores for student registration / editing - Defaults to null (no fake marks generated upon enrollment)
   const [subjectScores, setSubjectScores] = useState<Record<string, number | null>>(() => {
     const init: Record<string, number | null> = {};
     AVAILABLE_SUBJECTS.forEach((s) => {
-      init[s] = 80;
+      init[s] = null;
     });
     return init;
   });
@@ -203,20 +205,12 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
     setEmergencyContact('');
     setEmergencyPhone('+254 7');
 
-    const defaultScores: Record<string, number | null> = {
-      English: 85,
-      Kiswahili: 80,
-      Mathematics: 82,
-      'Integrated Science': 84,
-      'Social Studies': 78,
-      CRE: 88,
-      Agriculture: 80,
-      'Pretechnical Studies': 86,
-      'Creative Arts': 76,
-    };
+    // No assessment/exam marks entered upon initial enrollment
+    const defaultScores: Record<string, number | null> = {};
     const defaultInputs: Record<string, string> = {};
-    Object.entries(defaultScores).forEach(([k, v]) => {
-      defaultInputs[k] = v !== null ? String(v) : '';
+    AVAILABLE_SUBJECTS.forEach((k) => {
+      defaultScores[k] = null;
+      defaultInputs[k] = '';
     });
     setSubjectScores(defaultScores);
     setRawScoreInputs(defaultInputs);
@@ -397,7 +391,15 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
       .toUpperCase() || 'ST';
 
     const formattedSubjects = AVAILABLE_SUBJECTS.map((subName) => {
-      const score = subjectScores[subName] !== undefined ? subjectScores[subName] : 75;
+      const score = subjectScores[subName] !== undefined && subjectScores[subName] !== null ? subjectScores[subName] : null;
+      if (score === null) {
+        return {
+          subject: subName,
+          score: null,
+          grade: '-',
+          remarks: 'Not Assessed / Pending Marks',
+        };
+      }
       const g = calculateGrade(score);
       return {
         subject: subName,
@@ -507,15 +509,21 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
         avatarInitials: initials,
         avgScore,
         overallGrade,
-        position: `${students.length + 1}/${students.length + 1}`,
+        position: avgScore === null ? '-' : `${students.length + 1}/${students.length + 1}`,
+        streamPosition: avgScore === null ? '-' : `${students.length + 1}/${students.length + 1}`,
+        gradePosition: avgScore === null ? '-' : `${students.length + 1}/${students.length + 1}`,
         attendance,
         classTeacherComment:
           classTeacherComment.trim() ||
-          `${finalName} demonstrates positive character and consistent progress in all key competencies.`,
+          (avgScore === null
+            ? 'Enrolled in cohort. Continuous and summative assessment marks pending entry.'
+            : `${finalName} demonstrates positive character and consistent progress in all key competencies.`),
         classTeacherName,
         headTeacherComment:
           headTeacherComment.trim() ||
-          `Commendable performance and positive attitude. Maintain diligence next term.`,
+          (avgScore === null
+            ? 'Formally admitted to institution. Awaiting academic assessment marks entry.'
+            : `Commendable performance and positive attitude. Maintain diligence next term.`),
         headOfSchoolName,
         nextTermDate,
         parentName: primaryParent,
@@ -537,7 +545,12 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
       };
 
       onAddStudent(newStudent);
-      onSelectStudent(newStudent);
+      // Notice: Do NOT automatically navigate to the report card screen upon learner registration,
+      // as no assessment marks entry has occurred yet.
+      setSuccessNotification(
+        `✓ Learner ${finalName} (${newStudent.admNo}) successfully registered in ${classArm}. Status: Assessment Marks Pending Data Entry.`
+      );
+      setTimeout(() => setSuccessNotification(null), 6000);
       onLogAudit?.('STUDENT_CREATE', `Enrolled new student ${finalName} (${newStudent.admNo}) in ${classArm}`);
     }
 
@@ -892,6 +905,28 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
           </div>
         </div>
 
+        {/* Success / Registration Status Banner */}
+        {successNotification && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-3.5 flex items-center justify-between gap-3 animate-in fade-in shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="font-bold text-xs block text-emerald-950">{successNotification}</span>
+                <span className="text-[11px] text-emerald-700">Official report cards and class rankings will be generated once examination marks are entered.</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSuccessNotification(null)}
+              className="text-emerald-700 hover:text-emerald-900 text-xs font-bold px-2 py-1 rounded-lg"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Register Student Action Banner */}
         <div className="bg-gradient-to-r from-red-500/10 to-rose-500/10 border border-red-200/80 rounded-2xl p-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -952,13 +987,21 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
                     {/* Ranking Badges for Stream & Grade */}
                     {showRankings && (
                       <div className="flex items-center gap-1.5 mt-1.5">
-                        <span className="px-1.5 py-0.5 rounded-md bg-red-50 text-[#C51E28] border border-red-100 font-bold text-[10px] flex items-center gap-0.5">
-                          <Award className="w-2.5 h-2.5" />
-                          <span>Stream: {s.streamRank ? getRankSuffix(s.streamRank) : s.streamPosition || '-'}</span>
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 font-bold text-[10px]">
-                          Grade: {s.gradeRank ? getRankSuffix(s.gradeRank) : s.gradePosition || '-'}
-                        </span>
+                        {s.avgScore !== null && s.avgScore !== undefined ? (
+                          <>
+                            <span className="px-1.5 py-0.5 rounded-md bg-red-50 text-[#C51E28] border border-red-100 font-bold text-[10px] flex items-center gap-0.5">
+                              <Award className="w-2.5 h-2.5" />
+                              <span>Stream: {s.streamRank ? getRankSuffix(s.streamRank) : s.streamPosition || '-'}</span>
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 font-bold text-[10px]">
+                              Grade: {s.gradeRank ? getRankSuffix(s.gradeRank) : s.gradePosition || '-'}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 font-bold text-[10px]">
+                            Assessment Marks Pending
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -970,12 +1013,25 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
                     onClick={() => onSelectStudent(s)}
                     className="text-right"
                   >
-                    <span className="text-base font-extrabold text-[#C51E28] block">
-                      {s.avgScore !== null && s.avgScore !== undefined ? `${s.avgScore}%` : '-'}
-                    </span>
-                    <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-red-50 text-[#C51E28] border border-red-100 inline-block">
-                      {s.overallGrade || '-'}
-                    </span>
+                    {s.avgScore !== null && s.avgScore !== undefined ? (
+                      <>
+                        <span className="text-base font-extrabold text-[#C51E28] block">
+                          {s.avgScore}%
+                        </span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-red-50 text-[#C51E28] border border-red-100 inline-block">
+                          {s.overallGrade || '-'}
+                        </span>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 block text-right">
+                          Pending Marks
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium mt-0.5">
+                          Not Assessed (-)
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions (QR Code / Edit / Delete) */}

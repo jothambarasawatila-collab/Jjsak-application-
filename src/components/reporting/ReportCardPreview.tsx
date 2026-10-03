@@ -10,6 +10,7 @@ import {
   GraduationCap,
   FileText,
   Lock,
+  AlertCircle,
 } from 'lucide-react';
 import { Student, SchoolInfo, SchoolProfile } from '../../types';
 import {
@@ -69,8 +70,9 @@ export const ReportCardPreview: React.FC<ReportCardPreviewProps> = ({
     );
   }
 
-  const avg = student.avgScore ?? 68;
-  const grade = student.overallGrade || (avg >= 80 ? 'EE' : avg >= 65 ? 'ME' : avg >= 50 ? 'AE' : 'BE');
+  const isUnassessed = student.avgScore === null || student.avgScore === undefined;
+  const avg = student.avgScore;
+  const grade = isUnassessed ? '-' : (student.overallGrade || (avg! >= 80 ? 'EE' : avg! >= 65 ? 'ME' : avg! >= 50 ? 'AE' : 'BE'));
 
   const getCbeColor = (lvl: string) => {
     switch (lvl) {
@@ -80,13 +82,15 @@ export const ReportCardPreview: React.FC<ReportCardPreviewProps> = ({
         return 'bg-indigo-600 text-white';
       case 'AE':
         return 'bg-amber-500 text-white';
+      case '-':
+        return 'bg-slate-700 text-slate-200';
       default:
         return 'bg-rose-500 text-white';
     }
   };
 
   const getCbeBadge = (score: number | null) => {
-    if (score === null) return { code: 'N/A', label: 'Not Graded', color: 'bg-slate-200 text-slate-700' };
+    if (score === null || score === undefined) return { code: '-', label: 'Pending Assessment Entry', color: 'bg-slate-100 text-slate-600 border-slate-200' };
     if (score >= 80) return { code: 'EE', label: 'Exceeding Expectation', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
     if (score >= 65) return { code: 'ME', label: 'Meeting Expectation', color: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
     if (score >= 50) return { code: 'AE', label: 'Approaching Expectation', color: 'bg-amber-100 text-amber-800 border-amber-300' };
@@ -192,7 +196,9 @@ export const ReportCardPreview: React.FC<ReportCardPreviewProps> = ({
         <div>
           <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px]">Overall Mean / Grade</span>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-base font-black text-slate-900">{avg}%</span>
+            <span className="text-base font-black text-slate-900">
+              {avg !== null && avg !== undefined ? `${avg}%` : '—'}
+            </span>
             <span className={`px-2 py-0.5 rounded-md text-xs font-black ${getCbeColor(grade)}`}>
               {grade}
             </span>
@@ -202,10 +208,10 @@ export const ReportCardPreview: React.FC<ReportCardPreviewProps> = ({
           <div>
             <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px]">Position &amp; Cohort Rank</span>
             <span className="text-slate-900 font-black text-sm">
-              {student.streamPosition || `${student.streamRank || 8} / 45`} (Stream)
+              {avg !== null && avg !== undefined ? (student.streamPosition || (student.streamRank ? `${student.streamRank} / 45` : '—')) : '— (Pending Marks)'}
             </span>
             <span className="text-[10px] text-slate-500 block">
-              Grade: {student.gradePosition || `${student.gradeRank || 24} / 180`}
+              Grade: {avg !== null && avg !== undefined ? (student.gradePosition || (student.gradeRank ? `${student.gradeRank} / 180` : '—')) : '—'}
             </span>
           </div>
         )}
@@ -213,6 +219,17 @@ export const ReportCardPreview: React.FC<ReportCardPreviewProps> = ({
 
       {/* Main Body Depending on Template */}
       <div className="p-6 sm:p-8 space-y-8 relative z-10">
+        {isUnassessed && (
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3 print:hidden">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold block text-sm">Pending Assessment Marks Entry</span>
+              <p className="mt-0.5 text-amber-800">
+                This learner has been enrolled in <strong>{student.classArm}</strong>, but examination or continuous assessment marks have not yet been recorded. Summative percentages, class rank, and performance bands will be officially computed once marks entry is conducted.
+              </p>
+            </div>
+          </div>
+        )}
         {/* TEMPLATE 1: STANDARD CBC REPORT OR SUBJECT BREAKDOWN */}
         {(templateType === 'standard_cbc_report' || templateType === 'subject_breakdown') && (
           <>
@@ -243,21 +260,22 @@ export const ReportCardPreview: React.FC<ReportCardPreviewProps> = ({
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {student.subjects.map((sub, idx) => {
+                      const hasScore = sub.score !== null && sub.score !== undefined;
                       const score = sub.score ?? 0;
                       const badge = getCbeBadge(sub.score);
-                      const opener = Math.round(score * 0.2);
-                      const midterm = Math.round(score * 0.28);
-                      const endterm = score - opener - midterm;
+                      const opener = hasScore ? Math.round(score * 0.2) : null;
+                      const midterm = hasScore ? Math.round(score * 0.28) : null;
+                      const endterm = hasScore ? score - (opener || 0) - (midterm || 0) : null;
 
                       return (
                         <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                           <td className="py-3 px-3.5 text-slate-400 font-mono font-bold">{idx + 1}</td>
                           <td className="py-3 px-3.5 font-bold text-slate-900">{sub.subject}</td>
-                          <td className="py-3 px-3 font-mono text-slate-600">{opener}/20</td>
-                          <td className="py-3 px-3 font-mono text-slate-600">{midterm}/30</td>
-                          <td className="py-3 px-3 font-mono text-slate-600">{endterm}/50</td>
+                          <td className="py-3 px-3 font-mono text-slate-600">{hasScore ? `${opener}/20` : '—'}</td>
+                          <td className="py-3 px-3 font-mono text-slate-600">{hasScore ? `${midterm}/30` : '—'}</td>
+                          <td className="py-3 px-3 font-mono text-slate-600">{hasScore ? `${endterm}/50` : '—'}</td>
                           <td className="py-3 px-3.5 text-center font-mono font-black text-slate-900 text-sm">
-                            {sub.score !== null ? `${sub.score}%` : '-'}
+                            {hasScore ? `${sub.score}%` : '—'}
                           </td>
                           <td className="py-3 px-3.5 text-center">
                             <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black border ${badge.color}`}>
@@ -265,10 +283,10 @@ export const ReportCardPreview: React.FC<ReportCardPreviewProps> = ({
                             </span>
                           </td>
                           <td className="py-3 px-3.5 text-slate-700 italic text-[11px] max-w-xs">
-                            {sub.remarks || 'Consistently grasps key concepts with commendable diligence.'}
+                            {sub.remarks || (hasScore ? 'Consistently grasps key concepts with commendable diligence.' : 'Pending Assessment Entry')}
                           </td>
                           <td className="py-3 px-3 text-center font-serif text-[11px] text-slate-500 font-bold">
-                            {sub.teacherInitials || 'DM'}
+                            {sub.teacherInitials || 'TR'}
                           </td>
                         </tr>
                       );
@@ -280,7 +298,7 @@ export const ReportCardPreview: React.FC<ReportCardPreviewProps> = ({
                         Cumulative Performance Summary:
                       </td>
                       <td className="py-3 px-3.5 text-center font-mono text-base text-amber-300">
-                        {avg}%
+                        {avg !== null && avg !== undefined ? `${avg}%` : '—'}
                       </td>
                       <td className="py-3 px-3.5 text-center">
                         <span className={`px-2 py-0.5 rounded-md text-xs font-black ${getCbeColor(grade)}`}>
@@ -288,7 +306,11 @@ export const ReportCardPreview: React.FC<ReportCardPreviewProps> = ({
                         </span>
                       </td>
                       <td colSpan={2} className="py-3 px-3.5 text-slate-300 font-normal">
-                        Total Subjects: <strong>{student.subjects.length}</strong> • Overall Mastery: <strong>{avg >= 80 ? 'Exceeding' : avg >= 65 ? 'Meeting' : 'Approaching'} Expectation</strong>
+                        {avg !== null && avg !== undefined ? (
+                          <>Total Subjects: <strong>{student.subjects.length}</strong> • Overall Mastery: <strong>{avg >= 80 ? 'Exceeding' : avg >= 65 ? 'Meeting' : 'Approaching'} Expectation</strong></>
+                        ) : (
+                          <>Total Subjects: <strong>{student.subjects.length}</strong> • <strong className="text-amber-300">No Assessment Data Entered Yet</strong></>
+                        )}
                       </td>
                     </tr>
                   </tfoot>

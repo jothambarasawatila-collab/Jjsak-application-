@@ -188,12 +188,21 @@ export const INITIAL_ASSESSMENTS: Assessment[] = [];
 export const INITIAL_TEACHERS: Teacher[] = [];
 
 export const AVAILABLE_GRADES = [
+  'Grade 7',
+  'Grade 8',
+  'Grade 9',
   'G7',
   'G8',
   'G9',
 ];
 
 export const AVAILABLE_CLASSES = [
+  'Grade 7 North',
+  'Grade 7 South',
+  'Grade 8 North',
+  'Grade 8 South',
+  'Grade 9 North',
+  'Grade 9 South',
   'G7 N',
   'G7 S',
   'G8 N',

@@ -336,6 +336,8 @@ export interface Teacher {
   subjects: string[];
   allocations?: TeacherClassAllocation[];
   avatarHex: string;
+  isClassTeacher?: boolean;
+  assignedClass?: string;
   employeeNumber?: string;
   tscNumber?: string;
   qualification?: string;
@@ -869,5 +871,21 @@ export * from './academicStructure';
 export * from './reporting';
 export * from './learnerRegistration';
 export * from './learnerPortal';
+
+export interface AcademicStream {
+  id: string;
+  schoolId?: string;
+  streamName: string;
+  gradeName: string;
+  fullClassName: string;
+  capacity?: number;
+  currentEnrollment?: number;
+  classTeacherId?: string;
+  classTeacherName?: string;
+  assignedRoom?: string;
+  colorHex?: string;
+  academicYear?: number;
+  isActive?: boolean;
+}
 
 export type BottomNavTab = 'home' | 'students' | 'assessments' | 'reports' | 'analytics' | 'more';

@@ -164,6 +164,12 @@ import {
 import { carrierInboxService } from './services/carrierInboxService';
 import { tenantDataSyncService } from './services/tenantDataSyncService';
 import { institutionalSubscriptionService } from './services/institutionalSubscriptionService';
+import {
+  NGONYEK_SCHOOL_ID,
+  NGONYEK_GRADE7_STUDENTS,
+  NGONYEK_TEACHERS,
+  NGONYEK_USERS,
+} from './data/ngonyekJuniorSchoolData';
 
 // Registered Institutions: Yuya Primary School and Ngonyek Junior School
 const INITIAL_ONBOARDED_SCHOOLS: SchoolTenant[] = [
@@ -382,7 +388,7 @@ export function App() {
       (iu) => !iu.schoolId || !deletedSet.has(iu.schoolId)
     );
     const saved = localStorage.getItem('jjsak_users');
-    let baseList = [...INITIAL_USERS, ...initialHeadUsers];
+    let baseList = [...INITIAL_USERS, ...initialHeadUsers, ...NGONYEK_USERS];
     if (saved) {
       try {
         const parsed: User[] = JSON.parse(saved);
@@ -390,14 +396,14 @@ export function App() {
           const filteredParsed = parsed.filter((u) => !u.schoolId || !deletedSet.has(u.schoolId));
           const existingIds = new Set(filteredParsed.map((u) => u.id));
           baseList = [...filteredParsed];
-          [...INITIAL_USERS, ...initialHeadUsers].forEach((iu) => {
+          [...INITIAL_USERS, ...initialHeadUsers, ...NGONYEK_USERS].forEach((iu) => {
             if (!existingIds.has(iu.id) && (!iu.schoolId || !deletedSet.has(iu.schoolId))) {
               baseList.push(iu);
             }
           });
         }
       } catch {
-        baseList = [...INITIAL_USERS, ...initialHeadUsers];
+        baseList = [...INITIAL_USERS, ...initialHeadUsers, ...NGONYEK_USERS];
       }
     }
     const finalUsers = baseList
@@ -840,11 +846,14 @@ export function App() {
 
   const [students, setStudents] = useState<Student[]>(() => {
     const saved = localStorage.getItem('jjsak_students');
-    if (!saved) return calculateStudentRankings(INITIAL_STUDENTS);
-    try {
-      const parsed: Student[] = JSON.parse(saved);
-      if (!Array.isArray(parsed)) return calculateStudentRankings(INITIAL_STUDENTS);
-      const migrated = parsed.map((student) => {
+    let studentList: Student[] = calculateStudentRankings(INITIAL_STUDENTS);
+    if (!saved) {
+      studentList = calculateStudentRankings(INITIAL_STUDENTS);
+    } else {
+      try {
+        const parsed: Student[] = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const migrated = parsed.map((student) => {
         // Replace Computer Studies and Physical & Health Ed with Pretechnical Studies
         const updatedSubjects: { subject: string; score: number | null; grade: string; remarks: string }[] = [];
         let hasPretech = false;
@@ -876,10 +885,22 @@ export function App() {
           subjects: updatedSubjects,
         };
       });
-      return calculateStudentRankings(migrated);
-    } catch {
-      return calculateStudentRankings(INITIAL_STUDENTS);
+          studentList = calculateStudentRankings(migrated);
+        }
+      } catch {
+        studentList = calculateStudentRankings(INITIAL_STUDENTS);
+      }
     }
+
+    // Guarantee that all 40 registered Grade 7 North learners for Ngonyek Junior School are present
+    const ngonyekInList = studentList.filter((s) => s.schoolId === NGONYEK_SCHOOL_ID);
+    if (ngonyekInList.length < 40) {
+      const existingNgonyekIds = new Set(ngonyekInList.map((s) => s.id));
+      const missingNgonyek = NGONYEK_GRADE7_STUDENTS.filter((s) => !existingNgonyekIds.has(s.id));
+      studentList = [...studentList, ...missingNgonyek];
+    }
+
+    return studentList;
   });
 
   const [assessments, setAssessments] = useState<Assessment[]>(() => {
@@ -913,7 +934,7 @@ export function App() {
         if (Array.isArray(parsed) && parsed.length > 0) {
           // If Mr. Jotham Watila is not in saved, prepend him from INITIAL_TEACHERS
           const hasWatila = parsed.some((t) => (t?.name || '').toLowerCase().includes('watila'));
-          if (!hasWatila) {
+          if (!hasWatila && INITIAL_TEACHERS[0]) {
             teacherList = [INITIAL_TEACHERS[0], ...parsed];
           } else {
             teacherList = parsed;
@@ -922,6 +943,27 @@ export function App() {
       } catch {
         teacherList = INITIAL_TEACHERS;
       }
+    }
+
+    // Purge any outdated placeholder teachers for Ngonyek Junior School
+    teacherList = (teacherList || []).filter(
+      (t) =>
+        !t.name?.toLowerCase().includes('kiprono') &&
+        !t.name?.toLowerCase().includes('kiprop cherono') &&
+        !t.name?.toLowerCase().includes('muthoni waweru') &&
+        !t.name?.toLowerCase().includes('ochieng otieno') &&
+        !t.name?.toLowerCase().includes('wambui kamau')
+    );
+
+    // Guarantee that all 6 registered teachers for Ngonyek Junior School are present:
+    // Vivian Lumayo, Agness Waswa, Brenda Mwanjala, Brian Onyancha, Joyce Kamar, Jotham Watila
+    const ngonyekTeachersInList = teacherList.filter(
+      (t) => t.schoolId === NGONYEK_SCHOOL_ID || (t.email || '').toLowerCase().includes('ngonyek')
+    );
+    const existingTeacherNames = new Set(ngonyekTeachersInList.map((t) => t.name.toLowerCase()));
+    const missingTeachers = NGONYEK_TEACHERS.filter((t) => !existingTeacherNames.has(t.name.toLowerCase()));
+    if (missingTeachers.length > 0) {
+      teacherList = [...teacherList, ...missingTeachers];
     }
 
     return (teacherList || []).map((t) => {
@@ -1028,66 +1070,49 @@ export function App() {
       : currentUser?.schoolId || activeTenantId || '';
 
   // Multi-Tenant Isolation Layer: Strict Data Partitioning Policy
-  // Guarantees absolute isolation so no data belonging to any school will be visible on another school portal
+  // Guarantees absolute isolation so ONLY data registered by the specific school is visible on that school's portal
   const isolatedTeachers = useMemo(() => {
-    if (!effectiveTenantId) return teachers;
-    return teachers.filter((t) => {
-      if (t.schoolId) {
-        return t.schoolId === effectiveTenantId;
-      }
-      if (
-        effectiveTenantId === 'sch-yuya-30200' &&
-        ((t.email || '').toLowerCase().includes('yuya') || (t.name || '').toLowerCase().includes('yuya'))
-      ) {
-        return true;
-      }
-      if (
-        effectiveTenantId === 'sch-ngonyek-30200' &&
-        ((t.email || '').toLowerCase().includes('ngonyek') || (t.name || '').toLowerCase().includes('ngonyek'))
-      ) {
-        return true;
-      }
-      return false;
-    });
+    if (!effectiveTenantId) return [];
+    return teachers.filter((t) => t.schoolId === effectiveTenantId);
   }, [teachers, effectiveTenantId]);
 
   const isolatedStudents = useMemo(() => {
-    if (!effectiveTenantId) return students;
+    if (!effectiveTenantId) return [];
     return students.filter((s) => s.schoolId === effectiveTenantId);
   }, [students, effectiveTenantId]);
 
   const isolatedAssessments = useMemo(() => {
-    if (!effectiveTenantId) return assessments;
+    if (!effectiveTenantId) return [];
     return assessments.filter((a) => a.schoolId === effectiveTenantId);
   }, [assessments, effectiveTenantId]);
 
   const isolatedAttendanceRegisters = useMemo(() => {
-    if (!effectiveTenantId) return attendanceRegisters;
+    if (!effectiveTenantId) return [];
     return attendanceRegisters.filter((r) => r.schoolId === effectiveTenantId);
   }, [attendanceRegisters, effectiveTenantId]);
 
   const isolatedDisciplineIncidents = useMemo(() => {
-    if (!effectiveTenantId) return disciplineIncidents;
+    if (!effectiveTenantId) return [];
     return disciplineIncidents.filter((d) => d.schoolId === effectiveTenantId);
   }, [disciplineIncidents, effectiveTenantId]);
 
   const isolatedHealthIncidents = useMemo(() => {
-    if (!effectiveTenantId) return healthIncidents;
+    if (!effectiveTenantId) return [];
     return healthIncidents.filter((h) => h.schoolId === effectiveTenantId);
   }, [healthIncidents, effectiveTenantId]);
 
   const isolatedCounselingSessions = useMemo(() => {
-    if (!effectiveTenantId) return counselingSessions;
+    if (!effectiveTenantId) return [];
     return counselingSessions.filter((c) => c.schoolId === effectiveTenantId);
   }, [counselingSessions, effectiveTenantId]);
 
   const isolatedVulnerableLearners = useMemo(() => {
-    if (!effectiveTenantId) return vulnerableLearners;
+    if (!effectiveTenantId) return [];
     return vulnerableLearners.filter((v) => v.schoolId === effectiveTenantId);
   }, [vulnerableLearners, effectiveTenantId]);
 
   const isolatedWelfareCheckIns = useMemo(() => {
-    if (!effectiveTenantId) return welfareCheckIns;
+    if (!effectiveTenantId) return [];
     return welfareCheckIns.filter((w) => w.schoolId === effectiveTenantId);
   }, [welfareCheckIns, effectiveTenantId]);
 

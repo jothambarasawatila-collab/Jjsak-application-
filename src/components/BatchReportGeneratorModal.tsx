@@ -179,6 +179,26 @@ export const BatchReportGeneratorModal: React.FC<BatchReportGeneratorModalProps>
             </div>
           </div>
 
+          {/* Assessment Entry Status Banner */}
+          {(() => {
+            const assessed = filteredStudents.filter((s) => s.avgScore !== null && s.avgScore !== undefined).length;
+            const pending = filteredStudents.length - assessed;
+            if (pending > 0) {
+              return (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">Assessment Entry Status:</span>
+                    <span>{assessed} Assessed • {pending} Awaiting Marks Entry</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-900">
+                    Provisional
+                  </span>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {/* Filtering Section */}
           <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
             <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs">

@@ -31,6 +31,7 @@ import {
   Users,
   MessageCircle,
   Lock,
+  AlertCircle,
 } from 'lucide-react';
 import { Student, SubjectPerformance, Teacher, SchoolTenant, SchoolProfile, User } from '../types';
 import { calculateStudentPathways } from '../data/pathwayUtils';
@@ -698,6 +699,44 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
 
       {/* Report Card Main Container */}
       <div className="max-w-md w-full mx-auto px-4 py-4 flex flex-col gap-4 print:max-w-2xl print:px-6 print:py-4">
+        {/* Unassessed / Pending Marks Warning Banner */}
+        {(student.avgScore === null || student.subjects.every((s) => s.score === null)) && (
+          <div className="bg-amber-50 border border-amber-300/80 rounded-2xl p-4 text-amber-950 shadow-xs space-y-2.5 print:border-amber-400">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-900">
+                    No Assessment or Examination Marks Recorded Yet
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/70 text-amber-900">
+                    Status: Pending Marks Entry
+                  </span>
+                </div>
+                <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                  This learner was registered in <strong>{student.classArm}</strong>, but no continuous assessment tests (CATs), midterm, or end-term marks have been entered into the system. Official report card grades, rankings, and performance band summaries will be computed upon marks entry.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-amber-200/70 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] text-amber-700 font-medium">
+                Click below to input scores across the 9 CBC learning areas:
+              </span>
+              <button
+                type="button"
+                onClick={openSubjectScoresEditor}
+                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span>Enter Assessment Marks Now</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Printable Header (Visible only when printing) */}
         <div
           className="hidden print:flex flex-col items-center justify-center text-center pb-4 border-b-2"
@@ -800,13 +839,22 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
 
                 {/* Stream & Grade Ranking Badges */}
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                  <div className="px-2 py-0.5 rounded-lg bg-red-50 border border-red-200/80 text-[10px] font-bold text-[#C51E28] flex items-center gap-1">
-                    <Award className="w-3 h-3 text-[#C51E28]" />
-                    <span>Stream Rank: <b>{getRankSuffix(rankingInfo.streamRank)}</b> in {student.classArm} ({rankingInfo.streamPosition})</span>
-                  </div>
-                  <div className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-700 flex items-center gap-1">
-                    <span>Grade Rank: <b>{getRankSuffix(rankingInfo.gradeRank)}</b> in {student.grade || student.classArm.split(' ')[0]} ({rankingInfo.gradePosition})</span>
-                  </div>
+                  {student.avgScore !== null && student.avgScore !== undefined ? (
+                    <>
+                      <div className="px-2 py-0.5 rounded-lg bg-red-50 border border-red-200/80 text-[10px] font-bold text-[#C51E28] flex items-center gap-1">
+                        <Award className="w-3 h-3 text-[#C51E28]" />
+                        <span>Stream Rank: <b>{getRankSuffix(rankingInfo.streamRank)}</b> in {student.classArm} ({rankingInfo.streamPosition})</span>
+                      </div>
+                      <div className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-700 flex items-center gap-1">
+                        <span>Grade Rank: <b>{getRankSuffix(rankingInfo.gradeRank)}</b> in {student.grade || student.classArm.split(' ')[0]} ({rankingInfo.gradePosition})</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-800 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Cohort Rankings: Unassessed (Awaiting Continuous &amp; Summative Marks Entry)</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -828,8 +876,12 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
             <span className="text-lg sm:text-xl font-black text-[#C51E28] mt-0.5">
               {student.avgScore !== null && student.avgScore !== undefined ? `${student.avgScore}%` : '-'}
             </span>
-            <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-red-50 text-[#C51E28] border border-red-100 mt-0.5 inline-block">
-              {student.overallGrade || '-'}
+            <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded border mt-0.5 inline-block ${
+              student.avgScore !== null && student.avgScore !== undefined
+                ? 'bg-red-50 text-[#C51E28] border-red-100'
+                : 'bg-slate-100 text-slate-500 border-slate-200'
+            }`}>
+              {student.overallGrade && student.overallGrade !== '-' ? student.overallGrade : 'Pending Marks'}
             </span>
           </div>
 
@@ -840,10 +892,12 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
               STREAM RANK
             </span>
             <span className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
-              {rankingInfo.streamPosition || '-'}
+              {student.avgScore !== null && student.avgScore !== undefined ? (rankingInfo.streamPosition || '-') : '-'}
             </span>
             <span className="text-[9px] text-slate-500 font-semibold mt-0.5">
-              {student.classArm} ({getRankSuffix(rankingInfo.streamRank)})
+              {student.avgScore !== null && student.avgScore !== undefined
+                ? `${student.classArm} (${getRankSuffix(rankingInfo.streamRank)})`
+                : 'Pending Marks Entry'}
             </span>
           </div>
 
@@ -853,10 +907,12 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
               GRADE RANK
             </span>
             <span className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
-              {rankingInfo.gradePosition || '-'}
+              {student.avgScore !== null && student.avgScore !== undefined ? (rankingInfo.gradePosition || '-') : '-'}
             </span>
             <span className="text-[9px] text-slate-500 font-semibold mt-0.5">
-              Grade {student.grade || student.classArm.split(' ')[0]} ({getRankSuffix(rankingInfo.gradeRank)})
+              {student.avgScore !== null && student.avgScore !== undefined
+                ? `Grade ${student.grade || student.classArm.split(' ')[0]} (${getRankSuffix(rankingInfo.gradeRank)})`
+                : 'Pending Marks Entry'}
             </span>
           </div>
 
@@ -1032,6 +1088,52 @@ export const StudentReportScreen: React.FC<StudentReportScreenProps> = ({
 
         {/* 3.5 CBE Senior School Pathway Profile & Career Guidance */}
         {(() => {
+          const isUnassessed =
+            student.avgScore === null ||
+            student.avgScore === undefined ||
+            !student.subjects ||
+            student.subjects.length === 0 ||
+            student.subjects.every((s) => s.score === null || s.score === undefined);
+
+          if (isUnassessed) {
+            return (
+              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/90 flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                      <Compass className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                        <span>Senior School Pathway Profile & Guidance</span>
+                        <span className="text-[9px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.2 rounded">
+                          Awaiting Assessment Data
+                        </span>
+                      </h2>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        Career Affinity & Senior School Academic Track Projection
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 bg-slate-50/80 rounded-xl border border-slate-200 text-center space-y-2">
+                  <p className="text-xs font-bold text-slate-700">Senior School Pathway Projection Pending Marks Entry</p>
+                  <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                    KICD Senior School Pathways (STEM, Social Sciences, Arts & Sports Science) require student performance data across the 9 CBC learning areas. Once assessment marks are entered, automated pathway affinities and career advice will be calculated.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openSubjectScoresEditor}
+                    className="mt-2 px-3.5 py-1.5 bg-[#C51E28] hover:bg-[#B31821] text-white rounded-xl text-xs font-bold transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    <span>Enter Learning Area Marks</span>
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
           const pathwayProfile = calculateStudentPathways(student);
           return (
             <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/90 flex flex-col gap-3">

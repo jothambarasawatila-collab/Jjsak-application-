@@ -166,6 +166,14 @@ export const StaffRegistersView: React.FC<StaffRegistersViewProps> = ({
                         <div className="text-[11px] font-mono text-slate-500">
                           {t.staffNumber || t.employeeNumber || 'STF'}
                         </div>
+                        {(t.isClassTeacher || t.designation === 'Class Teacher' || t.assignedClass) && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold border border-indigo-200">
+                              <CheckCircle2 className="w-3 h-3 text-indigo-600" />
+                              Class Teacher: {t.assignedClass || t.classes?.[0] || 'Assigned Class'}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 font-mono font-bold text-red-700">
                         {t.tscNumber || <span className="text-slate-400 font-sans font-normal">BOM / In Process</span>}
@@ -286,7 +294,14 @@ export const StaffRegistersView: React.FC<StaffRegistersViewProps> = ({
                   const isUnder = lessonCount < 18;
                   return (
                     <tr key={t.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 font-bold text-slate-900">{t.name}</td>
+                      <td className="px-4 py-3 font-bold text-slate-900">
+                        <div>{t.name}</div>
+                        {(t.isClassTeacher || t.designation === 'Class Teacher' || t.assignedClass) && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200 mt-0.5">
+                            CT: {t.assignedClass || t.classes?.[0]}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1 flex-wrap">
                           {t.classes.map((c) => (

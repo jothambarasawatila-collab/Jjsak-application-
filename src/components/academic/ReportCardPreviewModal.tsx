@@ -141,19 +141,35 @@ export const ReportCardPreviewModal: React.FC<ReportCardPreviewModalProps> = ({
             </div>
           </div>
 
+          {/* Unassessed / Pending Marks Advisory */}
+          {(student.avgScore === null || student.subjects.every((s) => s.score === null)) && (
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-center gap-2.5">
+              <span className="font-bold text-amber-950">⚠️ Assessment Pending:</span>
+              <span className="text-amber-800">
+                Examination and continuous assessment marks have not yet been entered for this learner. Marks entry is pending in the portal.
+              </span>
+            </div>
+          )}
+
           {/* Core Performance Summary Strip */}
           <div className="grid grid-cols-4 gap-2 text-center text-xs bg-emerald-50 border border-emerald-200 rounded-xl p-2.5">
             <div>
               <span className="text-[10px] text-emerald-800 block">Mean Score</span>
-              <span className="text-base font-black text-emerald-950">{student.avgScore ?? '—'}%</span>
+              <span className="text-base font-black text-emerald-950">
+                {student.avgScore !== null && student.avgScore !== undefined ? `${student.avgScore}%` : '—'}
+              </span>
             </div>
             <div>
               <span className="text-[10px] text-emerald-800 block">Overall CBC Band</span>
-              <span className="text-base font-black text-emerald-950">{student.overallGrade}</span>
+              <span className="text-base font-black text-emerald-950">
+                {student.overallGrade && student.overallGrade !== '-' ? student.overallGrade : '—'}
+              </span>
             </div>
             <div>
               <span className="text-[10px] text-emerald-800 block">Stream Rank</span>
-              <span className="text-base font-black text-emerald-950">{student.position || '—'}</span>
+              <span className="text-base font-black text-emerald-950">
+                {student.avgScore !== null && student.avgScore !== undefined ? (student.position || '—') : '—'}
+              </span>
             </div>
             <div>
               <span className="text-[10px] text-emerald-800 block">Attendance Rate</span>

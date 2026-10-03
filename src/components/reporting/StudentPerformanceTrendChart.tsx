@@ -198,6 +198,42 @@ export const StudentPerformanceTrendChart: React.FC<StudentPerformanceTrendChart
     return null;
   };
 
+  const isUnassessed =
+    student.avgScore === null ||
+    student.avgScore === undefined ||
+    !student.subjects ||
+    student.subjects.length === 0 ||
+    student.subjects.every((s) => s.score === null || s.score === undefined);
+
+  if (isUnassessed) {
+    return (
+      <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/90 space-y-3">
+        <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+          <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <TrendingUp className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <span>Student Performance Trends &amp; Competency Trajectory</span>
+              <span className="text-[9px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.5 rounded">
+                Pending Assessment Marks
+              </span>
+            </h2>
+            <p className="text-[10px] text-slate-500 font-medium">
+              Multi-term longitudinal tracking against CBC standards &amp; cohort averages
+            </p>
+          </div>
+        </div>
+        <div className="p-6 bg-slate-50/70 border border-slate-200 rounded-xl text-center space-y-2">
+          <p className="text-xs font-bold text-slate-700">No Assessment or Examination Marks Recorded Yet</p>
+          <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+            Progressive trajectory curves and learning area comparisons are generated after continuous assessments (CATs) or term examinations have been recorded.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/90 space-y-4">
       {/* Header & Controls */}

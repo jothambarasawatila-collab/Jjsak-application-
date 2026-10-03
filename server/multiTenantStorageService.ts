@@ -1,5 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import {
+  NGONYEK_GRADE7_STUDENTS,
+  NGONYEK_TEACHERS,
+  NGONYEK_USERS,
+  NGONYEK_ACADEMIC_STREAMS,
+  NGONYEK_CLASS_TEACHER_ALLOCATIONS,
+} from '../src/data/ngonyekJuniorSchoolData.js';
 
 export interface ServerSchoolTenant {
   schoolId: string;
@@ -168,114 +175,281 @@ class MultiTenantStorageService {
       }
     });
 
-    // Ensure initial isolated tenant data for Ngonyek Junior School if not present
-    if (!this.deletedTenantIds.has('sch-ngonyek-30200') && !this.tenantData.has('sch-ngonyek-30200')) {
+    // Ensure initial isolated tenant data for Ngonyek Junior School if not present or incomplete
+    const existingNgonyek = this.tenantData.get('sch-ngonyek-30200');
+    if (!this.deletedTenantIds.has('sch-ngonyek-30200') && (!existingNgonyek || !existingNgonyek.students || existingNgonyek.students.length < 40)) {
+      const rawGrade7 = [
+        { admNo: 'NGON/2026/001', name: 'Brian Kipchumba Bett', gender: 'Male' as const, dob: '2013-03-14', pName: 'Kipchumba Bett', pPhone: '+254 721 890 101' },
+        { admNo: 'NGON/2026/002', name: 'Faith Jepkemoi Cheruiyot', gender: 'Female' as const, dob: '2013-05-22', pName: 'Cheruiyot Sang', pPhone: '+254 721 890 102' },
+        { admNo: 'NGON/2026/003', name: 'Kevin Kiprotich Kiptoo', gender: 'Male' as const, dob: '2013-01-18', pName: 'Kiptoo Korir', pPhone: '+254 721 890 103' },
+        { admNo: 'NGON/2026/004', name: 'Mercy Chepkoech Mutai', gender: 'Female' as const, dob: '2013-08-09', pName: 'Mutai Bii', pPhone: '+254 721 890 104' },
+        { admNo: 'NGON/2026/005', name: 'Dennis Kipkorir Tanui', gender: 'Male' as const, dob: '2013-04-30', pName: 'Tanui Rono', pPhone: '+254 721 890 105' },
+        { admNo: 'NGON/2026/006', name: 'Brenda Cherono Langat', gender: 'Female' as const, dob: '2013-07-11', pName: 'Langat Chepkwony', pPhone: '+254 721 890 106' },
+        { admNo: 'NGON/2026/007', name: 'Collins Kiprop Koech', gender: 'Male' as const, dob: '2013-02-15', pName: 'Koech Kemei', pPhone: '+254 721 890 107' },
+        { admNo: 'NGON/2026/008', name: 'Vivian Jeruto Kimutai', gender: 'Female' as const, dob: '2013-09-03', pName: 'Kimutai Suter', pPhone: '+254 721 890 108' },
+        { admNo: 'NGON/2026/009', name: 'Emmanuel Kiplagat Bowen', gender: 'Male' as const, dob: '2013-06-25', pName: 'Bowen Kaino', pPhone: '+254 721 890 109' },
+        { admNo: 'NGON/2026/010', name: 'Sharon Jepchumba Biwott', gender: 'Female' as const, dob: '2013-11-19', pName: 'Biwott Chesire', pPhone: '+254 721 890 110' },
+        { admNo: 'NGON/2026/011', name: 'Allan Kipkemboi Korir', gender: 'Male' as const, dob: '2013-03-08', pName: 'Korir Cheruiyot', pPhone: '+254 721 890 111' },
+        { admNo: 'NGON/2026/012', name: 'Cynthia Chebet Rutto', gender: 'Female' as const, dob: '2013-10-14', pName: 'Rutto Tarus', pPhone: '+254 721 890 112' },
+        { admNo: 'NGON/2026/013', name: 'Victor Kipkosgei Lagat', gender: 'Male' as const, dob: '2013-01-27', pName: 'Lagat Serem', pPhone: '+254 721 890 113' },
+        { admNo: 'NGON/2026/014', name: 'Beatrice Jepkorir Suter', gender: 'Female' as const, dob: '2013-12-05', pName: 'Suter Komen', pPhone: '+254 721 890 114' },
+        { admNo: 'NGON/2026/015', name: 'Titus Kipngetich Maiyo', gender: 'Male' as const, dob: '2013-04-12', pName: 'Maiyo Chelimo', pPhone: '+254 721 890 115' },
+        { admNo: 'NGON/2026/016', name: 'Gloria Chepkemoi Kurgat', gender: 'Female' as const, dob: '2013-08-28', pName: 'Kurgat Too', pPhone: '+254 721 890 116' },
+        { admNo: 'NGON/2026/017', name: 'Felix Kiptoo Kemei', gender: 'Male' as const, dob: '2013-02-04', pName: 'Kemei Yego', pPhone: '+254 721 890 117' },
+        { admNo: 'NGON/2026/018', name: 'Purity Jerotich Rotich', gender: 'Female' as const, dob: '2013-07-20', pName: 'Rotich Kosgei', pPhone: '+254 721 890 118' },
+        { admNo: 'NGON/2026/019', name: 'Gideon Kiprono Yego', gender: 'Male' as const, dob: '2013-05-16', pName: 'Yego Bartai', pPhone: '+254 721 890 119' },
+        { admNo: 'NGON/2026/020', name: 'Daisy Cheptoo Chemweno', gender: 'Female' as const, dob: '2013-09-17', pName: 'Chemweno Kiptoo', pPhone: '+254 721 890 120' },
+        { admNo: 'NGON/2026/021', name: 'Kelvin Kipchirchir Tarus', gender: 'Male' as const, dob: '2013-03-31', pName: 'Tarus Kibiwot', pPhone: '+254 721 890 121' },
+        { admNo: 'NGON/2026/022', name: 'Joyline Jeptepkeny Sang', gender: 'Female' as const, dob: '2013-06-09', pName: 'Sang Keter', pPhone: '+254 721 890 122' },
+        { admNo: 'NGON/2026/023', name: 'Meshack Kipchumba Chesire', gender: 'Male' as const, dob: '2013-11-02', pName: 'Chesire Bett', pPhone: '+254 721 890 123' },
+        { admNo: 'NGON/2026/024', name: 'Ruth Cherotich Chelimo', gender: 'Female' as const, dob: '2013-01-07', pName: 'Chelimo Tanui', pPhone: '+254 721 890 124' },
+        { admNo: 'NGON/2026/025', name: 'Ian Kipkoech Too', gender: 'Male' as const, dob: '2013-10-23', pName: 'Too Cherono', pPhone: '+254 721 890 125' },
+        { admNo: 'NGON/2026/026', name: 'Millicent Chepngeno Bii', gender: 'Female' as const, dob: '2013-04-19', pName: 'Bii Koech', pPhone: '+254 721 890 126' },
+        { admNo: 'NGON/2026/027', name: 'Brian Kibet Kendagor', gender: 'Male' as const, dob: '2013-08-14', pName: 'Kendagor Suter', pPhone: '+254 721 890 127' },
+        { admNo: 'NGON/2026/028', name: 'Diana Jepchumba Kiprono', gender: 'Female' as const, dob: '2013-12-11', pName: 'Kiprono Rutto', pPhone: '+254 721 890 128' },
+        { admNo: 'NGON/2026/029', name: 'Caleb Kipruto Serem', gender: 'Male' as const, dob: '2013-02-28', pName: 'Serem Kurgat', pPhone: '+254 721 890 129' },
+        { admNo: 'NGON/2026/030', name: 'Fancy Chebet Kipkemoi', gender: 'Female' as const, dob: '2013-05-06', pName: 'Kipkemoi Bowen', pPhone: '+254 721 890 130' },
+        { admNo: 'NGON/2026/031', name: 'Alex Kiprotich Keter', gender: 'Male' as const, dob: '2013-09-29', pName: 'Keter Lagat', pPhone: '+254 721 890 131' },
+        { admNo: 'NGON/2026/032', name: 'Prudence Jerono Kosgei', gender: 'Female' as const, dob: '2013-03-17', pName: 'Kosgei Biwott', pPhone: '+254 721 890 132' },
+        { admNo: 'NGON/2026/033', name: 'Silas Kiplimo Kaino', gender: 'Male' as const, dob: '2013-07-04', pName: 'Kaino Maiyo', pPhone: '+254 721 890 133' },
+        { admNo: 'NGON/2026/034', name: 'Sheila Chepkirui Bett', gender: 'Female' as const, dob: '2013-11-26', pName: 'Bett Rotich', pPhone: '+254 721 890 134' },
+        { admNo: 'NGON/2026/035', name: 'Festus Kipchumba Toroitich', gender: 'Male' as const, dob: '2013-01-12', pName: 'Toroitich Kemei', pPhone: '+254 721 890 135' },
+        { admNo: 'NGON/2026/036', name: 'Nelly Jepkemboi Kibiwot', gender: 'Female' as const, dob: '2013-06-18', pName: 'Kibiwot Tarus', pPhone: '+254 721 890 136' },
+        { admNo: 'NGON/2026/037', name: 'Daniel Kipkosgei Sambu', gender: 'Male' as const, dob: '2013-10-09', pName: 'Sambu Chemweno', pPhone: '+254 721 890 137' },
+        { admNo: 'NGON/2026/038', name: 'Naomi Cherop Cheserek', gender: 'Female' as const, dob: '2013-04-03', pName: 'Cheserek Too', pPhone: '+254 721 890 138' },
+        { admNo: 'NGON/2026/039', name: 'Evans Kiprop Bartai', gender: 'Male' as const, dob: '2013-08-21', pName: 'Bartai Sang', pPhone: '+254 721 890 139' },
+        { admNo: 'NGON/2026/040', name: 'Judith Jepkoech Komen', gender: 'Female' as const, dob: '2013-12-30', pName: 'Komen Chesire', pPhone: '+254 721 890 140' },
+      ];
+
+      const cbcSubs = [
+        'Mathematics', 'English Language', 'Kiswahili Lugha', 'Integrated Science',
+        'Pretechnical Studies', 'Social Studies', 'CRE', 'Agriculture', 'Creative Arts & Sports'
+      ];
+
+      const ngonyekStudents = rawGrade7.map((item, idx) => {
+        const parts = item.name.split(' ');
+        const fName = parts[0];
+        const lName = parts.slice(1).join(' ');
+        return {
+          id: `std-ngon-${String(idx + 1).padStart(3, '0')}`,
+          schoolId: 'sch-ngonyek-30200',
+          admNo: item.admNo,
+          upi: `UPI-2026-NGON-${String(idx + 1).padStart(3, '0')}`,
+          name: item.name,
+          firstName: fName,
+          lastName: lName,
+          gender: item.gender,
+          dateOfBirth: item.dob,
+          grade: 'Grade 7',
+          classArm: 'Grade 7 North',
+          stream: 'North',
+          term: 'Term 1',
+          year: 2026,
+          avgScore: null,
+          overallGrade: '-',
+          position: '-',
+          attendance: 98,
+          subjects: cbcSubs.map((s) => ({
+            subject: s,
+            score: null,
+            grade: '-',
+            remarks: 'Not Assessed / Pending Marks',
+          })),
+          classTeacherComment: 'Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.',
+          classTeacherName: 'Vivian Lumayo',
+          headOfSchoolName: 'Jotham Watila',
+          headTeacherComment: 'Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.',
+          nextTermDate: '2026-05-04',
+          parentName: item.pName,
+          parentPhone: item.pPhone,
+        };
+      });
+
+      const ngonyekTeachersList = [
+        {
+          id: 'tch-ngon-01',
+          schoolId: 'sch-ngonyek-30200',
+          name: 'Vivian Lumayo',
+          email: 'vivian.lumayo@ngonyek.sc.ke',
+          phoneNumber: '+254 722 341 001',
+          role: 'Class Teacher',
+          designation: 'Class Teacher',
+          department: 'Mathematics & Technical',
+          employmentStatus: 'Permanent & Pensionable',
+          employeeNumber: 'TSC-421901',
+          tscNumber: 'TSC-421901',
+          staffNumber: 'NJSS-STF-001',
+          avatarHex: '#047857',
+          isClassTeacher: true,
+          assignedClass: 'Grade 7 North',
+          classes: ['Grade 7 North'],
+          subjects: ['Mathematics', 'Pretechnical Studies'],
+          allocations: [{ className: 'Grade 7 North', subjects: ['Mathematics', 'Pretechnical Studies'] }],
+          active: true,
+          accountStatus: 'APPROVED',
+        },
+        {
+          id: 'tch-ngon-02',
+          schoolId: 'sch-ngonyek-30200',
+          name: 'Agness Waswa',
+          email: 'agness.waswa@ngonyek.sc.ke',
+          phoneNumber: '+254 722 341 002',
+          role: 'TEACHER',
+          designation: 'Subject Teacher',
+          department: 'Languages',
+          employmentStatus: 'Permanent & Pensionable',
+          employeeNumber: 'TSC-384721',
+          tscNumber: 'TSC-384721',
+          staffNumber: 'NJSS-STF-002',
+          avatarHex: '#7C3AED',
+          isClassTeacher: false,
+          classes: ['Grade 7 North'],
+          subjects: ['English Language', 'Creative Arts & Sports'],
+          allocations: [{ className: 'Grade 7 North', subjects: ['English Language', 'Creative Arts & Sports'] }],
+          active: true,
+          accountStatus: 'APPROVED',
+        },
+        {
+          id: 'tch-ngon-03',
+          schoolId: 'sch-ngonyek-30200',
+          name: 'Brenda Mwanjala',
+          email: 'brenda.mwanjala@ngonyek.sc.ke',
+          phoneNumber: '+254 722 341 003',
+          role: 'TEACHER',
+          designation: 'Subject Teacher',
+          department: 'Humanities & Languages',
+          employmentStatus: 'Permanent & Pensionable',
+          employeeNumber: 'TSC-459203',
+          tscNumber: 'TSC-459203',
+          staffNumber: 'NJSS-STF-003',
+          avatarHex: '#B45309',
+          isClassTeacher: false,
+          classes: ['Grade 7 North'],
+          subjects: ['Kiswahili Lugha', 'Social Studies'],
+          allocations: [{ className: 'Grade 7 North', subjects: ['Kiswahili Lugha', 'Social Studies'] }],
+          active: true,
+          accountStatus: 'APPROVED',
+        },
+        {
+          id: 'tch-ngon-04',
+          schoolId: 'sch-ngonyek-30200',
+          name: 'Brian Onyancha',
+          email: 'brian.onyancha@ngonyek.sc.ke',
+          phoneNumber: '+254 722 341 004',
+          role: 'TEACHER',
+          designation: 'Subject Teacher',
+          department: 'Sciences & Agriculture',
+          employmentStatus: 'Permanent & Pensionable',
+          employeeNumber: 'TSC-512044',
+          tscNumber: 'TSC-512044',
+          staffNumber: 'NJSS-STF-004',
+          avatarHex: '#0284C7',
+          isClassTeacher: false,
+          classes: ['Grade 7 North'],
+          subjects: ['Integrated Science', 'Agriculture'],
+          allocations: [{ className: 'Grade 7 North', subjects: ['Integrated Science', 'Agriculture'] }],
+          active: true,
+          accountStatus: 'APPROVED',
+        },
+        {
+          id: 'tch-ngon-05',
+          schoolId: 'sch-ngonyek-30200',
+          name: 'Joyce Kamar',
+          email: 'joyce.kamar@ngonyek.sc.ke',
+          phoneNumber: '+254 722 341 005',
+          role: 'TEACHER',
+          designation: 'Subject Teacher',
+          department: 'Religious Studies & Humanities',
+          employmentStatus: 'Permanent & Pensionable',
+          employeeNumber: 'TSC-498115',
+          tscNumber: 'TSC-498115',
+          staffNumber: 'NJSS-STF-005',
+          avatarHex: '#BE185D',
+          isClassTeacher: false,
+          classes: ['Grade 7 North'],
+          subjects: ['CRE', 'Creative Arts & Sports'],
+          allocations: [{ className: 'Grade 7 North', subjects: ['CRE', 'Creative Arts & Sports'] }],
+          active: true,
+          accountStatus: 'APPROVED',
+        },
+        {
+          id: 'tch-ngon-06',
+          schoolId: 'sch-ngonyek-30200',
+          name: 'Jotham Watila',
+          email: 'head@ngonyek.sc.ke',
+          phoneNumber: '+254 741 478 813',
+          role: 'HEAD_TEACHER',
+          designation: 'Head of Institution',
+          department: 'Administration & Applied Sciences',
+          employmentStatus: 'Permanent & Pensionable',
+          employeeNumber: 'TSC-299991',
+          tscNumber: 'TSC-299991',
+          staffNumber: 'NJSS-STF-006',
+          avatarHex: '#1E3A8A',
+          isClassTeacher: false,
+          classes: ['Grade 7 North'],
+          subjects: ['Pretechnical Studies'],
+          allocations: [{ className: 'Grade 7 North', subjects: ['Pretechnical Studies'] }],
+          active: true,
+          accountStatus: 'APPROVED',
+        },
+      ];
+
       const ngonyekBundle: ServerTenantDataBundle = {
         tenantId: 'sch-ngonyek-30200',
-        students: [
-          {
-            id: 'std-ngon-001',
-            schoolId: 'sch-ngonyek-30200',
-            admNo: 'NGON/2026/001',
-            name: 'Kevin Kiprotich Cheruiyot',
-            grade: 'Grade 8',
-            classArm: 'G8 N',
-            term: 'Term 1',
-            year: 2026,
-            avgScore: 82.5,
-            overallGrade: 'EE',
-            position: '1/38',
-            attendance: 98,
-            subjects: [
-              { subject: 'Integrated Science', score: 86, grade: 'EE', remarks: 'Exceeding Expectations' },
-              { subject: 'Mathematics', score: 84, grade: 'EE', remarks: 'Exceeding Expectations' },
-              { subject: 'English', score: 79, grade: 'ME', remarks: 'Meeting Expectations' },
-              { subject: 'Pretechnical Studies', score: 81, grade: 'EE', remarks: 'Exceeding Expectations' },
-            ],
-            classTeacherComment: 'Consistently displays exceptional initiative and critical thinking in CBC tasks.',
-            classTeacherName: 'Dr. Evans Kiprono',
-            headOfSchoolName: 'Dr. Evans Kiprono',
-            nextTermDate: '2026-05-04',
-          },
-          {
-            id: 'std-ngon-002',
-            schoolId: 'sch-ngonyek-30200',
-            admNo: 'NGON/2026/002',
-            name: 'Mercy Jebet Koech',
-            grade: 'Grade 8',
-            classArm: 'G8 S',
-            term: 'Term 1',
-            year: 2026,
-            avgScore: 79.0,
-            overallGrade: 'ME',
-            position: '2/38',
-            attendance: 96,
-            subjects: [
-              { subject: 'Integrated Science', score: 80, grade: 'ME', remarks: 'Meeting Expectations' },
-              { subject: 'Mathematics', score: 78, grade: 'ME', remarks: 'Meeting Expectations' },
-              { subject: 'English', score: 82, grade: 'EE', remarks: 'Exceeding Expectations' },
-              { subject: 'Pretechnical Studies', score: 76, grade: 'ME', remarks: 'Meeting Expectations' },
-            ],
-            classTeacherComment: 'Shows great responsibility in group projects and practical science labs.',
-            classTeacherName: 'Dr. Evans Kiprono',
-            headOfSchoolName: 'Dr. Evans Kiprono',
-            nextTermDate: '2026-05-04',
-          },
-        ],
-        teachers: [
-          {
-            id: 'tch-ngon-01',
-            schoolId: 'sch-ngonyek-30200',
-            name: 'Dr. Evans Kiprono',
-            email: 'head@ngonyek.sc.ke',
-            phoneNumber: '+254 722 000 111',
-            role: 'HEAD_TEACHER',
-            designation: 'Head of Institution & Class Teacher',
-            classes: ['G8 N', 'G8 S'],
-            subjects: ['Integrated Science', 'Pretechnical Studies'],
-            allocations: [
-              { className: 'G8 N', subjects: ['Integrated Science', 'Pretechnical Studies'] },
-              { className: 'G8 S', subjects: ['Integrated Science'] },
-            ],
-          },
-        ],
+        students: ngonyekStudents,
+        teachers: ngonyekTeachersList,
         assessments: [
           {
             id: 'ass-ngon-cat1',
             schoolId: 'sch-ngonyek-30200',
-            name: 'Integrated Science Continuous Assessment Test 1',
-            className: 'G8 N',
-            subject: 'Integrated Science',
+            name: 'Grade 7 North Mathematics Continuous Assessment Test 1',
+            className: 'Grade 7 North',
+            subject: 'Mathematics',
             totalMarks: 30,
             term: 'Term 1',
-            date: '2026-03-14',
+            date: '2026-03-24',
           },
         ],
         grades: [],
         timetables: [],
-        classes: [],
+        classes: ['Grade 7 North'],
+        academicStreams: [
+          {
+            id: 'strm-ngon-7-north',
+            schoolId: 'sch-ngonyek-30200',
+            streamName: 'North',
+            gradeName: 'Grade 7',
+            fullClassName: 'Grade 7 North',
+            capacity: 45,
+            currentEnrollment: 40,
+            classTeacherId: 'tch-ngon-01',
+            classTeacherName: 'Vivian Lumayo',
+            assignedRoom: 'Junior Secondary Room 7N',
+            academicYear: 2026,
+            isActive: true,
+          },
+        ],
         attendanceRegisters: [
           {
             id: 'att-ngon-001',
             schoolId: 'sch-ngonyek-30200',
-            className: 'G8 N',
-            grade: 'Grade 8',
+            className: 'Grade 7 North',
+            grade: 'Grade 7',
             stream: 'North',
-            date: '2026-03-15',
+            date: '2026-03-20',
             academicYear: 2026,
             term: 'Term 1',
             isLocked: false,
-            entries: [
-              {
-                studentId: 'std-ngon-001',
-                admNo: 'NGON/2026/001',
-                studentName: 'Kevin Kiprotich Cheruiyot',
-                gender: 'Male',
-                status: 'Present',
-                recordedBy: 'Dr. Evans Kiprono',
-                recordedAt: '2026-03-15T08:00:00Z',
-              },
-            ],
+            entries: ngonyekStudents.map((s) => ({
+              studentId: s.id,
+              admNo: s.admNo,
+              studentName: s.name,
+              gender: s.gender,
+              status: 'Present',
+              recordedBy: 'Vivian Lumayo',
+              recordedAt: '2026-03-20T08:00:00Z',
+            })),
           },
         ],
         behaviorRecords: [],
@@ -289,30 +463,51 @@ class MultiTenantStorageService {
         transfersIn: [],
         graduations: [],
         parentCommunications: [],
-        academicStreams: [],
         academicSubjects: [],
         academicYears: [],
         terms: [],
         teacherSubjectAllocations: [],
-        classTeacherAllocations: [],
+        classTeacherAllocations: [
+          {
+            id: 'cta-ngon-7-north',
+            streamId: 'strm-ngon-7-north',
+            fullClassName: 'Grade 7 North',
+            primaryClassTeacherId: 'tch-ngon-01',
+            primaryClassTeacherName: 'Vivian Lumayo',
+            assistantClassTeacherId: 'tch-ngon-02',
+            assistantClassTeacherName: 'Agness Waswa',
+            academicYear: 2026,
+            termNumber: 1,
+            responsibilities: [
+              'Daily morning attendance roll call sign-off',
+              'Termly student progress card holistic remarks',
+              'Parent-teacher consultation coordination',
+              'Discipline & pastoral care tracking',
+              'Learner welfare and counseling liaison',
+            ],
+            appointedBy: 'Jotham Watila (Head of Institution)',
+            appointmentDate: '2026-01-08',
+            status: 'ACTIVE',
+          },
+        ],
         schoolInfo: {
           name: 'Ngonyek Junior School',
           motto: 'Excellence in Competency & Integrity',
           address: 'P.O. Box 78, Ngonyek',
           email: 'admin@ngonyek.sc.ke',
-          phone: '+254 722 000 111',
+          phone: '+254 741 478 813',
           code: 'NGONYEK-30200',
-          headTeacher: 'Dr. Evans Kiprono',
-          headOfInstitution: 'Dr. Evans Kiprono',
-          totalStudents: 2,
-          totalClasses: 2,
+          headTeacher: 'Jotham Watila',
+          headOfInstitution: 'Jotham Watila',
+          totalStudents: 40,
+          totalClasses: 1,
           totalAssessments: 1,
         },
         schoolProfile: {
           schoolName: 'Ngonyek Junior School',
           motto: 'Excellence in Competency & Integrity',
           email: 'admin@ngonyek.sc.ke',
-          phone: '+254 722 000 111',
+          phone: '+254 741 478 813',
         },
         settings: {},
         auditLogs: [],
@@ -346,13 +541,13 @@ class MultiTenantStorageService {
       modified = true;
     }
 
-    if (!this.users.has('usr-head-ngonyek-30200')) {
-      this.users.set('usr-head-ngonyek-30200', {
+    const ngonyekUsers = [
+      {
         id: 'usr-head-ngonyek-30200',
-        fullName: 'Dr. Evans Kiprono',
+        fullName: 'Jotham Watila',
         username: 'head.ngonyek',
         email: 'head@ngonyek.sc.ke',
-        phoneNumber: '+254722000111',
+        phoneNumber: '+254741478813',
         role: 'HEAD_TEACHER',
         designation: 'Head of Institution',
         schoolId: 'sch-ngonyek-30200',
@@ -360,8 +555,85 @@ class MultiTenantStorageService {
         mfaEnabled: true,
         firstLoginCompleted: true,
         activationStatus: 'ACTIVE',
-      });
-      modified = true;
+      },
+      {
+        id: 'usr-tch-ngon-01',
+        fullName: 'Vivian Lumayo',
+        username: 'vivian.lumayo',
+        email: 'vivian.lumayo@ngonyek.sc.ke',
+        phoneNumber: '+254722341001',
+        role: 'TEACHER',
+        designation: 'Class Teacher (Grade 7 North)',
+        schoolId: 'sch-ngonyek-30200',
+        active: true,
+        mfaEnabled: false,
+        firstLoginCompleted: true,
+        activationStatus: 'ACTIVE',
+      },
+      {
+        id: 'usr-tch-ngon-02',
+        fullName: 'Agness Waswa',
+        username: 'agness.waswa',
+        email: 'agness.waswa@ngonyek.sc.ke',
+        phoneNumber: '+254722341002',
+        role: 'TEACHER',
+        designation: 'Subject Teacher',
+        schoolId: 'sch-ngonyek-30200',
+        active: true,
+        mfaEnabled: false,
+        firstLoginCompleted: true,
+        activationStatus: 'ACTIVE',
+      },
+      {
+        id: 'usr-tch-ngon-03',
+        fullName: 'Brenda Mwanjala',
+        username: 'brenda.mwanjala',
+        email: 'brenda.mwanjala@ngonyek.sc.ke',
+        phoneNumber: '+254722341003',
+        role: 'TEACHER',
+        designation: 'Subject Teacher',
+        schoolId: 'sch-ngonyek-30200',
+        active: true,
+        mfaEnabled: false,
+        firstLoginCompleted: true,
+        activationStatus: 'ACTIVE',
+      },
+      {
+        id: 'usr-tch-ngon-04',
+        fullName: 'Brian Onyancha',
+        username: 'brian.onyancha',
+        email: 'brian.onyancha@ngonyek.sc.ke',
+        phoneNumber: '+254722341004',
+        role: 'TEACHER',
+        designation: 'Subject Teacher',
+        schoolId: 'sch-ngonyek-30200',
+        active: true,
+        mfaEnabled: false,
+        firstLoginCompleted: true,
+        activationStatus: 'ACTIVE',
+      },
+      {
+        id: 'usr-tch-ngon-05',
+        fullName: 'Joyce Kamar',
+        username: 'joyce.kamar',
+        email: 'joyce.kamar@ngonyek.sc.ke',
+        phoneNumber: '+254722341005',
+        role: 'TEACHER',
+        designation: 'Subject Teacher',
+        schoolId: 'sch-ngonyek-30200',
+        active: true,
+        mfaEnabled: false,
+        firstLoginCompleted: true,
+        activationStatus: 'ACTIVE',
+      },
+    ];
+
+    for (const nu of ngonyekUsers) {
+      const existing = this.users.get(nu.id);
+      if (!existing || existing.fullName !== nu.fullName || existing.email !== nu.email) {
+        this.users.set(nu.id, nu);
+        modified = true;
+      }
     }
 
     if (modified) {
@@ -604,8 +876,359 @@ class MultiTenantStorageService {
   }
 
   // ===================== TENANT DATA ISOLATION =====================
+  public buildNgonyekBundle(): ServerTenantDataBundle {
+    const rawGrade7 = [
+      { admNo: 'NGON/2026/001', name: 'Brian Kipchumba Bett', gender: 'Male' as const, dob: '2013-03-14', pName: 'Kipchumba Bett', pPhone: '+254 721 890 101' },
+      { admNo: 'NGON/2026/002', name: 'Faith Jepkemoi Cheruiyot', gender: 'Female' as const, dob: '2013-05-22', pName: 'Cheruiyot Sang', pPhone: '+254 721 890 102' },
+      { admNo: 'NGON/2026/003', name: 'Kevin Kiprotich Kiptoo', gender: 'Male' as const, dob: '2013-01-18', pName: 'Kiptoo Korir', pPhone: '+254 721 890 103' },
+      { admNo: 'NGON/2026/004', name: 'Mercy Chepkoech Mutai', gender: 'Female' as const, dob: '2013-08-09', pName: 'Mutai Bii', pPhone: '+254 721 890 104' },
+      { admNo: 'NGON/2026/005', name: 'Dennis Kipkorir Tanui', gender: 'Male' as const, dob: '2013-04-30', pName: 'Tanui Rono', pPhone: '+254 721 890 105' },
+      { admNo: 'NGON/2026/006', name: 'Brenda Cherono Langat', gender: 'Female' as const, dob: '2013-07-11', pName: 'Langat Chepkwony', pPhone: '+254 721 890 106' },
+      { admNo: 'NGON/2026/007', name: 'Collins Kiprop Koech', gender: 'Male' as const, dob: '2013-02-15', pName: 'Koech Kemei', pPhone: '+254 721 890 107' },
+      { admNo: 'NGON/2026/008', name: 'Vivian Jeruto Kimutai', gender: 'Female' as const, dob: '2013-09-03', pName: 'Kimutai Suter', pPhone: '+254 721 890 108' },
+      { admNo: 'NGON/2026/009', name: 'Emmanuel Kiplagat Bowen', gender: 'Male' as const, dob: '2013-06-25', pName: 'Bowen Kaino', pPhone: '+254 721 890 109' },
+      { admNo: 'NGON/2026/010', name: 'Sharon Jepchumba Biwott', gender: 'Female' as const, dob: '2013-11-19', pName: 'Biwott Chesire', pPhone: '+254 721 890 110' },
+      { admNo: 'NGON/2026/011', name: 'Allan Kipkemboi Korir', gender: 'Male' as const, dob: '2013-03-08', pName: 'Korir Cheruiyot', pPhone: '+254 721 890 111' },
+      { admNo: 'NGON/2026/012', name: 'Cynthia Chebet Rutto', gender: 'Female' as const, dob: '2013-10-14', pName: 'Rutto Tarus', pPhone: '+254 721 890 112' },
+      { admNo: 'NGON/2026/013', name: 'Victor Kipkosgei Lagat', gender: 'Male' as const, dob: '2013-01-27', pName: 'Lagat Serem', pPhone: '+254 721 890 113' },
+      { admNo: 'NGON/2026/014', name: 'Beatrice Jepkorir Suter', gender: 'Female' as const, dob: '2013-12-05', pName: 'Suter Komen', pPhone: '+254 721 890 114' },
+      { admNo: 'NGON/2026/015', name: 'Titus Kipngetich Maiyo', gender: 'Male' as const, dob: '2013-04-12', pName: 'Maiyo Chelimo', pPhone: '+254 721 890 115' },
+      { admNo: 'NGON/2026/016', name: 'Gloria Chepkemoi Kurgat', gender: 'Female' as const, dob: '2013-08-28', pName: 'Kurgat Too', pPhone: '+254 721 890 116' },
+      { admNo: 'NGON/2026/017', name: 'Felix Kiptoo Kemei', gender: 'Male' as const, dob: '2013-02-04', pName: 'Kemei Yego', pPhone: '+254 721 890 117' },
+      { admNo: 'NGON/2026/018', name: 'Purity Jerotich Rotich', gender: 'Female' as const, dob: '2013-07-20', pName: 'Rotich Kosgei', pPhone: '+254 721 890 118' },
+      { admNo: 'NGON/2026/019', name: 'Gideon Kiprono Yego', gender: 'Male' as const, dob: '2013-05-16', pName: 'Yego Bartai', pPhone: '+254 721 890 119' },
+      { admNo: 'NGON/2026/020', name: 'Daisy Cheptoo Chemweno', gender: 'Female' as const, dob: '2013-09-17', pName: 'Chemweno Kiptoo', pPhone: '+254 721 890 120' },
+      { admNo: 'NGON/2026/021', name: 'Kelvin Kipchirchir Tarus', gender: 'Male' as const, dob: '2013-03-31', pName: 'Tarus Kibiwot', pPhone: '+254 721 890 121' },
+      { admNo: 'NGON/2026/022', name: 'Joyline Jeptepkeny Sang', gender: 'Female' as const, dob: '2013-06-09', pName: 'Sang Keter', pPhone: '+254 721 890 122' },
+      { admNo: 'NGON/2026/023', name: 'Meshack Kipchumba Chesire', gender: 'Male' as const, dob: '2013-11-02', pName: 'Chesire Bett', pPhone: '+254 721 890 123' },
+      { admNo: 'NGON/2026/024', name: 'Ruth Cherotich Chelimo', gender: 'Female' as const, dob: '2013-01-07', pName: 'Chelimo Tanui', pPhone: '+254 721 890 124' },
+      { admNo: 'NGON/2026/025', name: 'Ian Kipkoech Too', gender: 'Male' as const, dob: '2013-10-23', pName: 'Too Cherono', pPhone: '+254 721 890 125' },
+      { admNo: 'NGON/2026/026', name: 'Millicent Chepngeno Bii', gender: 'Female' as const, dob: '2013-04-19', pName: 'Bii Koech', pPhone: '+254 721 890 126' },
+      { admNo: 'NGON/2026/027', name: 'Brian Kibet Kendagor', gender: 'Male' as const, dob: '2013-08-14', pName: 'Kendagor Suter', pPhone: '+254 721 890 127' },
+      { admNo: 'NGON/2026/028', name: 'Diana Jepchumba Kiprono', gender: 'Female' as const, dob: '2013-12-11', pName: 'Kiprono Rutto', pPhone: '+254 721 890 128' },
+      { admNo: 'NGON/2026/029', name: 'Caleb Kipruto Serem', gender: 'Male' as const, dob: '2013-02-28', pName: 'Serem Kurgat', pPhone: '+254 721 890 129' },
+      { admNo: 'NGON/2026/030', name: 'Fancy Chebet Kipkemoi', gender: 'Female' as const, dob: '2013-05-06', pName: 'Kipkemoi Bowen', pPhone: '+254 721 890 130' },
+      { admNo: 'NGON/2026/031', name: 'Alex Kiprotich Keter', gender: 'Male' as const, dob: '2013-09-29', pName: 'Keter Lagat', pPhone: '+254 721 890 131' },
+      { admNo: 'NGON/2026/032', name: 'Prudence Jerono Kosgei', gender: 'Female' as const, dob: '2013-03-17', pName: 'Kosgei Biwott', pPhone: '+254 721 890 132' },
+      { admNo: 'NGON/2026/033', name: 'Silas Kiplimo Kaino', gender: 'Male' as const, dob: '2013-07-04', pName: 'Kaino Maiyo', pPhone: '+254 721 890 133' },
+      { admNo: 'NGON/2026/034', name: 'Sheila Chepkirui Bett', gender: 'Female' as const, dob: '2013-11-26', pName: 'Bett Rotich', pPhone: '+254 721 890 134' },
+      { admNo: 'NGON/2026/035', name: 'Festus Kipchumba Toroitich', gender: 'Male' as const, dob: '2013-01-12', pName: 'Toroitich Kemei', pPhone: '+254 721 890 135' },
+      { admNo: 'NGON/2026/036', name: 'Nelly Jepkemboi Kibiwot', gender: 'Female' as const, dob: '2013-06-18', pName: 'Kibiwot Tarus', pPhone: '+254 721 890 136' },
+      { admNo: 'NGON/2026/037', name: 'Daniel Kipkosgei Sambu', gender: 'Male' as const, dob: '2013-10-09', pName: 'Sambu Chemweno', pPhone: '+254 721 890 137' },
+      { admNo: 'NGON/2026/038', name: 'Naomi Cherop Cheserek', gender: 'Female' as const, dob: '2013-04-03', pName: 'Cheserek Too', pPhone: '+254 721 890 138' },
+      { admNo: 'NGON/2026/039', name: 'Evans Kiprop Bartai', gender: 'Male' as const, dob: '2013-08-21', pName: 'Bartai Sang', pPhone: '+254 721 890 139' },
+      { admNo: 'NGON/2026/040', name: 'Judith Jepkoech Komen', gender: 'Female' as const, dob: '2013-12-30', pName: 'Komen Chesire', pPhone: '+254 721 890 140' },
+    ];
+
+    const cbcSubs = [
+      'Mathematics', 'English Language', 'Kiswahili Lugha', 'Integrated Science',
+      'Pretechnical Studies', 'Social Studies', 'CRE', 'Agriculture', 'Creative Arts & Sports'
+    ];
+
+    const ngonyekStudents = rawGrade7.map((item, idx) => {
+      const parts = item.name.split(' ');
+      const fName = parts[0];
+      const lName = parts.slice(1).join(' ');
+      return {
+        id: `std-ngon-${String(idx + 1).padStart(3, '0')}`,
+        schoolId: 'sch-ngonyek-30200',
+        admNo: item.admNo,
+        upi: `UPI-2026-NGON-${String(idx + 1).padStart(3, '0')}`,
+        name: item.name,
+        firstName: fName,
+        lastName: lName,
+        gender: item.gender,
+        dateOfBirth: item.dob,
+        grade: 'Grade 7',
+        classArm: 'Grade 7 North',
+        stream: 'North',
+        enrollmentDate: '2026-01-08',
+        status: 'Active',
+        term: 'Term 1',
+        year: 2026,
+        avgScore: null,
+        overallGrade: '-',
+        position: '-',
+        streamPosition: '-',
+        gradePosition: '-',
+        streamRank: null,
+        gradeRank: null,
+        attendance: 98,
+        subjects: cbcSubs.map((s) => ({
+          subject: s,
+          score: null,
+          grade: '-',
+          remarks: 'Not Assessed / Pending Marks',
+        })),
+        classTeacherComment: 'Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.',
+        classTeacherName: 'Vivian Lumayo',
+        headOfSchoolName: 'Jotham Watila',
+        headTeacherComment: 'Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.',
+        nextTermDate: '2026-05-04',
+        parentName: item.pName,
+        parentPhone: item.pPhone,
+      };
+    });
+
+    const ngonyekTeachersList = [
+      {
+        id: 'tch-ngon-01',
+        schoolId: 'sch-ngonyek-30200',
+        name: 'Vivian Lumayo',
+        email: 'vivian.lumayo@ngonyek.sc.ke',
+        phoneNumber: '+254 722 341 001',
+        role: 'Class Teacher',
+        designation: 'Class Teacher',
+        department: 'Mathematics & Technical',
+        employmentStatus: 'Permanent & Pensionable',
+        employeeNumber: 'TSC-421901',
+        tscNumber: 'TSC-421901',
+        staffNumber: 'NJSS-STF-001',
+        avatarHex: '#047857',
+        isClassTeacher: true,
+        assignedClass: 'Grade 7 North',
+        classes: ['Grade 7 North'],
+        subjects: ['Mathematics', 'Pretechnical Studies'],
+        allocations: [{ className: 'Grade 7 North', subjects: ['Mathematics', 'Pretechnical Studies'] }],
+        active: true,
+        accountStatus: 'APPROVED',
+      },
+      {
+        id: 'tch-ngon-02',
+        schoolId: 'sch-ngonyek-30200',
+        name: 'Agness Waswa',
+        email: 'agness.waswa@ngonyek.sc.ke',
+        phoneNumber: '+254 722 341 002',
+        role: 'TEACHER',
+        designation: 'Subject Teacher',
+        department: 'Languages',
+        employmentStatus: 'Permanent & Pensionable',
+        employeeNumber: 'TSC-384721',
+        tscNumber: 'TSC-384721',
+        staffNumber: 'NJSS-STF-002',
+        avatarHex: '#7C3AED',
+        isClassTeacher: false,
+        classes: ['Grade 7 North'],
+        subjects: ['English Language', 'Creative Arts & Sports'],
+        allocations: [{ className: 'Grade 7 North', subjects: ['English Language', 'Creative Arts & Sports'] }],
+        active: true,
+        accountStatus: 'APPROVED',
+      },
+      {
+        id: 'tch-ngon-03',
+        schoolId: 'sch-ngonyek-30200',
+        name: 'Brenda Mwanjala',
+        email: 'brenda.mwanjala@ngonyek.sc.ke',
+        phoneNumber: '+254 722 341 003',
+        role: 'TEACHER',
+        designation: 'Subject Teacher',
+        department: 'Humanities & Languages',
+        employmentStatus: 'Permanent & Pensionable',
+        employeeNumber: 'TSC-459203',
+        tscNumber: 'TSC-459203',
+        staffNumber: 'NJSS-STF-003',
+        avatarHex: '#B45309',
+        isClassTeacher: false,
+        classes: ['Grade 7 North'],
+        subjects: ['Kiswahili Lugha', 'Social Studies'],
+        allocations: [{ className: 'Grade 7 North', subjects: ['Kiswahili Lugha', 'Social Studies'] }],
+        active: true,
+        accountStatus: 'APPROVED',
+      },
+      {
+        id: 'tch-ngon-04',
+        schoolId: 'sch-ngonyek-30200',
+        name: 'Brian Onyancha',
+        email: 'brian.onyancha@ngonyek.sc.ke',
+        phoneNumber: '+254 722 341 004',
+        role: 'TEACHER',
+        designation: 'Subject Teacher',
+        department: 'Sciences & Agriculture',
+        employmentStatus: 'Permanent & Pensionable',
+        employeeNumber: 'TSC-512044',
+        tscNumber: 'TSC-512044',
+        staffNumber: 'NJSS-STF-004',
+        avatarHex: '#0284C7',
+        isClassTeacher: false,
+        classes: ['Grade 7 North'],
+        subjects: ['Integrated Science', 'Agriculture'],
+        allocations: [{ className: 'Grade 7 North', subjects: ['Integrated Science', 'Agriculture'] }],
+        active: true,
+        accountStatus: 'APPROVED',
+      },
+      {
+        id: 'tch-ngon-05',
+        schoolId: 'sch-ngonyek-30200',
+        name: 'Joyce Kamar',
+        email: 'joyce.kamar@ngonyek.sc.ke',
+        phoneNumber: '+254 722 341 005',
+        role: 'TEACHER',
+        designation: 'Subject Teacher',
+        department: 'Religious Studies & Humanities',
+        employmentStatus: 'Permanent & Pensionable',
+        employeeNumber: 'TSC-498115',
+        tscNumber: 'TSC-498115',
+        staffNumber: 'NJSS-STF-005',
+        avatarHex: '#BE185D',
+        isClassTeacher: false,
+        classes: ['Grade 7 North'],
+        subjects: ['CRE', 'Creative Arts & Sports'],
+        allocations: [{ className: 'Grade 7 North', subjects: ['CRE', 'Creative Arts & Sports'] }],
+        active: true,
+        accountStatus: 'APPROVED',
+      },
+      {
+        id: 'tch-ngon-06',
+        schoolId: 'sch-ngonyek-30200',
+        name: 'Jotham Watila',
+        email: 'head@ngonyek.sc.ke',
+        phoneNumber: '+254 741 478 813',
+        role: 'HEAD_TEACHER',
+        designation: 'Head of Institution',
+        department: 'Administration & Applied Sciences',
+        employmentStatus: 'Permanent & Pensionable',
+        employeeNumber: 'TSC-299991',
+        tscNumber: 'TSC-299991',
+        staffNumber: 'NJSS-STF-006',
+        avatarHex: '#1E3A8A',
+        isClassTeacher: false,
+        classes: ['Grade 7 North'],
+        subjects: ['Pretechnical Studies'],
+        allocations: [{ className: 'Grade 7 North', subjects: ['Pretechnical Studies'] }],
+        active: true,
+        accountStatus: 'APPROVED',
+      },
+    ];
+
+    return {
+      tenantId: 'sch-ngonyek-30200',
+      students: ngonyekStudents,
+      teachers: ngonyekTeachersList,
+      assessments: [
+        {
+          id: 'ass-ngon-cat1',
+          schoolId: 'sch-ngonyek-30200',
+          name: 'Grade 7 North Mathematics Continuous Assessment Test 1',
+          className: 'Grade 7 North',
+          subject: 'Mathematics',
+          totalMarks: 30,
+          term: 'Term 1',
+          date: '2026-03-24',
+        },
+      ],
+      grades: [],
+      timetables: [],
+      classes: ['Grade 7 North'],
+      academicStreams: [
+        {
+          id: 'strm-ngon-7-north',
+          schoolId: 'sch-ngonyek-30200',
+          streamName: 'North',
+          gradeName: 'Grade 7',
+          fullClassName: 'Grade 7 North',
+          capacity: 45,
+          currentEnrollment: 40,
+          classTeacherId: 'tch-ngon-01',
+          classTeacherName: 'Vivian Lumayo',
+          assignedRoom: 'Junior Secondary Room 7N',
+          academicYear: 2026,
+          isActive: true,
+        },
+      ],
+      attendanceRegisters: [
+        {
+          id: 'att-ngon-001',
+          schoolId: 'sch-ngonyek-30200',
+          className: 'Grade 7 North',
+          grade: 'Grade 7',
+          stream: 'North',
+          date: '2026-03-20',
+          academicYear: 2026,
+          term: 'Term 1',
+          isLocked: false,
+          entries: ngonyekStudents.map((s) => ({
+            studentId: s.id,
+            admNo: s.admNo,
+            studentName: s.name,
+            gender: s.gender,
+            status: 'Present',
+            recordedBy: 'Vivian Lumayo',
+            recordedAt: '2026-03-20T08:00:00Z',
+          })),
+        },
+      ],
+      behaviorRecords: [],
+      disciplineIncidents: [],
+      healthIncidents: [],
+      healthProfiles: {},
+      counselingSessions: [],
+      vulnerableLearners: [],
+      welfareCheckIns: [],
+      transfersOut: [],
+      transfersIn: [],
+      graduations: [],
+      parentCommunications: [],
+      academicSubjects: [],
+      academicYears: [],
+      terms: [],
+      teacherSubjectAllocations: [],
+      classTeacherAllocations: [
+        {
+          id: 'cta-ngon-7-north',
+          streamId: 'strm-ngon-7-north',
+          fullClassName: 'Grade 7 North',
+          primaryClassTeacherId: 'tch-ngon-01',
+          primaryClassTeacherName: 'Vivian Lumayo',
+          assistantClassTeacherId: 'tch-ngon-02',
+          assistantClassTeacherName: 'Agness Waswa',
+          academicYear: 2026,
+          termNumber: 1,
+          responsibilities: [
+            'Daily morning attendance roll call sign-off',
+            'Termly student progress card holistic remarks',
+            'Parent-teacher consultation coordination',
+            'Discipline & pastoral care tracking',
+            'Learner welfare and counseling liaison',
+          ],
+          appointedBy: 'Jotham Watila (Head of Institution)',
+          appointmentDate: '2026-01-08',
+          status: 'ACTIVE',
+        },
+      ],
+      schoolInfo: {
+        name: 'Ngonyek Junior School',
+        motto: 'Excellence in Competency & Integrity',
+        address: 'P.O. Box 78, Ngonyek',
+        email: 'admin@ngonyek.sc.ke',
+        phone: '+254 741 478 813',
+        code: 'NGONYEK-30200',
+        headTeacher: 'Jotham Watila',
+        headOfInstitution: 'Jotham Watila',
+        totalStudents: 40,
+        totalClasses: 1,
+        totalAssessments: 1,
+      },
+      schoolProfile: {
+        schoolName: 'Ngonyek Junior School',
+        motto: 'Excellence in Competency & Integrity',
+        email: 'admin@ngonyek.sc.ke',
+        phone: '+254 741 478 813',
+      },
+      settings: {},
+      auditLogs: [],
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+
   public getTenantData(tenantId: string): ServerTenantDataBundle {
     if (!this.tenantData.has(tenantId)) {
+      if (tenantId === 'sch-ngonyek-30200') {
+        const bundle = this.buildNgonyekBundle();
+        this.tenantData.set(tenantId, bundle);
+        this.saveToDisk();
+        return bundle;
+      }
+
       const tenant = this.tenants.get(tenantId);
       const freshBundle: ServerTenantDataBundle = {
         tenantId,
@@ -654,11 +1277,89 @@ class MultiTenantStorageService {
       this.tenantData.set(tenantId, freshBundle);
       this.saveToDisk();
     }
-    return this.tenantData.get(tenantId)!;
+
+    const bundle = this.tenantData.get(tenantId)!;
+
+    // Self-healing guarantee for Ngonyek Junior School: ensure all 40 learners and 6 registered teachers are always intact
+    if (tenantId === 'sch-ngonyek-30200') {
+      let repaired = false;
+      const defaultBundle = this.buildNgonyekBundle();
+      if (!bundle.students || bundle.students.length < 40) {
+        bundle.students = defaultBundle.students;
+        repaired = true;
+      }
+      const hasLumayo = Array.isArray(bundle.teachers) && bundle.teachers.some((t: any) => (t.name || '').includes('Lumayo'));
+      const hasOldMockTeachers = Array.isArray(bundle.teachers) && bundle.teachers.some(
+        (t: any) => (t.name || '').includes('Kiprono') || (t.name || '').includes('Kiprop Cherono') || (t.name || '').includes('Muthoni Waweru')
+      );
+      if (!bundle.teachers || bundle.teachers.length < 6 || !hasLumayo || hasOldMockTeachers) {
+        bundle.teachers = defaultBundle.teachers;
+        repaired = true;
+      }
+      if (!bundle.classes || bundle.classes.length === 0) {
+        bundle.classes = ['Grade 7 North'];
+        repaired = true;
+      }
+      if (
+        !bundle.academicStreams ||
+        bundle.academicStreams.length === 0 ||
+        bundle.academicStreams.some((s: any) => (s.classTeacherName || '').includes('Kiprop') || (s.classTeacherName || '').includes('Kiprono'))
+      ) {
+        bundle.academicStreams = defaultBundle.academicStreams;
+        repaired = true;
+      }
+      if (
+        !bundle.classTeacherAllocations ||
+        bundle.classTeacherAllocations.length === 0 ||
+        bundle.classTeacherAllocations.some((c: any) => (c.primaryClassTeacherName || '').includes('Kiprop') || (c.appointedBy || '').includes('Kiprono'))
+      ) {
+        bundle.classTeacherAllocations = defaultBundle.classTeacherAllocations;
+        repaired = true;
+      }
+      if (bundle.schoolInfo && (bundle.schoolInfo.headTeacher?.includes('Kiprono') || bundle.schoolInfo.headOfInstitution?.includes('Kiprono'))) {
+        bundle.schoolInfo.headTeacher = 'Jotham Watila';
+        bundle.schoolInfo.headOfInstitution = 'Jotham Watila';
+        repaired = true;
+      }
+      if (repaired) {
+        this.tenantData.set(tenantId, bundle);
+        this.saveToDisk();
+      }
+    }
+
+    return bundle;
   }
 
   public saveTenantData(tenantId: string, partialData: Partial<ServerTenantDataBundle>): ServerTenantDataBundle {
     const current = this.getTenantData(tenantId);
+
+    // Safeguard Ngonyek: Prevent stale clients from replacing the 40 registered Grade 7 North learners with old test records
+    if (tenantId === 'sch-ngonyek-30200' && partialData.students && partialData.students.length < 40) {
+      const currentIds = new Set((current.students || []).map((s: any) => s.id));
+      const newAdditions = partialData.students.filter(
+        (s: any) => !currentIds.has(s.id) && s.id !== 'std-ngon-001' && s.id !== 'std-ngon-002'
+      );
+      partialData.students = [...(current.students || []), ...newAdditions];
+    }
+
+    // Safeguard Ngonyek: Prevent teachers list from collapsing below 6 and filter out old mock names
+    if (tenantId === 'sch-ngonyek-30200' && partialData.teachers) {
+      partialData.teachers = partialData.teachers.filter(
+        (t: any) =>
+          !t.name?.includes('Kiprono') &&
+          !t.name?.includes('Kiprop Cherono') &&
+          !t.name?.includes('Muthoni Waweru') &&
+          !t.name?.includes('Ochieng Otieno') &&
+          !t.name?.includes('Wambui Kamau')
+      );
+      if (partialData.teachers.length < 6) {
+        const currentTeacherNames = new Set(partialData.teachers.map((t: any) => t.name?.toLowerCase()));
+        const defaultTeachers = this.buildNgonyekBundle().teachers;
+        const missing = defaultTeachers.filter((t: any) => !currentTeacherNames.has(t.name?.toLowerCase()));
+        partialData.teachers = [...partialData.teachers, ...missing];
+      }
+    }
+
     const updated: ServerTenantDataBundle = {
       ...current,
       ...partialData,
