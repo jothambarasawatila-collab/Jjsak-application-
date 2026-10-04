@@ -1222,8 +1222,14 @@ class MultiTenantStorageService {
 
   public getTenantData(tenantId: string): ServerTenantDataBundle {
     if (!this.tenantData.has(tenantId)) {
-      if (tenantId === 'sch-ngonyek-30200') {
+      if (tenantId === 'sch-ngonyek-30200' || tenantId.includes('ngonyek')) {
         const bundle = this.buildNgonyekBundle();
+        bundle.tenantId = tenantId;
+        bundle.students = bundle.students.map((s) => ({ ...s, schoolId: tenantId }));
+        bundle.teachers = bundle.teachers.map((t) => ({ ...t, schoolId: tenantId }));
+        bundle.assessments = bundle.assessments.map((a) => ({ ...a, schoolId: tenantId }));
+        bundle.academicStreams = bundle.academicStreams.map((st) => ({ ...st, schoolId: tenantId }));
+        bundle.attendanceRegisters = bundle.attendanceRegisters.map((ar) => ({ ...ar, schoolId: tenantId }));
         this.tenantData.set(tenantId, bundle);
         this.saveToDisk();
         return bundle;
@@ -1281,7 +1287,7 @@ class MultiTenantStorageService {
     const bundle = this.tenantData.get(tenantId)!;
 
     // Self-healing guarantee for Ngonyek Junior School: ensure all 40 learners and 6 registered teachers are always intact
-    if (tenantId === 'sch-ngonyek-30200') {
+    if (tenantId === 'sch-ngonyek-30200' || tenantId.includes('ngonyek')) {
       let repaired = false;
       const defaultBundle = this.buildNgonyekBundle();
       if (
@@ -1289,7 +1295,7 @@ class MultiTenantStorageService {
         bundle.students.length < 40 ||
         bundle.students.some((s: any) => (s.classTeacherName || '').includes('Kiprop') || (s.headOfSchoolName || '').includes('Kiprono'))
       ) {
-        bundle.students = defaultBundle.students;
+        bundle.students = defaultBundle.students.map((s: any) => ({ ...s, schoolId: tenantId }));
         repaired = true;
       }
       const hasLumayo = Array.isArray(bundle.teachers) && bundle.teachers.some((t: any) => (t.name || '').includes('Lumayo'));
@@ -1297,7 +1303,7 @@ class MultiTenantStorageService {
         (t: any) => (t.name || '').includes('Kiprono') || (t.name || '').includes('Kiprop Cherono') || (t.name || '').includes('Muthoni Waweru')
       );
       if (!bundle.teachers || bundle.teachers.length < 6 || !hasLumayo || hasOldMockTeachers) {
-        bundle.teachers = defaultBundle.teachers;
+        bundle.teachers = defaultBundle.teachers.map((t: any) => ({ ...t, schoolId: tenantId }));
         repaired = true;
       }
       if (!bundle.classes || bundle.classes.length === 0) {
@@ -1309,7 +1315,7 @@ class MultiTenantStorageService {
         bundle.academicStreams.length === 0 ||
         bundle.academicStreams.some((s: any) => (s.classTeacherName || '').includes('Kiprop') || (s.classTeacherName || '').includes('Kiprono'))
       ) {
-        bundle.academicStreams = defaultBundle.academicStreams;
+        bundle.academicStreams = defaultBundle.academicStreams.map((s: any) => ({ ...s, schoolId: tenantId }));
         repaired = true;
       }
       if (
@@ -1325,12 +1331,20 @@ class MultiTenantStorageService {
         bundle.attendanceRegisters.length === 0 ||
         bundle.attendanceRegisters.some((r: any) => (r.recordedBy || '').includes('Peter') || (r.recordedBy || '').includes('Cherono'))
       ) {
-        bundle.attendanceRegisters = defaultBundle.attendanceRegisters;
+        bundle.attendanceRegisters = defaultBundle.attendanceRegisters.map((r: any) => ({ ...r, schoolId: tenantId }));
         repaired = true;
       }
-      if (bundle.schoolInfo && (bundle.schoolInfo.headTeacher?.includes('Kiprono') || bundle.schoolInfo.headOfInstitution?.includes('Kiprono'))) {
-        bundle.schoolInfo.headTeacher = 'Jotham Watila';
-        bundle.schoolInfo.headOfInstitution = 'Jotham Watila';
+      if (!bundle.assessments || bundle.assessments.length === 0) {
+        bundle.assessments = defaultBundle.assessments.map((a: any) => ({ ...a, schoolId: tenantId }));
+        repaired = true;
+      }
+      if (!bundle.schoolInfo || bundle.schoolInfo.headTeacher?.includes('Kiprono') || bundle.schoolInfo.headOfInstitution?.includes('Kiprono')) {
+        bundle.schoolInfo = {
+          ...defaultBundle.schoolInfo,
+          ...(bundle.schoolInfo || {}),
+          headTeacher: 'Jotham Watila',
+          headOfInstitution: 'Jotham Watila',
+        };
         repaired = true;
       }
       if (repaired) {
@@ -1346,7 +1360,7 @@ class MultiTenantStorageService {
     const current = this.getTenantData(tenantId);
 
     // Safeguard Ngonyek: Prevent stale clients from replacing the 40 registered Grade 7 North learners with old test records
-    if (tenantId === 'sch-ngonyek-30200' && partialData.students && partialData.students.length < 40) {
+    if ((tenantId === 'sch-ngonyek-30200' || tenantId.includes('ngonyek')) && partialData.students && partialData.students.length < 40) {
       const currentIds = new Set((current.students || []).map((s: any) => s.id));
       const newAdditions = partialData.students.filter(
         (s: any) => !currentIds.has(s.id) && s.id !== 'std-ngon-001' && s.id !== 'std-ngon-002'
@@ -1355,7 +1369,7 @@ class MultiTenantStorageService {
     }
 
     // Safeguard Ngonyek: Prevent teachers list from collapsing below 6 and filter out old mock names
-    if (tenantId === 'sch-ngonyek-30200' && partialData.teachers) {
+    if ((tenantId === 'sch-ngonyek-30200' || tenantId.includes('ngonyek')) && partialData.teachers) {
       partialData.teachers = partialData.teachers.filter(
         (t: any) =>
           !t.name?.includes('Kiprono') &&
@@ -1366,7 +1380,7 @@ class MultiTenantStorageService {
       );
       if (partialData.teachers.length < 6) {
         const currentTeacherNames = new Set(partialData.teachers.map((t: any) => t.name?.toLowerCase()));
-        const defaultTeachers = this.buildNgonyekBundle().teachers;
+        const defaultTeachers = this.buildNgonyekBundle().teachers.map((t: any) => ({ ...t, schoolId: tenantId }));
         const missing = defaultTeachers.filter((t: any) => !currentTeacherNames.has(t.name?.toLowerCase()));
         partialData.teachers = [...partialData.teachers, ...missing];
       }

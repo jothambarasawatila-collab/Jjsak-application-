@@ -1510,7 +1510,7 @@
       },
       "settings": {},
       "auditLogs": [],
-      "lastUpdated": "2026-10-04T09:38:07.947Z"
+      "lastUpdated": "2026-10-04T09:59:19.344Z"
     },
     "sch-ngonyek-30200": {
       "tenantId": "sch-ngonyek-30200",
@@ -5749,10 +5749,40 @@
       "settings": {},
       "auditLogs": [],
       "lastUpdated": "2026-10-02T08:22:13.015Z"
+    },
+    "sch-ngonyek-1404": {
+      "tenantId": "sch-ngonyek-1404",
+      "students": [],
+      "teachers": [],
+      "assessments": [],
+      "grades": [],
+      "timetables": [],
+      "classes": [],
+      "attendanceRegisters": [],
+      "behaviorRecords": [],
+      "disciplineIncidents": [],
+      "healthIncidents": [],
+      "healthProfiles": {},
+      "counselingSessions": [],
+      "vulnerableLearners": [],
+      "welfareCheckIns": [],
+      "transfersOut": [],
+      "transfersIn": [],
+      "graduations": [],
+      "parentCommunications": [],
+      "academicStreams": [],
+      "academicSubjects": [],
+      "academicYears": [],
+      "terms": [],
+      "teacherSubjectAllocations": [],
+      "classTeacherAllocations": [],
+      "settings": {},
+      "auditLogs": [],
+      "lastUpdated": "2026-10-04T09:57:09.336Z"
     }
   },
   "deletedTenantIds": [
     "sch-test-trial"
   ],
-  "savedAt": "2026-10-04T09:38:11.189Z"
+  "savedAt": "2026-10-04T09:59:19.344Z"
 }

@@ -493,8 +493,11 @@ class TenantDataSyncService {
       if (cached) {
         const parsed = JSON.parse(cached);
         // If Ngonyek has incomplete cached data (e.g. fewer than 40 learners) or old placeholder teachers, invalidate stale cache
-        if (tenantId === 'sch-ngonyek-30200') {
-          if (Array.isArray(parsed.students) && parsed.students.length < 40) {
+        if (tenantId === 'sch-ngonyek-30200' || tenantId.includes('ngonyek')) {
+          if (!parsed.students || (Array.isArray(parsed.students) && parsed.students.length < 40)) {
+            return null;
+          }
+          if (!parsed.teachers || (Array.isArray(parsed.teachers) && parsed.teachers.length < 6)) {
             return null;
           }
           if (
@@ -547,7 +550,7 @@ class TenantDataSyncService {
     const current = this.getCachedTenantData(tenantId) || { tenantId };
 
     // Prevent overwriting 40 Grade 7 North students if stale array sent
-    if (tenantId === 'sch-ngonyek-30200' && partialBundle.students && partialBundle.students.length < 40) {
+    if ((tenantId === 'sch-ngonyek-30200' || tenantId.includes('ngonyek')) && partialBundle.students && partialBundle.students.length < 40) {
       const currentStudents = (current as any).students || [];
       if (currentStudents.length >= 40) {
         const currentIds = new Set(currentStudents.map((s: any) => s.id));
