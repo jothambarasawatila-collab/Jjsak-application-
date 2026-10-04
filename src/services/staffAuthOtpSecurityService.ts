@@ -474,7 +474,11 @@ export class StaffAuthOtpSecurityService {
       }
     }
 
-    const isSchoolActive = isSuperAdmin ? true : (matchedTenant?.status === 'ACTIVE' || (isFirstTimeActivation && Boolean(matchedTenant)));
+    const isSchoolActive = isSuperAdmin
+      ? true
+      : (matchedTenant?.status === 'ACTIVE' ||
+         matchedTenant?.status === 'TRIAL' ||
+         (isFirstTimeActivation && Boolean(matchedTenant)));
     const isUserActive = matchedUser && (isFirstTimeActivation || (matchedUser.active !== false && matchedUser.activationStatus !== 'SUSPENDED'));
     const hasAssignedRole = matchedUser && !!matchedUser.role;
 

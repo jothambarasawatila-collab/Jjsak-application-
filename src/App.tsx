@@ -1434,29 +1434,69 @@ export function App() {
         if (!isMounted) return;
 
         if (serverBundle) {
-          if (Array.isArray(serverBundle.students)) {
-            setStudents(serverBundle.students.map((s: any) => ({ ...s, schoolId: effectiveTenantId })));
+          const bundleStudents = serverBundle.students;
+          if (Array.isArray(bundleStudents)) {
+            setStudents((prev) => {
+              const otherSchools = prev.filter((s) => s.schoolId && s.schoolId !== effectiveTenantId);
+              const tenantStudents = bundleStudents.map((s: any) => ({ ...s, schoolId: effectiveTenantId }));
+              return [...otherSchools, ...tenantStudents];
+            });
           }
-          if (Array.isArray(serverBundle.teachers)) {
-            setTeachers(serverBundle.teachers.map((t: any) => ({ ...t, schoolId: effectiveTenantId })));
+          const bundleTeachers = serverBundle.teachers;
+          if (Array.isArray(bundleTeachers)) {
+            setTeachers((prev) => {
+              const otherSchools = prev.filter((t) => t.schoolId && t.schoolId !== effectiveTenantId);
+              const tenantTeachers = bundleTeachers.map((t: any) => ({ ...t, schoolId: effectiveTenantId }));
+              return [...otherSchools, ...tenantTeachers];
+            });
           }
-          if (Array.isArray(serverBundle.assessments)) {
-            setAssessments(serverBundle.assessments.map((a: any) => ({ ...a, schoolId: effectiveTenantId })));
+          const bundleAssessments = serverBundle.assessments;
+          if (Array.isArray(bundleAssessments)) {
+            setAssessments((prev) => {
+              const otherSchools = prev.filter((a) => a.schoolId && a.schoolId !== effectiveTenantId);
+              const tenantAssessments = bundleAssessments.map((a: any) => ({ ...a, schoolId: effectiveTenantId }));
+              return [...otherSchools, ...tenantAssessments];
+            });
           }
-          if (Array.isArray(serverBundle.timetables)) {
-            setTimetables(serverBundle.timetables.map((l: any) => ({ ...l, schoolId: effectiveTenantId })));
+          const bundleTimetables = serverBundle.timetables;
+          if (Array.isArray(bundleTimetables)) {
+            setTimetables((prev) => {
+              const otherSchools = prev.filter((l: any) => l.schoolId && l.schoolId !== effectiveTenantId);
+              const tenantTimetables = bundleTimetables.map((l: any) => ({ ...l, schoolId: effectiveTenantId }));
+              return [...otherSchools, ...tenantTimetables];
+            });
           }
-          if (Array.isArray(serverBundle.attendanceRegisters)) {
-            setAttendanceRegisters(serverBundle.attendanceRegisters.map((r: any) => ({ ...r, schoolId: effectiveTenantId })));
+          const bundleRegisters = serverBundle.attendanceRegisters;
+          if (Array.isArray(bundleRegisters)) {
+            setAttendanceRegisters((prev) => {
+              const otherSchools = prev.filter((r) => r.schoolId && r.schoolId !== effectiveTenantId);
+              const tenantRegisters = bundleRegisters.map((r: any) => ({ ...r, schoolId: effectiveTenantId }));
+              return [...otherSchools, ...tenantRegisters];
+            });
           }
-          if (Array.isArray(serverBundle.behaviorRecords)) {
-            setBehaviorRecords(serverBundle.behaviorRecords.map((b: any) => ({ ...b, schoolId: effectiveTenantId })));
+          const bundleBehavior = serverBundle.behaviorRecords;
+          if (Array.isArray(bundleBehavior)) {
+            setBehaviorRecords((prev) => {
+              const otherSchools = prev.filter((b) => b.schoolId && b.schoolId !== effectiveTenantId);
+              const tenantRecords = bundleBehavior.map((b: any) => ({ ...b, schoolId: effectiveTenantId }));
+              return [...otherSchools, ...tenantRecords];
+            });
           }
-          if (Array.isArray(serverBundle.disciplineIncidents)) {
-            setDisciplineIncidents(serverBundle.disciplineIncidents.map((d: any) => ({ ...d, schoolId: effectiveTenantId })));
+          const bundleDiscipline = serverBundle.disciplineIncidents;
+          if (Array.isArray(bundleDiscipline)) {
+            setDisciplineIncidents((prev) => {
+              const otherSchools = prev.filter((d) => d.schoolId && d.schoolId !== effectiveTenantId);
+              const tenantIncidents = bundleDiscipline.map((d: any) => ({ ...d, schoolId: effectiveTenantId }));
+              return [...otherSchools, ...tenantIncidents];
+            });
           }
-          if (Array.isArray(serverBundle.healthIncidents)) {
-            setHealthIncidents(serverBundle.healthIncidents.map((h: any) => ({ ...h, schoolId: effectiveTenantId })));
+          const bundleHealth = serverBundle.healthIncidents;
+          if (Array.isArray(bundleHealth)) {
+            setHealthIncidents((prev) => {
+              const otherSchools = prev.filter((h) => h.schoolId && h.schoolId !== effectiveTenantId);
+              const tenantHealth = bundleHealth.map((h: any) => ({ ...h, schoolId: effectiveTenantId }));
+              return [...otherSchools, ...tenantHealth];
+            });
           }
           if (serverBundle.healthProfiles) {
             setHealthProfiles(serverBundle.healthProfiles);
@@ -2071,7 +2111,10 @@ export function App() {
   };
 
   // Inactivity Auto-Logout Handler (Code P2.8 & JJSAK-AUTH-SEC-001)
-  const handleAutoLogout = () => {
+  const handleAutoLogout = async () => {
+    try {
+      await tenantDataSyncService.flushPendingSaves(effectiveTenantId);
+    } catch {}
     try {
       sessionStorage.removeItem('jjsak_session_authenticated');
     } catch {
@@ -2082,8 +2125,36 @@ export function App() {
     triggerSaveNotification('🔒 Session expired due to inactivity. Please authenticate to access portal.');
   };
 
-  // Explicit Sign Out Handler (JJSAK-AUTH-SEC-001)
-  const handleLogout = () => {
+  // Explicit Sign Out Handler (JJSAK-AUTH-SEC-001) - Guarantees all data is flushed & saved permanently
+  const handleLogout = async () => {
+    // 1. Immediately flush all pending data across all tenants so nothing entered by admin/teacher is lost
+    try {
+      await tenantDataSyncService.flushPendingSaves();
+    } catch (e) {
+      console.warn('Flush pending saves error on logout:', e);
+    }
+
+    // 2. Immediately write-through current in-memory state to persistent local storage so login/logout never drops data
+    try {
+      localStorage.setItem('jjsak_students', JSON.stringify(students));
+      localStorage.setItem('jjsak_teachers', JSON.stringify(teachers));
+      localStorage.setItem('jjsak_assessments', JSON.stringify(assessments));
+      localStorage.setItem('jjsak_tenants', JSON.stringify(tenants));
+      localStorage.setItem('jjsak_users', JSON.stringify(users));
+      if (effectiveTenantId) {
+        localStorage.setItem(`jjsak_tenant_data_${effectiveTenantId}`, JSON.stringify({
+          tenantId: effectiveTenantId,
+          students: students.filter((s) => s.schoolId === effectiveTenantId),
+          teachers: teachers.filter((t) => t.schoolId === effectiveTenantId),
+          assessments: assessments.filter((a) => a.schoolId === effectiveTenantId),
+          schoolInfo,
+          schoolProfile,
+        }));
+      }
+    } catch (e) {
+      console.warn('Local storage write-through error on logout:', e);
+    }
+
     try {
       sessionStorage.removeItem('jjsak_session_authenticated');
       sessionStorage.removeItem('jjsak_auth_session');
@@ -2104,13 +2175,26 @@ export function App() {
       return cleaned;
     });
 
-    setUsers((prev) => {
-      const cleaned = prev.filter((u) => !u.schoolId || !deletedSet.has(u.schoolId));
-      try {
-        localStorage.setItem('jjsak_users', JSON.stringify(cleaned));
-      } catch {}
-      return cleaned;
-    });
+    // Refresh users from server so all newly registered staff/head accounts remain permanently available
+    try {
+      const freshUsers = await tenantDataSyncService.fetchUsers();
+      if (Array.isArray(freshUsers) && freshUsers.length > 0) {
+        setUsers((prev) => {
+          const safeServerUsers = freshUsers.filter((u) => !u.schoolId || !deletedSet.has(u.schoolId));
+          const existingIds = new Set(safeServerUsers.map((u) => u.id));
+          const merged = [...safeServerUsers];
+          prev.forEach((pu) => {
+            if (!existingIds.has(pu.id) && (!pu.schoolId || !deletedSet.has(pu.schoolId))) {
+              merged.push(pu);
+            }
+          });
+          try {
+            localStorage.setItem('jjsak_users', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      }
+    } catch {}
 
     // Reset active tenant if it was deleted
     const currentActive = localStorage.getItem('jjsak_active_tenant_id');
@@ -2138,7 +2222,7 @@ export function App() {
   };
 
   // Secure Authentication Success Handler (JJSAK-AUTH-SEC-001)
-  const handleSecureLoginSuccess = (user: User, tenant: SchoolTenant, jwtSession: JWTSession) => {
+  const handleSecureLoginSuccess = async (user: User, tenant: SchoolTenant, jwtSession: JWTSession) => {
     try {
       sessionStorage.setItem('jjsak_session_authenticated', 'true');
     } catch {
@@ -2162,6 +2246,69 @@ export function App() {
       headTeacher: tenant.administratorDetails?.fullName || prev.headTeacher,
       logoInitial: tenant.schoolName.charAt(0) || 'J',
     }));
+
+    // Authoritative Server Database Pull for this tenant to ensure every student and teacher registered is immediately visible
+    if (tenant.schoolId && tenant.schoolId !== 'platform-governance') {
+      try {
+        const freshBundle = await tenantDataSyncService.fetchTenantData(tenant.schoolId);
+        if (freshBundle) {
+          const fStudents = freshBundle.students;
+          if (Array.isArray(fStudents)) {
+            setStudents((prev) => {
+              const otherSchools = prev.filter((s) => s.schoolId && s.schoolId !== tenant.schoolId);
+              const tenantStudents = fStudents.map((s: any) => ({ ...s, schoolId: tenant.schoolId }));
+              return [...otherSchools, ...tenantStudents];
+            });
+          }
+          const fTeachers = freshBundle.teachers;
+          if (Array.isArray(fTeachers)) {
+            setTeachers((prev) => {
+              const otherSchools = prev.filter((t) => t.schoolId && t.schoolId !== tenant.schoolId);
+              const tenantTeachers = fTeachers.map((t: any) => ({ ...t, schoolId: tenant.schoolId }));
+              return [...otherSchools, ...tenantTeachers];
+            });
+          }
+          const fAssessments = freshBundle.assessments;
+          if (Array.isArray(fAssessments)) {
+            setAssessments((prev) => {
+              const otherSchools = prev.filter((a) => a.schoolId && a.schoolId !== tenant.schoolId);
+              const tenantAssessments = fAssessments.map((a: any) => ({ ...a, schoolId: tenant.schoolId }));
+              return [...otherSchools, ...tenantAssessments];
+            });
+          }
+          const fTimetables = freshBundle.timetables;
+          if (Array.isArray(fTimetables)) {
+            setTimetables((prev) => {
+              const otherSchools = prev.filter((l: any) => l.schoolId && l.schoolId !== tenant.schoolId);
+              const tenantTimetables = fTimetables.map((l: any) => ({ ...l, schoolId: tenant.schoolId }));
+              return [...otherSchools, ...tenantTimetables];
+            });
+          }
+          const fRegisters = freshBundle.attendanceRegisters;
+          if (Array.isArray(fRegisters)) {
+            setAttendanceRegisters((prev) => {
+              const otherSchools = prev.filter((r) => r.schoolId && r.schoolId !== tenant.schoolId);
+              const tenantRegisters = fRegisters.map((r: any) => ({ ...r, schoolId: tenant.schoolId }));
+              return [...otherSchools, ...tenantRegisters];
+            });
+          }
+          if (Array.isArray(freshBundle.academicStreams) && freshBundle.academicStreams.length > 0) {
+            setAcademicStreams(freshBundle.academicStreams);
+          }
+          if (Array.isArray(freshBundle.classTeacherAllocations) && freshBundle.classTeacherAllocations.length > 0) {
+            setClassTeacherAllocations(freshBundle.classTeacherAllocations);
+          }
+          if (freshBundle.schoolInfo) {
+            setSchoolInfo((prev) => ({ ...prev, ...freshBundle.schoolInfo }));
+          }
+          if (freshBundle.schoolProfile) {
+            setSchoolProfile((prev) => ({ ...prev, ...freshBundle.schoolProfile }));
+          }
+        }
+      } catch (err) {
+        console.warn('Post-login authoritative data pull error:', err);
+      }
+    }
 
     setIsAuthenticated(true);
     // JJSAK-AUTHZ-GOV-002 §5: Automatic Portal Routing Engine
@@ -2658,7 +2805,10 @@ export function App() {
 
     // 2. Update students and recompute overall rankings and statistics
     const ranked = calculateStudentRankings(updatedStudents);
-    setStudents(ranked);
+    setStudents((prev) => {
+      const otherSchools = prev.filter((s) => s.schoolId && s.schoolId !== effectiveTenantId);
+      return [...otherSchools, ...ranked];
+    });
 
     // 3. Keep selected student updated
     const currentSelectedId = selectedStudent.id;
@@ -2671,8 +2821,8 @@ export function App() {
     if (effectiveTenantId) {
       tenantDataSyncService.saveAssessmentMarks(effectiveTenantId, assessment, ranked);
       tenantDataSyncService.saveTenantData(effectiveTenantId, {
-        assessments: finalAssessments.length > 0 ? finalAssessments : [assessment, ...assessments],
-        students: ranked,
+        assessments: finalAssessments.filter((a) => a.schoolId === effectiveTenantId),
+        students: ranked.filter((s) => s.schoolId === effectiveTenantId),
       });
       triggerSaveNotification(`✓ Assessment marks and student rankings securely saved to database`);
     }
@@ -2705,7 +2855,7 @@ export function App() {
     if (targetSchoolId) {
       tenantDataSyncService.saveStudent(targetSchoolId, studentWithSchool);
       tenantDataSyncService.saveTenantData(targetSchoolId, {
-        students: rankedResult.length > 0 ? rankedResult : [studentWithSchool, ...students],
+        students: rankedResult.filter((s) => s.schoolId === targetSchoolId),
         schoolInfo: { ...schoolInfo, totalStudents: schoolInfo.totalStudents + 1 },
       });
       triggerSaveNotification(`✓ Learner ${studentWithSchool.name} registered and saved to database`);
@@ -2733,7 +2883,7 @@ export function App() {
     if (targetSchoolId) {
       tenantDataSyncService.saveStudent(targetSchoolId, studentWithSchool);
       tenantDataSyncService.saveTenantData(targetSchoolId, {
-        students: rankedResult,
+        students: rankedResult.filter((s) => s.schoolId === targetSchoolId),
       });
       triggerSaveNotification(`✓ Learner ${studentWithSchool.name} updated and saved to database`);
     }
@@ -2754,7 +2904,7 @@ export function App() {
 
     if (effectiveTenantId) {
       tenantDataSyncService.saveTenantData(effectiveTenantId, {
-        students: rankedResult,
+        students: rankedResult.filter((s) => s.schoolId === effectiveTenantId),
       });
       triggerSaveNotification(`✓ Batch learner updates saved to institutional database`);
     }
@@ -2826,7 +2976,7 @@ export function App() {
 
   const handleAddTeacher = (
     newTeacher: Teacher,
-    options?: { provisionAccount?: boolean; userRole?: UserRole; sendInvitation?: boolean }
+    options?: { provisionAccount?: boolean; userRole?: UserRole; sendInvitation?: boolean; firstTimePassword?: string }
   ) => {
     if (currentUser?.role === 'SUPER_ADMIN') {
       alert("Access Denied (§7): The Platform Owner cannot onboard teachers or staff. Staff onboarding is strictly delegated to School Institutional Administrators.");
@@ -2837,37 +2987,59 @@ export function App() {
       ...newTeacher,
       schoolId: targetSchoolId,
     };
-    setTeachers((prev) => [finalTeacher, ...prev]);
+    
+    setTeachers((prev) => {
+      const filtered = prev.filter((t) => t.id !== finalTeacher.id && (t.email ? t.email !== finalTeacher.email : true));
+      const updatedList = [finalTeacher, ...filtered];
+      if (targetSchoolId) {
+        tenantDataSyncService.saveTeacher(targetSchoolId, finalTeacher);
+        tenantDataSyncService.saveTenantData(targetSchoolId, {
+          teachers: updatedList.filter((t) => t.schoolId === targetSchoolId),
+        });
+      }
+      return updatedList;
+    });
 
     if (targetSchoolId) {
-      tenantDataSyncService.saveTeacher(targetSchoolId, finalTeacher);
-      tenantDataSyncService.saveTenantData(targetSchoolId, {
-        teachers: [finalTeacher, ...teachers],
-      });
       triggerSaveNotification(`✓ Staff member ${finalTeacher.name} saved to institutional database`);
     }
 
     if (options?.provisionAccount) {
       const username = finalTeacher.email
-        ? finalTeacher.email.split('@')[0]
+        ? finalTeacher.email.split('@')[0].toLowerCase()
         : (finalTeacher.name || 'teacher').toLowerCase().replace(/[^a-z0-9]/g, '.');
+      const finalPassword = options?.firstTimePassword || 'Password@2026!';
       const newUser: User = {
-        id: finalTeacher.userId || `usr-${Date.now()}`,
+        id: finalTeacher.userId || `usr-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         schoolId: targetSchoolId,
         schoolName: tenants.find((t) => t.schoolId === targetSchoolId)?.schoolName || schoolInfo.name || 'School',
         username,
         fullName: finalTeacher.name,
         email: finalTeacher.email,
+        password: finalPassword,
+        firstTimePassword: finalPassword,
         role: options.userRole || 'TEACHER',
         employeeNumber: finalTeacher.tscNumber || finalTeacher.staffNumber || finalTeacher.employeeNumber,
         phoneNumber: finalTeacher.phoneNumber,
         active: true,
         mfaEnabled: finalTeacher.mfaEnabled || false,
         mfaMethod: finalTeacher.mfaMethod || 'SMS_OTP',
+        activationStatus: 'ACTIVE',
+        firstLoginCompleted: true,
       };
+
       setUsers((prev) => {
         const filtered = prev.filter((u) => u.id !== newUser.id && u.username !== newUser.username);
-        return [...filtered, newUser];
+        const nextUsers = [...filtered, newUser];
+        try {
+          localStorage.setItem('jjsak_users', JSON.stringify(nextUsers));
+        } catch {}
+        return nextUsers;
+      });
+
+      // Synchronize and persist user directly to backend server
+      tenantDataSyncService.saveUser(newUser).catch((err) => {
+        console.warn('Failed to save user account to server:', err);
       });
 
       // If the individual registered by the school is the platform owner, link dual-identity (§7)
@@ -2886,7 +3058,7 @@ export function App() {
           schoolDomain: activeTenant?.tenantDomain || `${targetSchoolId}.jjsak.internal`,
           designation: finalTeacher.designation || `Staff (${newUser.role})`,
           isDesignatedStaff: true,
-          password: 'Password@2026!',
+          password: finalPassword,
           lastLogin: new Date().toISOString(),
         });
       }
@@ -2897,6 +3069,63 @@ export function App() {
         'None',
         `User ID: ${newUser.id}`
       );
+    }
+
+    // Automatically synchronize class teacher allocation if designated
+    if (finalTeacher.isClassTeacher && finalTeacher.assignedClass) {
+      setAcademicStreams((prev) => {
+        const updated = prev.map((s) => {
+          if (s.fullClassName === finalTeacher.assignedClass || s.gradeName + ' ' + s.streamName === finalTeacher.assignedClass) {
+            return {
+              ...s,
+              classTeacherId: finalTeacher.id,
+              classTeacherName: finalTeacher.name,
+            };
+          }
+          return s;
+        });
+        if (targetSchoolId) {
+          tenantDataSyncService.saveTenantData(targetSchoolId, { academicStreams: updated });
+        }
+        return updated;
+      });
+
+      setClassTeacherAllocations((prev) => {
+        const existingIdx = prev.findIndex((c) => c.fullClassName === finalTeacher.assignedClass);
+        let nextAllocations: ClassTeacherAllocation[] = [];
+        if (existingIdx >= 0) {
+          nextAllocations = prev.map((c, i) =>
+            i === existingIdx ? { ...c, primaryClassTeacherId: finalTeacher.id, primaryClassTeacherName: finalTeacher.name } : c
+          );
+        } else {
+          const className = finalTeacher.assignedClass || 'Grade 7 North';
+          nextAllocations = [
+            ...prev,
+            {
+              id: `cta-${Date.now()}`,
+              streamId: `strm-${className.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+              fullClassName: className,
+              primaryClassTeacherId: finalTeacher.id,
+              primaryClassTeacherName: finalTeacher.name,
+              academicYear: 2026,
+              termNumber: 1,
+              status: 'ACTIVE' as const,
+              responsibilities: [
+                'Daily morning attendance roll call sign-off',
+                'Termly student progress card holistic remarks',
+                'Parent-teacher consultation coordination',
+              ],
+              appointedBy: schoolInfo.headTeacher || schoolInfo.headOfInstitution || 'Head of Institution',
+              appointmentDate: new Date().toISOString().split('T')[0],
+              appointmentLetterRef: `NJSS/CTA/${Date.now().toString().slice(-4)}`,
+            },
+          ];
+        }
+        if (targetSchoolId) {
+          tenantDataSyncService.saveTenantData(targetSchoolId, { classTeacherAllocations: nextAllocations });
+        }
+        return nextAllocations;
+      });
     }
 
     handleLogAudit(
@@ -2924,7 +3153,7 @@ export function App() {
     if (targetSchoolId) {
       tenantDataSyncService.saveTeacher(targetSchoolId, finalTeacher);
       tenantDataSyncService.saveTenantData(targetSchoolId, {
-        teachers: updatedTeachersList.length > 0 ? updatedTeachersList : [finalTeacher, ...teachers],
+        teachers: updatedTeachersList.filter((t) => t.schoolId === targetSchoolId),
       });
     }
 
@@ -2975,7 +3204,7 @@ export function App() {
         });
         if (effectiveTenantId) {
           tenantDataSyncService.saveTenantData(effectiveTenantId, {
-            teachers: remainingTeachers,
+            teachers: remainingTeachers.filter((t) => t.schoolId === effectiveTenantId),
           });
         }
       },
@@ -4054,6 +4283,9 @@ export function App() {
                     const updated = [initialHeadUser, ...filtered];
                     localStorage.setItem('jjsak_users', JSON.stringify(updated));
                     return updated;
+                  });
+                  tenantDataSyncService.saveUser(initialHeadUser).catch((err) => {
+                    console.warn('Failed to save initial head user to server:', err);
                   });
 
                   handleLogAudit(

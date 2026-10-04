@@ -1284,7 +1284,11 @@ class MultiTenantStorageService {
     if (tenantId === 'sch-ngonyek-30200') {
       let repaired = false;
       const defaultBundle = this.buildNgonyekBundle();
-      if (!bundle.students || bundle.students.length < 40) {
+      if (
+        !bundle.students ||
+        bundle.students.length < 40 ||
+        bundle.students.some((s: any) => (s.classTeacherName || '').includes('Kiprop') || (s.headOfSchoolName || '').includes('Kiprono'))
+      ) {
         bundle.students = defaultBundle.students;
         repaired = true;
       }
@@ -1314,6 +1318,14 @@ class MultiTenantStorageService {
         bundle.classTeacherAllocations.some((c: any) => (c.primaryClassTeacherName || '').includes('Kiprop') || (c.appointedBy || '').includes('Kiprono'))
       ) {
         bundle.classTeacherAllocations = defaultBundle.classTeacherAllocations;
+        repaired = true;
+      }
+      if (
+        !bundle.attendanceRegisters ||
+        bundle.attendanceRegisters.length === 0 ||
+        bundle.attendanceRegisters.some((r: any) => (r.recordedBy || '').includes('Peter') || (r.recordedBy || '').includes('Cherono'))
+      ) {
+        bundle.attendanceRegisters = defaultBundle.attendanceRegisters;
         repaired = true;
       }
       if (bundle.schoolInfo && (bundle.schoolInfo.headTeacher?.includes('Kiprono') || bundle.schoolInfo.headOfInstitution?.includes('Kiprono'))) {

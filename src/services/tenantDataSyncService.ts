@@ -621,6 +621,25 @@ class TenantDataSyncService {
     this.saveDebounceTimers.set(tenantId, timer);
   }
 
+  /**
+   * Immediately flushes any pending debounced saves across all tenants or a specific tenant.
+   * Guarantees zero data loss upon logout, page refresh, or tenant switch.
+   */
+  public async flushPendingSaves(targetTenantId?: string): Promise<void> {
+    const tenantIds = targetTenantId ? [targetTenantId] : Array.from(this.pendingBundles.keys());
+    for (const tId of tenantIds) {
+      if (this.saveDebounceTimers.has(tId)) {
+        clearTimeout(this.saveDebounceTimers.get(tId));
+        this.saveDebounceTimers.delete(tId);
+      }
+      const toSend = this.pendingBundles.get(tId);
+      if (toSend) {
+        this.pendingBundles.delete(tId);
+        await this.saveTenantData(tId, toSend);
+      }
+    }
+  }
+
   public async saveStudent(tenantId: string, student: any): Promise<any> {
     if (!tenantId || !student) return null;
     try {
