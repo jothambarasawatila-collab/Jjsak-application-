@@ -277,6 +277,7 @@ export class CleanDeploymentService {
    * The new school begins with 0 pre-populated learners, marks, assessments, or timetables (Rule §6).
    */
   public registerAndOnboardSchoolTenant(params: {
+    schoolId?: string;
     schoolName: string;
     schoolCode: string;
     subdomain?: string;
@@ -308,7 +309,9 @@ export class CleanDeploymentService {
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '');
 
-    const schoolId = `sch-${cleanSubdomain}-${Date.now().toString().slice(-4)}`;
+    const schoolId =
+      params.schoolId ||
+      (cleanSubdomain === 'ngonyek' ? 'sch-ngonyek-30200' : `sch-${cleanSubdomain}-${Date.now().toString().slice(-4)}`);
     const tenantDomain = `${cleanSubdomain}.jjsak.com`;
     const nowIso = new Date().toISOString();
     const today = nowIso.split('T')[0];

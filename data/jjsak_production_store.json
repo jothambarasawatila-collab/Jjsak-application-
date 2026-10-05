@@ -34,7 +34,7 @@
       "address": "P.O. Box 78, Ngonyek",
       "email": "admin@ngonyek.sc.ke",
       "phone": "+254 722 000 111",
-      "status": "ACTIVE"
+      "status": "TRIAL"
     }
   ],
   "users": [
@@ -1542,7 +1542,7 @@
       },
       "settings": {},
       "auditLogs": [],
-      "lastUpdated": "2026-10-04T10:01:40.807Z"
+      "lastUpdated": "2026-10-05T13:52:08.680Z"
     },
     "sch-ngonyek-30200": {
       "tenantId": "sch-ngonyek-30200",
@@ -10024,5 +10024,5 @@
   "deletedTenantIds": [
     "sch-test-trial"
   ],
-  "savedAt": "2026-10-04T10:01:40.807Z"
+  "savedAt": "2026-10-05T13:52:08.680Z"
 }

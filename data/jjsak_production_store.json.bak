@@ -23,6 +23,18 @@
       "email": "admin@ngonyek.sc.ke",
       "phone": "+254 722 000 111",
       "status": "TRIAL"
+    },
+    {
+      "schoolId": "sch-ngonyek-1404",
+      "schoolCode": "NGONYEK-1404",
+      "schoolName": "Ngonyek Junior School",
+      "subdomain": "ngonyek",
+      "tenantDomain": "ngonyek.jjsak.ac.ke",
+      "category": "JUNIOR_SECONDARY",
+      "address": "P.O. Box 78, Ngonyek",
+      "email": "admin@ngonyek.sc.ke",
+      "phone": "+254 722 000 111",
+      "status": "TRIAL"
     }
   ],
   "users": [
@@ -51,7 +63,10 @@
       "active": true,
       "mfaEnabled": true,
       "firstLoginCompleted": true,
-      "activationStatus": "ACTIVE"
+      "activationStatus": "ACTIVE",
+      "password": "Ngonyek@1404",
+      "firstTimePassword": "Ngonyek@1404",
+      "schoolAccountAlias": "ngonyek@jjsak"
     },
     {
       "id": "usr-tch-ngon-02",
@@ -120,6 +135,23 @@
       "schoolId": "sch-ngonyek-30200",
       "active": true,
       "mfaEnabled": false,
+      "firstLoginCompleted": true,
+      "activationStatus": "ACTIVE"
+    },
+    {
+      "id": "usr-head-ngonyek-1404",
+      "fullName": "Jotham Watila",
+      "username": "head.ngonyek.1404",
+      "email": "head@ngonyek.sc.ke",
+      "phoneNumber": "+254741478813",
+      "role": "HEAD_TEACHER",
+      "designation": "Head of Institution",
+      "schoolId": "sch-ngonyek-1404",
+      "password": "Ngonyek@1404",
+      "firstTimePassword": "Ngonyek@1404",
+      "schoolAccountAlias": "ngonyek@jjsak",
+      "active": true,
+      "mfaEnabled": true,
       "firstLoginCompleted": true,
       "activationStatus": "ACTIVE"
     }
@@ -1510,7 +1542,7 @@
       },
       "settings": {},
       "auditLogs": [],
-      "lastUpdated": "2026-10-04T09:59:19.344Z"
+      "lastUpdated": "2026-10-05T13:52:08.680Z"
     },
     "sch-ngonyek-30200": {
       "tenantId": "sch-ngonyek-30200",
@@ -5752,13 +5784,4181 @@
     },
     "sch-ngonyek-1404": {
       "tenantId": "sch-ngonyek-1404",
-      "students": [],
-      "teachers": [],
-      "assessments": [],
+      "students": [
+        {
+          "id": "std-ngon-001",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/001",
+          "upi": "UPI-2026-NGON-001",
+          "name": "Brian Kipchumba Bett",
+          "firstName": "Brian",
+          "lastName": "Kipchumba Bett",
+          "gender": "Male",
+          "dateOfBirth": "2013-03-14",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kipchumba Bett",
+          "parentPhone": "+254 721 890 101"
+        },
+        {
+          "id": "std-ngon-002",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/002",
+          "upi": "UPI-2026-NGON-002",
+          "name": "Faith Jepkemoi Cheruiyot",
+          "firstName": "Faith",
+          "lastName": "Jepkemoi Cheruiyot",
+          "gender": "Female",
+          "dateOfBirth": "2013-05-22",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Cheruiyot Sang",
+          "parentPhone": "+254 721 890 102"
+        },
+        {
+          "id": "std-ngon-003",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/003",
+          "upi": "UPI-2026-NGON-003",
+          "name": "Kevin Kiprotich Kiptoo",
+          "firstName": "Kevin",
+          "lastName": "Kiprotich Kiptoo",
+          "gender": "Male",
+          "dateOfBirth": "2013-01-18",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kiptoo Korir",
+          "parentPhone": "+254 721 890 103"
+        },
+        {
+          "id": "std-ngon-004",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/004",
+          "upi": "UPI-2026-NGON-004",
+          "name": "Mercy Chepkoech Mutai",
+          "firstName": "Mercy",
+          "lastName": "Chepkoech Mutai",
+          "gender": "Female",
+          "dateOfBirth": "2013-08-09",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Mutai Bii",
+          "parentPhone": "+254 721 890 104"
+        },
+        {
+          "id": "std-ngon-005",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/005",
+          "upi": "UPI-2026-NGON-005",
+          "name": "Dennis Kipkorir Tanui",
+          "firstName": "Dennis",
+          "lastName": "Kipkorir Tanui",
+          "gender": "Male",
+          "dateOfBirth": "2013-04-30",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Tanui Rono",
+          "parentPhone": "+254 721 890 105"
+        },
+        {
+          "id": "std-ngon-006",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/006",
+          "upi": "UPI-2026-NGON-006",
+          "name": "Brenda Cherono Langat",
+          "firstName": "Brenda",
+          "lastName": "Cherono Langat",
+          "gender": "Female",
+          "dateOfBirth": "2013-07-11",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Langat Chepkwony",
+          "parentPhone": "+254 721 890 106"
+        },
+        {
+          "id": "std-ngon-007",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/007",
+          "upi": "UPI-2026-NGON-007",
+          "name": "Collins Kiprop Koech",
+          "firstName": "Collins",
+          "lastName": "Kiprop Koech",
+          "gender": "Male",
+          "dateOfBirth": "2013-02-15",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Koech Kemei",
+          "parentPhone": "+254 721 890 107"
+        },
+        {
+          "id": "std-ngon-008",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/008",
+          "upi": "UPI-2026-NGON-008",
+          "name": "Vivian Jeruto Kimutai",
+          "firstName": "Vivian",
+          "lastName": "Jeruto Kimutai",
+          "gender": "Female",
+          "dateOfBirth": "2013-09-03",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kimutai Suter",
+          "parentPhone": "+254 721 890 108"
+        },
+        {
+          "id": "std-ngon-009",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/009",
+          "upi": "UPI-2026-NGON-009",
+          "name": "Emmanuel Kiplagat Bowen",
+          "firstName": "Emmanuel",
+          "lastName": "Kiplagat Bowen",
+          "gender": "Male",
+          "dateOfBirth": "2013-06-25",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Bowen Kaino",
+          "parentPhone": "+254 721 890 109"
+        },
+        {
+          "id": "std-ngon-010",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/010",
+          "upi": "UPI-2026-NGON-010",
+          "name": "Sharon Jepchumba Biwott",
+          "firstName": "Sharon",
+          "lastName": "Jepchumba Biwott",
+          "gender": "Female",
+          "dateOfBirth": "2013-11-19",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Biwott Chesire",
+          "parentPhone": "+254 721 890 110"
+        },
+        {
+          "id": "std-ngon-011",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/011",
+          "upi": "UPI-2026-NGON-011",
+          "name": "Allan Kipkemboi Korir",
+          "firstName": "Allan",
+          "lastName": "Kipkemboi Korir",
+          "gender": "Male",
+          "dateOfBirth": "2013-03-08",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Korir Cheruiyot",
+          "parentPhone": "+254 721 890 111"
+        },
+        {
+          "id": "std-ngon-012",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/012",
+          "upi": "UPI-2026-NGON-012",
+          "name": "Cynthia Chebet Rutto",
+          "firstName": "Cynthia",
+          "lastName": "Chebet Rutto",
+          "gender": "Female",
+          "dateOfBirth": "2013-10-14",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Rutto Tarus",
+          "parentPhone": "+254 721 890 112"
+        },
+        {
+          "id": "std-ngon-013",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/013",
+          "upi": "UPI-2026-NGON-013",
+          "name": "Victor Kipkosgei Lagat",
+          "firstName": "Victor",
+          "lastName": "Kipkosgei Lagat",
+          "gender": "Male",
+          "dateOfBirth": "2013-01-27",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Lagat Serem",
+          "parentPhone": "+254 721 890 113"
+        },
+        {
+          "id": "std-ngon-014",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/014",
+          "upi": "UPI-2026-NGON-014",
+          "name": "Beatrice Jepkorir Suter",
+          "firstName": "Beatrice",
+          "lastName": "Jepkorir Suter",
+          "gender": "Female",
+          "dateOfBirth": "2013-12-05",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Suter Komen",
+          "parentPhone": "+254 721 890 114"
+        },
+        {
+          "id": "std-ngon-015",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/015",
+          "upi": "UPI-2026-NGON-015",
+          "name": "Titus Kipngetich Maiyo",
+          "firstName": "Titus",
+          "lastName": "Kipngetich Maiyo",
+          "gender": "Male",
+          "dateOfBirth": "2013-04-12",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Maiyo Chelimo",
+          "parentPhone": "+254 721 890 115"
+        },
+        {
+          "id": "std-ngon-016",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/016",
+          "upi": "UPI-2026-NGON-016",
+          "name": "Gloria Chepkemoi Kurgat",
+          "firstName": "Gloria",
+          "lastName": "Chepkemoi Kurgat",
+          "gender": "Female",
+          "dateOfBirth": "2013-08-28",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kurgat Too",
+          "parentPhone": "+254 721 890 116"
+        },
+        {
+          "id": "std-ngon-017",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/017",
+          "upi": "UPI-2026-NGON-017",
+          "name": "Felix Kiptoo Kemei",
+          "firstName": "Felix",
+          "lastName": "Kiptoo Kemei",
+          "gender": "Male",
+          "dateOfBirth": "2013-02-04",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kemei Yego",
+          "parentPhone": "+254 721 890 117"
+        },
+        {
+          "id": "std-ngon-018",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/018",
+          "upi": "UPI-2026-NGON-018",
+          "name": "Purity Jerotich Rotich",
+          "firstName": "Purity",
+          "lastName": "Jerotich Rotich",
+          "gender": "Female",
+          "dateOfBirth": "2013-07-20",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Rotich Kosgei",
+          "parentPhone": "+254 721 890 118"
+        },
+        {
+          "id": "std-ngon-019",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/019",
+          "upi": "UPI-2026-NGON-019",
+          "name": "Gideon Kiprono Yego",
+          "firstName": "Gideon",
+          "lastName": "Kiprono Yego",
+          "gender": "Male",
+          "dateOfBirth": "2013-05-16",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Yego Bartai",
+          "parentPhone": "+254 721 890 119"
+        },
+        {
+          "id": "std-ngon-020",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/020",
+          "upi": "UPI-2026-NGON-020",
+          "name": "Daisy Cheptoo Chemweno",
+          "firstName": "Daisy",
+          "lastName": "Cheptoo Chemweno",
+          "gender": "Female",
+          "dateOfBirth": "2013-09-17",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Chemweno Kiptoo",
+          "parentPhone": "+254 721 890 120"
+        },
+        {
+          "id": "std-ngon-021",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/021",
+          "upi": "UPI-2026-NGON-021",
+          "name": "Kelvin Kipchirchir Tarus",
+          "firstName": "Kelvin",
+          "lastName": "Kipchirchir Tarus",
+          "gender": "Male",
+          "dateOfBirth": "2013-03-31",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Tarus Kibiwot",
+          "parentPhone": "+254 721 890 121"
+        },
+        {
+          "id": "std-ngon-022",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/022",
+          "upi": "UPI-2026-NGON-022",
+          "name": "Joyline Jeptepkeny Sang",
+          "firstName": "Joyline",
+          "lastName": "Jeptepkeny Sang",
+          "gender": "Female",
+          "dateOfBirth": "2013-06-09",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Sang Keter",
+          "parentPhone": "+254 721 890 122"
+        },
+        {
+          "id": "std-ngon-023",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/023",
+          "upi": "UPI-2026-NGON-023",
+          "name": "Meshack Kipchumba Chesire",
+          "firstName": "Meshack",
+          "lastName": "Kipchumba Chesire",
+          "gender": "Male",
+          "dateOfBirth": "2013-11-02",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Chesire Bett",
+          "parentPhone": "+254 721 890 123"
+        },
+        {
+          "id": "std-ngon-024",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/024",
+          "upi": "UPI-2026-NGON-024",
+          "name": "Ruth Cherotich Chelimo",
+          "firstName": "Ruth",
+          "lastName": "Cherotich Chelimo",
+          "gender": "Female",
+          "dateOfBirth": "2013-01-07",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Chelimo Tanui",
+          "parentPhone": "+254 721 890 124"
+        },
+        {
+          "id": "std-ngon-025",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/025",
+          "upi": "UPI-2026-NGON-025",
+          "name": "Ian Kipkoech Too",
+          "firstName": "Ian",
+          "lastName": "Kipkoech Too",
+          "gender": "Male",
+          "dateOfBirth": "2013-10-23",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Too Cherono",
+          "parentPhone": "+254 721 890 125"
+        },
+        {
+          "id": "std-ngon-026",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/026",
+          "upi": "UPI-2026-NGON-026",
+          "name": "Millicent Chepngeno Bii",
+          "firstName": "Millicent",
+          "lastName": "Chepngeno Bii",
+          "gender": "Female",
+          "dateOfBirth": "2013-04-19",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Bii Koech",
+          "parentPhone": "+254 721 890 126"
+        },
+        {
+          "id": "std-ngon-027",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/027",
+          "upi": "UPI-2026-NGON-027",
+          "name": "Brian Kibet Kendagor",
+          "firstName": "Brian",
+          "lastName": "Kibet Kendagor",
+          "gender": "Male",
+          "dateOfBirth": "2013-08-14",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kendagor Suter",
+          "parentPhone": "+254 721 890 127"
+        },
+        {
+          "id": "std-ngon-028",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/028",
+          "upi": "UPI-2026-NGON-028",
+          "name": "Diana Jepchumba Kiprono",
+          "firstName": "Diana",
+          "lastName": "Jepchumba Kiprono",
+          "gender": "Female",
+          "dateOfBirth": "2013-12-11",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kiprono Rutto",
+          "parentPhone": "+254 721 890 128"
+        },
+        {
+          "id": "std-ngon-029",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/029",
+          "upi": "UPI-2026-NGON-029",
+          "name": "Caleb Kipruto Serem",
+          "firstName": "Caleb",
+          "lastName": "Kipruto Serem",
+          "gender": "Male",
+          "dateOfBirth": "2013-02-28",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Serem Kurgat",
+          "parentPhone": "+254 721 890 129"
+        },
+        {
+          "id": "std-ngon-030",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/030",
+          "upi": "UPI-2026-NGON-030",
+          "name": "Fancy Chebet Kipkemoi",
+          "firstName": "Fancy",
+          "lastName": "Chebet Kipkemoi",
+          "gender": "Female",
+          "dateOfBirth": "2013-05-06",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kipkemoi Bowen",
+          "parentPhone": "+254 721 890 130"
+        },
+        {
+          "id": "std-ngon-031",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/031",
+          "upi": "UPI-2026-NGON-031",
+          "name": "Alex Kiprotich Keter",
+          "firstName": "Alex",
+          "lastName": "Kiprotich Keter",
+          "gender": "Male",
+          "dateOfBirth": "2013-09-29",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Keter Lagat",
+          "parentPhone": "+254 721 890 131"
+        },
+        {
+          "id": "std-ngon-032",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/032",
+          "upi": "UPI-2026-NGON-032",
+          "name": "Prudence Jerono Kosgei",
+          "firstName": "Prudence",
+          "lastName": "Jerono Kosgei",
+          "gender": "Female",
+          "dateOfBirth": "2013-03-17",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kosgei Biwott",
+          "parentPhone": "+254 721 890 132"
+        },
+        {
+          "id": "std-ngon-033",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/033",
+          "upi": "UPI-2026-NGON-033",
+          "name": "Silas Kiplimo Kaino",
+          "firstName": "Silas",
+          "lastName": "Kiplimo Kaino",
+          "gender": "Male",
+          "dateOfBirth": "2013-07-04",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kaino Maiyo",
+          "parentPhone": "+254 721 890 133"
+        },
+        {
+          "id": "std-ngon-034",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/034",
+          "upi": "UPI-2026-NGON-034",
+          "name": "Sheila Chepkirui Bett",
+          "firstName": "Sheila",
+          "lastName": "Chepkirui Bett",
+          "gender": "Female",
+          "dateOfBirth": "2013-11-26",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Bett Rotich",
+          "parentPhone": "+254 721 890 134"
+        },
+        {
+          "id": "std-ngon-035",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/035",
+          "upi": "UPI-2026-NGON-035",
+          "name": "Festus Kipchumba Toroitich",
+          "firstName": "Festus",
+          "lastName": "Kipchumba Toroitich",
+          "gender": "Male",
+          "dateOfBirth": "2013-01-12",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Toroitich Kemei",
+          "parentPhone": "+254 721 890 135"
+        },
+        {
+          "id": "std-ngon-036",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/036",
+          "upi": "UPI-2026-NGON-036",
+          "name": "Nelly Jepkemboi Kibiwot",
+          "firstName": "Nelly",
+          "lastName": "Jepkemboi Kibiwot",
+          "gender": "Female",
+          "dateOfBirth": "2013-06-18",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Kibiwot Tarus",
+          "parentPhone": "+254 721 890 136"
+        },
+        {
+          "id": "std-ngon-037",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/037",
+          "upi": "UPI-2026-NGON-037",
+          "name": "Daniel Kipkosgei Sambu",
+          "firstName": "Daniel",
+          "lastName": "Kipkosgei Sambu",
+          "gender": "Male",
+          "dateOfBirth": "2013-10-09",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Sambu Chemweno",
+          "parentPhone": "+254 721 890 137"
+        },
+        {
+          "id": "std-ngon-038",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/038",
+          "upi": "UPI-2026-NGON-038",
+          "name": "Naomi Cherop Cheserek",
+          "firstName": "Naomi",
+          "lastName": "Cherop Cheserek",
+          "gender": "Female",
+          "dateOfBirth": "2013-04-03",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Cheserek Too",
+          "parentPhone": "+254 721 890 138"
+        },
+        {
+          "id": "std-ngon-039",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/039",
+          "upi": "UPI-2026-NGON-039",
+          "name": "Evans Kiprop Bartai",
+          "firstName": "Evans",
+          "lastName": "Kiprop Bartai",
+          "gender": "Male",
+          "dateOfBirth": "2013-08-21",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Bartai Sang",
+          "parentPhone": "+254 721 890 139"
+        },
+        {
+          "id": "std-ngon-040",
+          "schoolId": "sch-ngonyek-1404",
+          "admNo": "NGON/2026/040",
+          "upi": "UPI-2026-NGON-040",
+          "name": "Judith Jepkoech Komen",
+          "firstName": "Judith",
+          "lastName": "Jepkoech Komen",
+          "gender": "Female",
+          "dateOfBirth": "2013-12-30",
+          "grade": "Grade 7",
+          "classArm": "Grade 7 North",
+          "stream": "North",
+          "enrollmentDate": "2026-01-08",
+          "status": "Active",
+          "term": "Term 1",
+          "year": 2026,
+          "avgScore": null,
+          "overallGrade": "-",
+          "position": "-",
+          "streamPosition": "-",
+          "gradePosition": "-",
+          "streamRank": null,
+          "gradeRank": null,
+          "attendance": 98,
+          "subjects": [
+            {
+              "subject": "Mathematics",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "English Language",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Kiswahili Lugha",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Integrated Science",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Pretechnical Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Social Studies",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "CRE",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Agriculture",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            },
+            {
+              "subject": "Creative Arts & Sports",
+              "score": null,
+              "grade": "-",
+              "remarks": "Not Assessed / Pending Marks"
+            }
+          ],
+          "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
+          "classTeacherName": "Vivian Lumayo",
+          "headOfSchoolName": "Jotham Watila",
+          "headTeacherComment": "Formally admitted to Ngonyek Junior School Grade 7 North. Welcome to the institution.",
+          "nextTermDate": "2026-05-04",
+          "parentName": "Komen Chesire",
+          "parentPhone": "+254 721 890 140"
+        }
+      ],
+      "teachers": [
+        {
+          "id": "tch-ngon-01",
+          "schoolId": "sch-ngonyek-1404",
+          "name": "Vivian Lumayo",
+          "email": "vivian.lumayo@ngonyek.sc.ke",
+          "phoneNumber": "+254 722 341 001",
+          "role": "Class Teacher",
+          "designation": "Class Teacher",
+          "department": "Mathematics & Technical",
+          "employmentStatus": "Permanent & Pensionable",
+          "employeeNumber": "TSC-421901",
+          "tscNumber": "TSC-421901",
+          "staffNumber": "NJSS-STF-001",
+          "avatarHex": "#047857",
+          "isClassTeacher": true,
+          "assignedClass": "Grade 7 North",
+          "classes": [
+            "Grade 7 North"
+          ],
+          "subjects": [
+            "Mathematics",
+            "Pretechnical Studies"
+          ],
+          "allocations": [
+            {
+              "className": "Grade 7 North",
+              "subjects": [
+                "Mathematics",
+                "Pretechnical Studies"
+              ]
+            }
+          ],
+          "active": true,
+          "accountStatus": "APPROVED"
+        },
+        {
+          "id": "tch-ngon-02",
+          "schoolId": "sch-ngonyek-1404",
+          "name": "Agness Waswa",
+          "email": "agness.waswa@ngonyek.sc.ke",
+          "phoneNumber": "+254 722 341 002",
+          "role": "TEACHER",
+          "designation": "Subject Teacher",
+          "department": "Languages",
+          "employmentStatus": "Permanent & Pensionable",
+          "employeeNumber": "TSC-384721",
+          "tscNumber": "TSC-384721",
+          "staffNumber": "NJSS-STF-002",
+          "avatarHex": "#7C3AED",
+          "isClassTeacher": false,
+          "classes": [
+            "Grade 7 North"
+          ],
+          "subjects": [
+            "English Language",
+            "Creative Arts & Sports"
+          ],
+          "allocations": [
+            {
+              "className": "Grade 7 North",
+              "subjects": [
+                "English Language",
+                "Creative Arts & Sports"
+              ]
+            }
+          ],
+          "active": true,
+          "accountStatus": "APPROVED"
+        },
+        {
+          "id": "tch-ngon-03",
+          "schoolId": "sch-ngonyek-1404",
+          "name": "Brenda Mwanjala",
+          "email": "brenda.mwanjala@ngonyek.sc.ke",
+          "phoneNumber": "+254 722 341 003",
+          "role": "TEACHER",
+          "designation": "Subject Teacher",
+          "department": "Humanities & Languages",
+          "employmentStatus": "Permanent & Pensionable",
+          "employeeNumber": "TSC-459203",
+          "tscNumber": "TSC-459203",
+          "staffNumber": "NJSS-STF-003",
+          "avatarHex": "#B45309",
+          "isClassTeacher": false,
+          "classes": [
+            "Grade 7 North"
+          ],
+          "subjects": [
+            "Kiswahili Lugha",
+            "Social Studies"
+          ],
+          "allocations": [
+            {
+              "className": "Grade 7 North",
+              "subjects": [
+                "Kiswahili Lugha",
+                "Social Studies"
+              ]
+            }
+          ],
+          "active": true,
+          "accountStatus": "APPROVED"
+        },
+        {
+          "id": "tch-ngon-04",
+          "schoolId": "sch-ngonyek-1404",
+          "name": "Brian Onyancha",
+          "email": "brian.onyancha@ngonyek.sc.ke",
+          "phoneNumber": "+254 722 341 004",
+          "role": "TEACHER",
+          "designation": "Subject Teacher",
+          "department": "Sciences & Agriculture",
+          "employmentStatus": "Permanent & Pensionable",
+          "employeeNumber": "TSC-512044",
+          "tscNumber": "TSC-512044",
+          "staffNumber": "NJSS-STF-004",
+          "avatarHex": "#0284C7",
+          "isClassTeacher": false,
+          "classes": [
+            "Grade 7 North"
+          ],
+          "subjects": [
+            "Integrated Science",
+            "Agriculture"
+          ],
+          "allocations": [
+            {
+              "className": "Grade 7 North",
+              "subjects": [
+                "Integrated Science",
+                "Agriculture"
+              ]
+            }
+          ],
+          "active": true,
+          "accountStatus": "APPROVED"
+        },
+        {
+          "id": "tch-ngon-05",
+          "schoolId": "sch-ngonyek-1404",
+          "name": "Joyce Kamar",
+          "email": "joyce.kamar@ngonyek.sc.ke",
+          "phoneNumber": "+254 722 341 005",
+          "role": "TEACHER",
+          "designation": "Subject Teacher",
+          "department": "Religious Studies & Humanities",
+          "employmentStatus": "Permanent & Pensionable",
+          "employeeNumber": "TSC-498115",
+          "tscNumber": "TSC-498115",
+          "staffNumber": "NJSS-STF-005",
+          "avatarHex": "#BE185D",
+          "isClassTeacher": false,
+          "classes": [
+            "Grade 7 North"
+          ],
+          "subjects": [
+            "CRE",
+            "Creative Arts & Sports"
+          ],
+          "allocations": [
+            {
+              "className": "Grade 7 North",
+              "subjects": [
+                "CRE",
+                "Creative Arts & Sports"
+              ]
+            }
+          ],
+          "active": true,
+          "accountStatus": "APPROVED"
+        },
+        {
+          "id": "tch-ngon-06",
+          "schoolId": "sch-ngonyek-1404",
+          "name": "Jotham Watila",
+          "email": "head@ngonyek.sc.ke",
+          "phoneNumber": "+254 741 478 813",
+          "role": "HEAD_TEACHER",
+          "designation": "Head of Institution",
+          "department": "Administration & Applied Sciences",
+          "employmentStatus": "Permanent & Pensionable",
+          "employeeNumber": "TSC-299991",
+          "tscNumber": "TSC-299991",
+          "staffNumber": "NJSS-STF-006",
+          "avatarHex": "#1E3A8A",
+          "isClassTeacher": false,
+          "classes": [
+            "Grade 7 North"
+          ],
+          "subjects": [
+            "Pretechnical Studies"
+          ],
+          "allocations": [
+            {
+              "className": "Grade 7 North",
+              "subjects": [
+                "Pretechnical Studies"
+              ]
+            }
+          ],
+          "active": true,
+          "accountStatus": "APPROVED"
+        }
+      ],
+      "assessments": [
+        {
+          "id": "ass-ngon-cat1",
+          "schoolId": "sch-ngonyek-1404",
+          "name": "Grade 7 North Mathematics Continuous Assessment Test 1",
+          "className": "Grade 7 North",
+          "subject": "Mathematics",
+          "totalMarks": 30,
+          "term": "Term 1",
+          "date": "2026-03-24"
+        }
+      ],
       "grades": [],
       "timetables": [],
-      "classes": [],
-      "attendanceRegisters": [],
+      "classes": [
+        "Grade 7 North"
+      ],
+      "academicStreams": [
+        {
+          "id": "strm-ngon-7-north",
+          "schoolId": "sch-ngonyek-1404",
+          "streamName": "North",
+          "gradeName": "Grade 7",
+          "fullClassName": "Grade 7 North",
+          "capacity": 45,
+          "currentEnrollment": 40,
+          "classTeacherId": "tch-ngon-01",
+          "classTeacherName": "Vivian Lumayo",
+          "assignedRoom": "Junior Secondary Room 7N",
+          "academicYear": 2026,
+          "isActive": true
+        }
+      ],
+      "attendanceRegisters": [
+        {
+          "id": "att-ngon-001",
+          "schoolId": "sch-ngonyek-1404",
+          "className": "Grade 7 North",
+          "grade": "Grade 7",
+          "stream": "North",
+          "date": "2026-03-20",
+          "academicYear": 2026,
+          "term": "Term 1",
+          "isLocked": false,
+          "entries": [
+            {
+              "studentId": "std-ngon-001",
+              "admNo": "NGON/2026/001",
+              "studentName": "Brian Kipchumba Bett",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-002",
+              "admNo": "NGON/2026/002",
+              "studentName": "Faith Jepkemoi Cheruiyot",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-003",
+              "admNo": "NGON/2026/003",
+              "studentName": "Kevin Kiprotich Kiptoo",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-004",
+              "admNo": "NGON/2026/004",
+              "studentName": "Mercy Chepkoech Mutai",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-005",
+              "admNo": "NGON/2026/005",
+              "studentName": "Dennis Kipkorir Tanui",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-006",
+              "admNo": "NGON/2026/006",
+              "studentName": "Brenda Cherono Langat",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-007",
+              "admNo": "NGON/2026/007",
+              "studentName": "Collins Kiprop Koech",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-008",
+              "admNo": "NGON/2026/008",
+              "studentName": "Vivian Jeruto Kimutai",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-009",
+              "admNo": "NGON/2026/009",
+              "studentName": "Emmanuel Kiplagat Bowen",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-010",
+              "admNo": "NGON/2026/010",
+              "studentName": "Sharon Jepchumba Biwott",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-011",
+              "admNo": "NGON/2026/011",
+              "studentName": "Allan Kipkemboi Korir",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-012",
+              "admNo": "NGON/2026/012",
+              "studentName": "Cynthia Chebet Rutto",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-013",
+              "admNo": "NGON/2026/013",
+              "studentName": "Victor Kipkosgei Lagat",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-014",
+              "admNo": "NGON/2026/014",
+              "studentName": "Beatrice Jepkorir Suter",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-015",
+              "admNo": "NGON/2026/015",
+              "studentName": "Titus Kipngetich Maiyo",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-016",
+              "admNo": "NGON/2026/016",
+              "studentName": "Gloria Chepkemoi Kurgat",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-017",
+              "admNo": "NGON/2026/017",
+              "studentName": "Felix Kiptoo Kemei",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-018",
+              "admNo": "NGON/2026/018",
+              "studentName": "Purity Jerotich Rotich",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-019",
+              "admNo": "NGON/2026/019",
+              "studentName": "Gideon Kiprono Yego",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-020",
+              "admNo": "NGON/2026/020",
+              "studentName": "Daisy Cheptoo Chemweno",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-021",
+              "admNo": "NGON/2026/021",
+              "studentName": "Kelvin Kipchirchir Tarus",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-022",
+              "admNo": "NGON/2026/022",
+              "studentName": "Joyline Jeptepkeny Sang",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-023",
+              "admNo": "NGON/2026/023",
+              "studentName": "Meshack Kipchumba Chesire",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-024",
+              "admNo": "NGON/2026/024",
+              "studentName": "Ruth Cherotich Chelimo",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-025",
+              "admNo": "NGON/2026/025",
+              "studentName": "Ian Kipkoech Too",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-026",
+              "admNo": "NGON/2026/026",
+              "studentName": "Millicent Chepngeno Bii",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-027",
+              "admNo": "NGON/2026/027",
+              "studentName": "Brian Kibet Kendagor",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-028",
+              "admNo": "NGON/2026/028",
+              "studentName": "Diana Jepchumba Kiprono",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-029",
+              "admNo": "NGON/2026/029",
+              "studentName": "Caleb Kipruto Serem",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-030",
+              "admNo": "NGON/2026/030",
+              "studentName": "Fancy Chebet Kipkemoi",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-031",
+              "admNo": "NGON/2026/031",
+              "studentName": "Alex Kiprotich Keter",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-032",
+              "admNo": "NGON/2026/032",
+              "studentName": "Prudence Jerono Kosgei",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-033",
+              "admNo": "NGON/2026/033",
+              "studentName": "Silas Kiplimo Kaino",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-034",
+              "admNo": "NGON/2026/034",
+              "studentName": "Sheila Chepkirui Bett",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-035",
+              "admNo": "NGON/2026/035",
+              "studentName": "Festus Kipchumba Toroitich",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-036",
+              "admNo": "NGON/2026/036",
+              "studentName": "Nelly Jepkemboi Kibiwot",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-037",
+              "admNo": "NGON/2026/037",
+              "studentName": "Daniel Kipkosgei Sambu",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-038",
+              "admNo": "NGON/2026/038",
+              "studentName": "Naomi Cherop Cheserek",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-039",
+              "admNo": "NGON/2026/039",
+              "studentName": "Evans Kiprop Bartai",
+              "gender": "Male",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            },
+            {
+              "studentId": "std-ngon-040",
+              "admNo": "NGON/2026/040",
+              "studentName": "Judith Jepkoech Komen",
+              "gender": "Female",
+              "status": "Present",
+              "recordedBy": "Mr. Peter Kiprop Cherono",
+              "recordedAt": "2026-03-20T08:00:00Z"
+            }
+          ]
+        }
+      ],
       "behaviorRecords": [],
       "disciplineIncidents": [],
       "healthIncidents": [],
@@ -5770,19 +9970,59 @@
       "transfersIn": [],
       "graduations": [],
       "parentCommunications": [],
-      "academicStreams": [],
       "academicSubjects": [],
       "academicYears": [],
       "terms": [],
       "teacherSubjectAllocations": [],
-      "classTeacherAllocations": [],
+      "classTeacherAllocations": [
+        {
+          "id": "cta-ngon-7-north",
+          "streamId": "strm-ngon-7-north",
+          "fullClassName": "Grade 7 North",
+          "primaryClassTeacherId": "tch-ngon-01",
+          "primaryClassTeacherName": "Vivian Lumayo",
+          "assistantClassTeacherId": "tch-ngon-02",
+          "assistantClassTeacherName": "Agness Waswa",
+          "academicYear": 2026,
+          "termNumber": 1,
+          "responsibilities": [
+            "Daily morning attendance roll call sign-off",
+            "Termly student progress card holistic remarks",
+            "Parent-teacher consultation coordination",
+            "Discipline & pastoral care tracking",
+            "Learner welfare and counseling liaison"
+          ],
+          "appointedBy": "Jotham Watila (Head of Institution)",
+          "appointmentDate": "2026-01-08",
+          "status": "ACTIVE"
+        }
+      ],
+      "schoolInfo": {
+        "name": "Ngonyek Junior School",
+        "motto": "Excellence in Competency & Integrity",
+        "address": "P.O. Box 78, Ngonyek",
+        "email": "admin@ngonyek.sc.ke",
+        "phone": "+254 741 478 813",
+        "code": "NGONYEK-30200",
+        "headTeacher": "Jotham Watila",
+        "headOfInstitution": "Jotham Watila",
+        "totalStudents": 40,
+        "totalClasses": 1,
+        "totalAssessments": 1
+      },
+      "schoolProfile": {
+        "schoolName": "Ngonyek Junior School",
+        "motto": "Excellence in Competency & Integrity",
+        "email": "admin@ngonyek.sc.ke",
+        "phone": "+254 741 478 813"
+      },
       "settings": {},
       "auditLogs": [],
-      "lastUpdated": "2026-10-04T09:57:09.336Z"
+      "lastUpdated": "2026-10-02T08:22:13.015Z"
     }
   },
   "deletedTenantIds": [
     "sch-test-trial"
   ],
-  "savedAt": "2026-10-04T09:59:19.344Z"
+  "savedAt": "2026-10-05T13:52:08.680Z"
 }

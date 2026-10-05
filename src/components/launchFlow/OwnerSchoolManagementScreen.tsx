@@ -190,6 +190,7 @@ export const OwnerSchoolManagementScreen: React.FC<OwnerSchoolManagementScreenPr
 
   const handleOnboardTemplate = (template: ReturnType<typeof cleanDeploymentService.getSampleSchoolTemplates>[0]) => {
     const { tenant } = cleanDeploymentService.registerAndOnboardSchoolTenant({
+      schoolId: template.id,
       schoolName: template.schoolName,
       schoolCode: template.schoolCode,
       subdomain: template.subdomain,

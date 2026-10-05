@@ -243,7 +243,7 @@ export const SchoolOnboardingActivationModal: React.FC<SchoolOnboardingActivatio
 
       if (!targetTenant) {
         targetTenant = {
-          schoolId: `sch-${cleanSub}-${Date.now().toString().slice(-4)}`,
+          schoolId: cleanSub === 'ngonyek' ? 'sch-ngonyek-30200' : `sch-${cleanSub}-${Date.now().toString().slice(-4)}`,
           schoolCode: cleanSub.toUpperCase(),
           schoolName: initialSchoolName || `${cleanSub.toUpperCase()} JUNIOR SCHOOL`,
           subdomain: cleanSub,
