@@ -601,10 +601,15 @@ export const TeachersScreen: React.FC<TeachersScreenProps> = ({
                         <div className="text-xs text-slate-600 space-y-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <p className="font-semibold text-slate-800 truncate">{t.role}</p>
-                            {(t.isClassTeacher || t.designation === 'Class Teacher' || t.assignedClass) && (
+                            {(t.isClassTeacher || t.designation === 'Class Teacher' || t.assignedClass) ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold border border-indigo-200">
                                 <UserCheck className="w-3 h-3 text-indigo-600" />
                                 Class Teacher: {t.assignedClass || t.classes?.[0] || 'Assigned Class'}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-medium border border-slate-200">
+                                <BookOpen className="w-3 h-3 text-slate-500" />
+                                Not a Class Teacher (Subject Teacher)
                               </span>
                             )}
                           </div>

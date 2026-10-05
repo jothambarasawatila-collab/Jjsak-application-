@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Search,
   Download,
+  BookOpen,
 } from 'lucide-react';
 import { Teacher } from '../../types';
 
@@ -166,11 +167,18 @@ export const StaffRegistersView: React.FC<StaffRegistersViewProps> = ({
                         <div className="text-[11px] font-mono text-slate-500">
                           {t.staffNumber || t.employeeNumber || 'STF'}
                         </div>
-                        {(t.isClassTeacher || t.designation === 'Class Teacher' || t.assignedClass) && (
+                        {(t.isClassTeacher || t.designation === 'Class Teacher' || t.assignedClass) ? (
                           <div className="mt-1">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold border border-indigo-200">
                               <CheckCircle2 className="w-3 h-3 text-indigo-600" />
                               Class Teacher: {t.assignedClass || t.classes?.[0] || 'Assigned Class'}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-medium border border-slate-200">
+                              <BookOpen className="w-3 h-3 text-slate-500" />
+                              Subject Teacher Only (Not Class Teacher)
                             </span>
                           </div>
                         )}
@@ -296,9 +304,13 @@ export const StaffRegistersView: React.FC<StaffRegistersViewProps> = ({
                     <tr key={t.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-bold text-slate-900">
                         <div>{t.name}</div>
-                        {(t.isClassTeacher || t.designation === 'Class Teacher' || t.assignedClass) && (
+                        {(t.isClassTeacher || t.designation === 'Class Teacher' || t.assignedClass) ? (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200 mt-0.5">
                             CT: {t.assignedClass || t.classes?.[0]}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium border border-slate-200 mt-0.5">
+                            Not Class Teacher
                           </span>
                         )}
                       </td>

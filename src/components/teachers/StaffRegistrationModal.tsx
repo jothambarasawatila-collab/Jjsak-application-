@@ -28,6 +28,7 @@ import {
   KeyRound,
   ExternalLink,
   UserCheck,
+  BookOpen,
 } from 'lucide-react';
 import {
   Teacher,
@@ -1268,37 +1269,102 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
                 </div>
               </div>
 
-              {/* Class Teacher & Assigned Class Control (Step 1 Quick Access) */}
-              <div className="p-4 bg-indigo-50/90 border border-indigo-200 rounded-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-indigo-950 uppercase tracking-wider block flex items-center gap-1.5">
-                      <UserCheck className="w-4 h-4 text-indigo-600" />
-                      Class Teacher Role &amp; Assigned Class / Stream
-                    </span>
-                    <p className="text-xs text-indigo-700 mt-0.5">
-                      Check if this staff member is appointed as a Class Teacher in charge of a specific stream.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isClassTeacher}
-                      onChange={(e) => {
-                        const val = e.target.checked;
-                        setIsClassTeacher(val);
-                        if (val && (designation === 'Teacher' || !designation)) {
-                          setDesignation('Class Teacher');
-                        }
-                      }}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              {/* Teacher Appointment Type: Class Teacher vs Subject Teacher (Not Class Teacher) */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block flex items-center gap-1.5">
+                    <UserCheck className="w-4 h-4 text-indigo-600" />
+                    Teacher Appointment &amp; Class Teacher Status <span className="text-red-600">*</span>
                   </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Indicate whether this teacher is appointed as a Class Teacher (with homeroom &amp; stream responsibilities) or exclusively as a Subject Teacher (not a class teacher).
+                  </p>
                 </div>
 
-                {isClassTeacher && (
-                  <div className="pt-3 border-t border-indigo-200 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* Option A: Subject Teacher (Not a Class Teacher) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsClassTeacher(false);
+                      setAssignedClass('');
+                      if (designation === 'Class Teacher') {
+                        setDesignation('Subject Teacher');
+                      }
+                    }}
+                    className={`text-left p-3.5 rounded-xl border-2 transition-all flex items-start gap-3 cursor-pointer ${
+                      !isClassTeacher
+                        ? 'border-blue-600 bg-blue-50/70 shadow-xs'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                      !isClassTeacher ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-bold ${!isClassTeacher ? 'text-blue-950' : 'text-slate-800'}`}>
+                          Not a Class Teacher
+                        </span>
+                        {!isClassTeacher && (
+                          <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-semibold text-blue-700 block mt-0.5">
+                        Subject Teacher Only
+                      </span>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                        Teaches assigned subjects across classes. Does not handle homeroom roll call, attendance register sign-offs, or stream pastoral care.
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Option B: Class Teacher */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsClassTeacher(true);
+                      if (designation === 'Teacher' || designation === 'Subject Teacher' || !designation) {
+                        setDesignation('Class Teacher');
+                      }
+                      if (!assignedClass && classesList.length > 0) {
+                        setAssignedClass(classesList[0]);
+                      }
+                    }}
+                    className={`text-left p-3.5 rounded-xl border-2 transition-all flex items-start gap-3 cursor-pointer ${
+                      isClassTeacher
+                        ? 'border-indigo-600 bg-indigo-50/70 shadow-xs'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                      isClassTeacher ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      <UserCheck className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-bold ${isClassTeacher ? 'text-indigo-950' : 'text-slate-800'}`}>
+                          Class Teacher
+                        </span>
+                        {isClassTeacher && (
+                          <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-semibold text-indigo-700 block mt-0.5">
+                        Assigned to Specific Stream
+                      </span>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                        Designated homeroom tutor with authority over morning roll call attendance, termly holistic report remarks, and learner welfare.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                {isClassTeacher ? (
+                  <div className="pt-3 border-t border-indigo-200 bg-indigo-50/60 p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1">
                       <label className="block text-xs font-bold text-indigo-950 uppercase tracking-wider mb-1">
                         Assigned Class / Stream <span className="text-red-600">*</span>
@@ -1323,8 +1389,15 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
                       </select>
                     </div>
                     <div className="sm:w-72 text-xs text-indigo-900 bg-white/90 p-2.5 rounded-lg border border-indigo-200">
-                      <span className="font-bold">Assigned Class:</span> Designated as Class Teacher for <strong className="text-indigo-700">{assignedClass}</strong>.
+                      <span className="font-bold">Stream Responsibility:</span> Designated as Class Teacher for <strong className="text-indigo-700">{assignedClass || classesList[0] || 'Assigned Stream'}</strong>.
                     </div>
+                  </div>
+                ) : (
+                  <div className="pt-2 px-3.5 py-2.5 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>
+                      Confirmed: <strong>{fullName || 'This teacher'}</strong> is registered as a <strong>Subject Teacher (Not a Class Teacher)</strong>. You can allocate teaching subjects in Step 3.
+                    </span>
                   </div>
                 )}
               </div>

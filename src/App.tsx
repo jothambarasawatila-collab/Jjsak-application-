@@ -1502,10 +1502,14 @@ export function App() {
                   localMap.set(sObj.id, sObj);
                 } else {
                   const existing = localMap.get(sObj.id)!;
-                  localMap.set(sObj.id, { ...sObj, ...existing, schoolId: effectiveTenantId });
+                  localMap.set(sObj.id, { ...existing, ...sObj, schoolId: effectiveTenantId });
                 }
               });
-              return [...otherSchools, ...Array.from(localMap.values())];
+              const merged = [...otherSchools, ...Array.from(localMap.values())];
+              try {
+                localStorage.setItem('jjsak_students', JSON.stringify(merged));
+              } catch {}
+              return merged;
             });
           }
           const bundleTeachers = serverBundle.teachers;
@@ -1520,10 +1524,14 @@ export function App() {
                   localMap.set(tObj.id, tObj);
                 } else {
                   const existing = localMap.get(tObj.id)!;
-                  localMap.set(tObj.id, { ...tObj, ...existing, schoolId: effectiveTenantId });
+                  localMap.set(tObj.id, { ...existing, ...tObj, schoolId: effectiveTenantId });
                 }
               });
-              return [...otherSchools, ...Array.from(localMap.values())];
+              const merged = [...otherSchools, ...Array.from(localMap.values())];
+              try {
+                localStorage.setItem('jjsak_teachers', JSON.stringify(merged));
+              } catch {}
+              return merged;
             });
           }
           const bundleAssessments = serverBundle.assessments;
@@ -1538,10 +1546,14 @@ export function App() {
                   localMap.set(aObj.id, aObj);
                 } else {
                   const existing = localMap.get(aObj.id)!;
-                  localMap.set(aObj.id, { ...aObj, ...existing, schoolId: effectiveTenantId });
+                  localMap.set(aObj.id, { ...existing, ...aObj, schoolId: effectiveTenantId });
                 }
               });
-              return [...otherSchools, ...Array.from(localMap.values())];
+              const merged = [...otherSchools, ...Array.from(localMap.values())];
+              try {
+                localStorage.setItem('jjsak_assessments', JSON.stringify(merged));
+              } catch {}
+              return merged;
             });
           }
           const bundleTimetables = serverBundle.timetables;
@@ -2147,9 +2159,25 @@ export function App() {
   };
 
   const handleUpdateStudentsList = (newStudentsList: Student[]) => {
+    const targetSchoolId = effectiveTenantId;
     const ranked = calculateStudentRankings(newStudentsList);
-    setStudents(ranked);
-    triggerSaveNotification(`✓ Updated learner cohort records`);
+    let allMerged: Student[] = [];
+    setStudents((prev) => {
+      const otherSchools = targetSchoolId ? prev.filter((s) => !isSchoolMatch(s.schoolId, targetSchoolId)) : [];
+      const updatedTenantStudents = ranked.map((s) => ({ ...s, schoolId: s.schoolId || targetSchoolId }));
+      allMerged = [...otherSchools, ...updatedTenantStudents];
+      try {
+        localStorage.setItem('jjsak_students', JSON.stringify(allMerged));
+      } catch {}
+      return allMerged;
+    });
+
+    if (targetSchoolId) {
+      tenantDataSyncService.saveTenantData(targetSchoolId, {
+        students: ranked.filter((s) => isSchoolMatch(s.schoolId, targetSchoolId)),
+      });
+    }
+    triggerSaveNotification(`✓ Updated learner cohort records saved to institutional database`);
   };
 
   // Restore item from Recycle Bin (Code P2.10)
@@ -2350,10 +2378,14 @@ export function App() {
                   localMap.set(sObj.id, sObj);
                 } else {
                   const existing = localMap.get(sObj.id)!;
-                  localMap.set(sObj.id, { ...sObj, ...existing, schoolId: tenant.schoolId });
+                  localMap.set(sObj.id, { ...existing, ...sObj, schoolId: tenant.schoolId });
                 }
               });
-              return [...otherSchools, ...Array.from(localMap.values())];
+              const merged = [...otherSchools, ...Array.from(localMap.values())];
+              try {
+                localStorage.setItem('jjsak_students', JSON.stringify(merged));
+              } catch {}
+              return merged;
             });
           }
           const fTeachers = freshBundle.teachers;
@@ -2368,10 +2400,14 @@ export function App() {
                   localMap.set(tObj.id, tObj);
                 } else {
                   const existing = localMap.get(tObj.id)!;
-                  localMap.set(tObj.id, { ...tObj, ...existing, schoolId: tenant.schoolId });
+                  localMap.set(tObj.id, { ...existing, ...tObj, schoolId: tenant.schoolId });
                 }
               });
-              return [...otherSchools, ...Array.from(localMap.values())];
+              const merged = [...otherSchools, ...Array.from(localMap.values())];
+              try {
+                localStorage.setItem('jjsak_teachers', JSON.stringify(merged));
+              } catch {}
+              return merged;
             });
           }
           const fAssessments = freshBundle.assessments;
@@ -2386,10 +2422,14 @@ export function App() {
                   localMap.set(aObj.id, aObj);
                 } else {
                   const existing = localMap.get(aObj.id)!;
-                  localMap.set(aObj.id, { ...aObj, ...existing, schoolId: tenant.schoolId });
+                  localMap.set(aObj.id, { ...existing, ...aObj, schoolId: tenant.schoolId });
                 }
               });
-              return [...otherSchools, ...Array.from(localMap.values())];
+              const merged = [...otherSchools, ...Array.from(localMap.values())];
+              try {
+                localStorage.setItem('jjsak_assessments', JSON.stringify(merged));
+              } catch {}
+              return merged;
             });
           }
           const fTimetables = freshBundle.timetables;
@@ -2818,16 +2858,49 @@ export function App() {
       ...newAss,
       schoolId: targetSchoolId,
     };
-    setAssessments((prev) => [finalAssessment, ...prev]);
+    setAssessments((prev) => {
+      const nextList = [finalAssessment, ...prev];
+      try {
+        localStorage.setItem('jjsak_assessments', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
     setSchoolInfo((prev) => ({
       ...prev,
       totalAssessments: prev.totalAssessments + 1,
     }));
     if (targetSchoolId) {
+      tenantDataSyncService.saveAssessmentMarks(targetSchoolId, finalAssessment);
       tenantDataSyncService.saveTenantData(targetSchoolId, {
         assessments: [finalAssessment, ...assessments],
       });
       triggerSaveNotification(`✓ Assessment "${finalAssessment.name}" saved to institutional database`);
+    }
+  };
+
+  const handleUpdateAssessment = (updatedAss: Assessment) => {
+    const targetSchoolId = updatedAss.schoolId || effectiveTenantId;
+    const safeAss: Assessment = { ...updatedAss, schoolId: targetSchoolId };
+    let finalAssessments: Assessment[] = [];
+    setAssessments((prev) => {
+      const exists = prev.some((a) => a.id === safeAss.id);
+      if (exists) {
+        finalAssessments = prev.map((a) => (a.id === safeAss.id ? safeAss : a));
+      } else {
+        finalAssessments = [safeAss, ...prev];
+      }
+      try {
+        localStorage.setItem('jjsak_assessments', JSON.stringify(finalAssessments));
+      } catch {}
+      return finalAssessments;
+    });
+
+    if (targetSchoolId) {
+      tenantDataSyncService.saveAssessmentMarks(targetSchoolId, safeAss);
+      tenantDataSyncService.saveTenantData(targetSchoolId, {
+        assessments: finalAssessments.filter((a) => isSchoolMatch(a.schoolId, targetSchoolId)),
+      });
+      triggerSaveNotification(`✓ Assessment "${safeAss.name}" saved to institutional database`);
     }
   };
 
@@ -3215,8 +3288,8 @@ export function App() {
           if (s.fullClassName === finalTeacher.assignedClass || s.gradeName + ' ' + s.streamName === finalTeacher.assignedClass) {
             return {
               ...s,
-              classTeacherId: finalTeacher.id,
               classTeacherName: finalTeacher.name,
+              classTeacherStaffId: finalTeacher.staffNumber || finalTeacher.id,
             };
           }
           return s;
@@ -3295,6 +3368,38 @@ export function App() {
       tenantDataSyncService.saveTenantData(targetSchoolId, {
         teachers: updatedTeachersList.filter((t) => isSchoolMatch(t.schoolId, targetSchoolId)),
       });
+
+      if (finalTeacher.isClassTeacher && finalTeacher.assignedClass) {
+        setAcademicStreams((prev) => {
+          const updated = prev.map((s) => {
+            if (s.fullClassName === finalTeacher.assignedClass || s.gradeName + ' ' + s.streamName === finalTeacher.assignedClass) {
+              return {
+                ...s,
+                classTeacherName: finalTeacher.name,
+                classTeacherStaffId: finalTeacher.staffNumber || finalTeacher.id,
+              };
+            }
+            return s;
+          });
+          tenantDataSyncService.saveTenantData(targetSchoolId, { academicStreams: updated });
+          return updated;
+        });
+      } else if (!finalTeacher.isClassTeacher) {
+        setAcademicStreams((prev) => {
+          const updated = prev.map((s) => {
+            if (s.classTeacherStaffId === (finalTeacher.staffNumber || finalTeacher.id) || s.classTeacherName === finalTeacher.name) {
+              return {
+                ...s,
+                classTeacherName: '',
+                classTeacherStaffId: '',
+              };
+            }
+            return s;
+          });
+          tenantDataSyncService.saveTenantData(targetSchoolId, { academicStreams: updated });
+          return updated;
+        });
+      }
     }
 
     // Sync status and credentials to IAM user database
@@ -4238,11 +4343,7 @@ export function App() {
               onUpdateStudent={handleUpdateStudent}
               onBatchUpdateStudents={handleBatchUpdateStudents}
               onUpdateStudentsList={handleUpdateStudentsList}
-              onUpdateAssessment={(updatedAss: Assessment) => {
-                setAssessments((prev) =>
-                  prev.map((a) => (a.id === updatedAss.id ? updatedAss : a))
-                );
-              }}
+              onUpdateAssessment={handleUpdateAssessment}
               onAddDeadline={handleAddDeadline}
               onUpdateDeadline={handleUpdateDeadline}
               onSendNotification={handleSendNotification}
@@ -4720,13 +4821,24 @@ export function App() {
         onAddStudent={handleAddStudent}
         onUpdateStudent={handleUpdateStudent}
         onUpdateStudentsAttendance={(updates) => {
-          setStudents((prev) =>
-            prev.map((s) => {
+          let updatedList: Student[] = [];
+          setStudents((prev) => {
+            const mapped = prev.map((s) => {
               const match = updates.find((u) => u.id === s.id);
               return match ? { ...s, attendance: match.attendance } : s;
-            })
-          );
-          triggerSaveNotification('✓ Attendance registers saved for all learners');
+            });
+            updatedList = mapped;
+            try {
+              localStorage.setItem('jjsak_students', JSON.stringify(mapped));
+            } catch {}
+            return mapped;
+          });
+          if (effectiveTenantId) {
+            tenantDataSyncService.saveTenantData(effectiveTenantId, {
+              students: updatedList.filter((s) => isSchoolMatch(s.schoolId, effectiveTenantId)),
+            });
+          }
+          triggerSaveNotification('✓ Attendance registers saved for all learners in database');
         }}
         onOpenMarksEntryModal={(teacherId: string, className: string, subject: string) => {
           setIsDataEntryHubOpen(false);
