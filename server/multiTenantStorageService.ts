@@ -1359,13 +1359,62 @@ class MultiTenantStorageService {
   public saveTenantData(tenantId: string, partialData: Partial<ServerTenantDataBundle>): ServerTenantDataBundle {
     const current = this.getTenantData(tenantId);
 
-    // Safeguard Ngonyek: Prevent stale clients from replacing the 40 registered Grade 7 North learners with old test records
-    if ((tenantId === 'sch-ngonyek-30200' || tenantId.includes('ngonyek')) && partialData.students && partialData.students.length < 40) {
-      const currentIds = new Set((current.students || []).map((s: any) => s.id));
-      const newAdditions = partialData.students.filter(
-        (s: any) => !currentIds.has(s.id) && s.id !== 'std-ngon-001' && s.id !== 'std-ngon-002'
-      );
-      partialData.students = [...(current.students || []), ...newAdditions];
+    // Intelligent merge by ID to ensure marks entry, teacher allocations, and learner registrations are never lost
+    if (partialData.students && Array.isArray(partialData.students)) {
+      const currentStudents = Array.isArray(current.students) ? current.students : [];
+      if (currentStudents.length > 0 && partialData.students.length < currentStudents.length) {
+        const partialMap = new Map(partialData.students.map((s: any) => [s.id, s]));
+        const mergedList = currentStudents.map((cs: any) => {
+          if (partialMap.has(cs.id)) {
+            const up = partialMap.get(cs.id);
+            partialMap.delete(cs.id);
+            return { ...cs, ...up, schoolId: tenantId };
+          }
+          return cs;
+        });
+        partialMap.forEach((newS: any) => {
+          mergedList.push({ ...newS, schoolId: tenantId });
+        });
+        partialData.students = mergedList;
+      }
+    }
+
+    if (partialData.teachers && Array.isArray(partialData.teachers)) {
+      const currentTeachers = Array.isArray(current.teachers) ? current.teachers : [];
+      if (currentTeachers.length > 0 && partialData.teachers.length < currentTeachers.length) {
+        const partialMap = new Map(partialData.teachers.map((t: any) => [t.id, t]));
+        const mergedList = currentTeachers.map((ct: any) => {
+          if (partialMap.has(ct.id)) {
+            const up = partialMap.get(ct.id);
+            partialMap.delete(ct.id);
+            return { ...ct, ...up, schoolId: tenantId };
+          }
+          return ct;
+        });
+        partialMap.forEach((newT: any) => {
+          mergedList.push({ ...newT, schoolId: tenantId });
+        });
+        partialData.teachers = mergedList;
+      }
+    }
+
+    if (partialData.assessments && Array.isArray(partialData.assessments)) {
+      const currentAssessments = Array.isArray(current.assessments) ? current.assessments : [];
+      if (currentAssessments.length > 0 && partialData.assessments.length < currentAssessments.length) {
+        const partialMap = new Map(partialData.assessments.map((a: any) => [a.id, a]));
+        const mergedList = currentAssessments.map((ca: any) => {
+          if (partialMap.has(ca.id)) {
+            const up = partialMap.get(ca.id);
+            partialMap.delete(ca.id);
+            return { ...ca, ...up, schoolId: tenantId };
+          }
+          return ca;
+        });
+        partialMap.forEach((newA: any) => {
+          mergedList.push({ ...newA, schoolId: tenantId });
+        });
+        partialData.assessments = mergedList;
+      }
     }
 
     // Safeguard Ngonyek: Prevent teachers list from collapsing below 6 and filter out old mock names
@@ -1429,9 +1478,20 @@ class MultiTenantStorageService {
       assessments.unshift(safeAssessment);
     }
 
-    let finalStudents = bundle.students || [];
+    let finalStudents = Array.isArray(bundle.students) ? [...bundle.students] : [];
     if (Array.isArray(updatedStudents) && updatedStudents.length > 0) {
-      finalStudents = updatedStudents.map((s) => ({ ...s, schoolId: s.schoolId || tenantId }));
+      const updatedMap = new Map(updatedStudents.map((s) => [s.id, s]));
+      finalStudents = finalStudents.map((existing: any) => {
+        if (updatedMap.has(existing.id)) {
+          const up = updatedMap.get(existing.id);
+          updatedMap.delete(existing.id);
+          return { ...existing, ...up, schoolId: tenantId };
+        }
+        return existing;
+      });
+      updatedMap.forEach((newS: any) => {
+        finalStudents.push({ ...newS, schoolId: tenantId });
+      });
     }
 
     this.saveTenantData(tenantId, {

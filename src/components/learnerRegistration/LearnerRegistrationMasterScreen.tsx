@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   UserPlus,
   User,
@@ -45,8 +45,22 @@ export type Phase9SubTab =
 export const LearnerRegistrationMasterScreen: React.FC<
   LearnerRegistrationMasterScreenProps
 > = ({ onLogAudit }) => {
-  const [dossiers, setDossiers] =
-    useState<LearnerMasterDossier[]>(MOCK_LEARNER_DOSSIERS);
+  const [dossiers, setDossiers] = useState<LearnerMasterDossier[]>(() => {
+    try {
+      const saved = localStorage.getItem('jjsak_learner_dossiers');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return MOCK_LEARNER_DOSSIERS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('jjsak_learner_dossiers', JSON.stringify(dossiers));
+    } catch {}
+  }, [dossiers]);
   const [admissionConfig, setAdmissionConfig] =
     useState<AdmissionNumberGenerationConfig>(INITIAL_ADMISSION_CONFIG);
   const [selectedDossierId, setSelectedDossierId] = useState<string>(

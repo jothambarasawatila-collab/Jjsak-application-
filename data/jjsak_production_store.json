@@ -1542,7 +1542,7 @@
       },
       "settings": {},
       "auditLogs": [],
-      "lastUpdated": "2026-10-05T13:52:08.680Z"
+      "lastUpdated": "2026-10-05T14:03:23.658Z"
     },
     "sch-ngonyek-30200": {
       "tenantId": "sch-ngonyek-30200",
@@ -1575,57 +1575,9 @@
           "subjects": [
             {
               "subject": "Mathematics",
-              "score": null,
-              "grade": "-",
-              "remarks": "Not Assessed / Pending Marks"
-            },
-            {
-              "subject": "English Language",
-              "score": null,
-              "grade": "-",
-              "remarks": "Not Assessed / Pending Marks"
-            },
-            {
-              "subject": "Kiswahili Lugha",
-              "score": null,
-              "grade": "-",
-              "remarks": "Not Assessed / Pending Marks"
-            },
-            {
-              "subject": "Integrated Science",
-              "score": null,
-              "grade": "-",
-              "remarks": "Not Assessed / Pending Marks"
-            },
-            {
-              "subject": "Pretechnical Studies",
-              "score": null,
-              "grade": "-",
-              "remarks": "Not Assessed / Pending Marks"
-            },
-            {
-              "subject": "Social Studies",
-              "score": null,
-              "grade": "-",
-              "remarks": "Not Assessed / Pending Marks"
-            },
-            {
-              "subject": "CRE",
-              "score": null,
-              "grade": "-",
-              "remarks": "Not Assessed / Pending Marks"
-            },
-            {
-              "subject": "Agriculture",
-              "score": null,
-              "grade": "-",
-              "remarks": "Not Assessed / Pending Marks"
-            },
-            {
-              "subject": "Creative Arts & Sports",
-              "score": null,
-              "grade": "-",
-              "remarks": "Not Assessed / Pending Marks"
+              "score": 95,
+              "grade": "EE",
+              "remarks": "Exceeding Expectations"
             }
           ],
           "classTeacherComment": "Enrolled in Grade 7 North. Continuous and summative assessment marks pending entry.",
@@ -5317,12 +5269,11 @@
         {
           "id": "ass-ngon-cat1",
           "schoolId": "sch-ngonyek-30200",
-          "name": "Grade 7 North Mathematics Continuous Assessment Test 1",
+          "name": "Grade 7 North Mathematics CAT 1",
           "className": "Grade 7 North",
           "subject": "Mathematics",
           "totalMarks": 30,
-          "term": "Term 1",
-          "date": "2026-03-24"
+          "term": "Term 1"
         }
       ],
       "grades": [],
@@ -5780,7 +5731,7 @@
       },
       "settings": {},
       "auditLogs": [],
-      "lastUpdated": "2026-10-02T08:22:13.015Z"
+      "lastUpdated": "2026-10-05T14:03:19.231Z"
     },
     "sch-ngonyek-1404": {
       "tenantId": "sch-ngonyek-1404",
@@ -10024,5 +9975,5 @@
   "deletedTenantIds": [
     "sch-test-trial"
   ],
-  "savedAt": "2026-10-05T13:52:08.680Z"
+  "savedAt": "2026-10-05T14:03:23.658Z"
 }

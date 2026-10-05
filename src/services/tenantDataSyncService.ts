@@ -549,15 +549,61 @@ class TenantDataSyncService {
     // 1. Immediately update local scoped cache
     const current = this.getCachedTenantData(tenantId) || { tenantId };
 
-    // Prevent overwriting 40 Grade 7 North students if stale array sent
-    if ((tenantId === 'sch-ngonyek-30200' || tenantId.includes('ngonyek')) && partialBundle.students && partialBundle.students.length < 40) {
+    // Intelligent merge by ID to ensure marks entry, teacher allocations, and learner registrations are never lost
+    if (partialBundle.students && Array.isArray(partialBundle.students)) {
       const currentStudents = (current as any).students || [];
-      if (currentStudents.length >= 40) {
-        const currentIds = new Set(currentStudents.map((s: any) => s.id));
-        const newAdditions = partialBundle.students.filter(
-          (s: any) => !currentIds.has(s.id) && s.id !== 'std-ngon-001' && s.id !== 'std-ngon-002'
-        );
-        partialBundle.students = [...currentStudents, ...newAdditions];
+      if (currentStudents.length > 0 && partialBundle.students.length < currentStudents.length) {
+        const partialMap = new Map(partialBundle.students.map((s: any) => [s.id, s]));
+        const mergedList = currentStudents.map((cs: any) => {
+          if (partialMap.has(cs.id)) {
+            const up = partialMap.get(cs.id);
+            partialMap.delete(cs.id);
+            return { ...cs, ...up, schoolId: tenantId };
+          }
+          return cs;
+        });
+        partialMap.forEach((newS: any) => {
+          mergedList.push({ ...newS, schoolId: tenantId });
+        });
+        partialBundle.students = mergedList;
+      }
+    }
+
+    if (partialBundle.teachers && Array.isArray(partialBundle.teachers)) {
+      const currentTeachers = (current as any).teachers || [];
+      if (currentTeachers.length > 0 && partialBundle.teachers.length < currentTeachers.length) {
+        const partialMap = new Map(partialBundle.teachers.map((t: any) => [t.id, t]));
+        const mergedList = currentTeachers.map((ct: any) => {
+          if (partialMap.has(ct.id)) {
+            const up = partialMap.get(ct.id);
+            partialMap.delete(ct.id);
+            return { ...ct, ...up, schoolId: tenantId };
+          }
+          return ct;
+        });
+        partialMap.forEach((newT: any) => {
+          mergedList.push({ ...newT, schoolId: tenantId });
+        });
+        partialBundle.teachers = mergedList;
+      }
+    }
+
+    if (partialBundle.assessments && Array.isArray(partialBundle.assessments)) {
+      const currentAssessments = (current as any).assessments || [];
+      if (currentAssessments.length > 0 && partialBundle.assessments.length < currentAssessments.length) {
+        const partialMap = new Map(partialBundle.assessments.map((a: any) => [a.id, a]));
+        const mergedList = currentAssessments.map((ca: any) => {
+          if (partialMap.has(ca.id)) {
+            const up = partialMap.get(ca.id);
+            partialMap.delete(ca.id);
+            return { ...ca, ...up, schoolId: tenantId };
+          }
+          return ca;
+        });
+        partialMap.forEach((newA: any) => {
+          mergedList.push({ ...newA, schoolId: tenantId });
+        });
+        partialBundle.assessments = mergedList;
       }
     }
     const merged: TenantDataBundle = {

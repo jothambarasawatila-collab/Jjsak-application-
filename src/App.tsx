@@ -1366,14 +1366,59 @@ export function App() {
         // A. Instant Hydration from Scoped Local Storage Cache
         const cached = tenantDataSyncService.getCachedTenantData(effectiveTenantId);
         if (cached && isMounted) {
-          if (Array.isArray(cached.students)) {
-            setStudents(cached.students.map((s: any) => ({ ...s, schoolId: effectiveTenantId })));
+          const cachedStudents = cached.students;
+          if (Array.isArray(cachedStudents) && cachedStudents.length > 0) {
+            setStudents((prev) => {
+              const otherSchools = prev.filter((s) => !isSchoolMatch(s.schoolId, effectiveTenantId));
+              const currentTenantStudents = prev.filter((s) => isSchoolMatch(s.schoolId, effectiveTenantId));
+              const localMap = new Map(currentTenantStudents.map((s) => [s.id, s]));
+              cachedStudents.forEach((cs: any) => {
+                const sObj = { ...cs, schoolId: cs.schoolId || effectiveTenantId };
+                if (!localMap.has(sObj.id)) {
+                  localMap.set(sObj.id, sObj);
+                } else {
+                  const existing = localMap.get(sObj.id)!;
+                  localMap.set(sObj.id, { ...sObj, ...existing, schoolId: effectiveTenantId });
+                }
+              });
+              return [...otherSchools, ...Array.from(localMap.values())];
+            });
           }
-          if (Array.isArray(cached.teachers)) {
-            setTeachers(cached.teachers.map((t: any) => ({ ...t, schoolId: effectiveTenantId })));
+          const cachedTeachers = cached.teachers;
+          if (Array.isArray(cachedTeachers) && cachedTeachers.length > 0) {
+            setTeachers((prev) => {
+              const otherSchools = prev.filter((t) => !isSchoolMatch(t.schoolId, effectiveTenantId));
+              const currentTenantTeachers = prev.filter((t) => isSchoolMatch(t.schoolId, effectiveTenantId));
+              const localMap = new Map(currentTenantTeachers.map((t) => [t.id, t]));
+              cachedTeachers.forEach((ct: any) => {
+                const tObj = { ...ct, schoolId: ct.schoolId || effectiveTenantId };
+                if (!localMap.has(tObj.id)) {
+                  localMap.set(tObj.id, tObj);
+                } else {
+                  const existing = localMap.get(tObj.id)!;
+                  localMap.set(tObj.id, { ...tObj, ...existing, schoolId: effectiveTenantId });
+                }
+              });
+              return [...otherSchools, ...Array.from(localMap.values())];
+            });
           }
-          if (Array.isArray(cached.assessments)) {
-            setAssessments(cached.assessments.map((a: any) => ({ ...a, schoolId: effectiveTenantId })));
+          const cachedAssessments = cached.assessments;
+          if (Array.isArray(cachedAssessments) && cachedAssessments.length > 0) {
+            setAssessments((prev) => {
+              const otherSchools = prev.filter((a) => !isSchoolMatch(a.schoolId, effectiveTenantId));
+              const currentTenantAssessments = prev.filter((a) => isSchoolMatch(a.schoolId, effectiveTenantId));
+              const localMap = new Map(currentTenantAssessments.map((a) => [a.id, a]));
+              cachedAssessments.forEach((ca: any) => {
+                const aObj = { ...ca, schoolId: ca.schoolId || effectiveTenantId };
+                if (!localMap.has(aObj.id)) {
+                  localMap.set(aObj.id, aObj);
+                } else {
+                  const existing = localMap.get(aObj.id)!;
+                  localMap.set(aObj.id, { ...aObj, ...existing, schoolId: effectiveTenantId });
+                }
+              });
+              return [...otherSchools, ...Array.from(localMap.values())];
+            });
           }
           if (Array.isArray(cached.timetables)) {
             setTimetables(cached.timetables.map((l: any) => ({ ...l, schoolId: effectiveTenantId })));
@@ -1446,27 +1491,57 @@ export function App() {
 
         if (serverBundle) {
           const bundleStudents = serverBundle.students;
-          if (Array.isArray(bundleStudents)) {
+          if (Array.isArray(bundleStudents) && bundleStudents.length > 0) {
             setStudents((prev) => {
-              const otherSchools = prev.filter((s) => s.schoolId && s.schoolId !== effectiveTenantId);
-              const tenantStudents = bundleStudents.map((s: any) => ({ ...s, schoolId: effectiveTenantId }));
-              return [...otherSchools, ...tenantStudents];
+              const otherSchools = prev.filter((s) => !isSchoolMatch(s.schoolId, effectiveTenantId));
+              const currentTenantStudents = prev.filter((s) => isSchoolMatch(s.schoolId, effectiveTenantId));
+              const localMap = new Map(currentTenantStudents.map((s) => [s.id, s]));
+              bundleStudents.forEach((bs: any) => {
+                const sObj = { ...bs, schoolId: bs.schoolId || effectiveTenantId };
+                if (!localMap.has(sObj.id)) {
+                  localMap.set(sObj.id, sObj);
+                } else {
+                  const existing = localMap.get(sObj.id)!;
+                  localMap.set(sObj.id, { ...sObj, ...existing, schoolId: effectiveTenantId });
+                }
+              });
+              return [...otherSchools, ...Array.from(localMap.values())];
             });
           }
           const bundleTeachers = serverBundle.teachers;
-          if (Array.isArray(bundleTeachers)) {
+          if (Array.isArray(bundleTeachers) && bundleTeachers.length > 0) {
             setTeachers((prev) => {
-              const otherSchools = prev.filter((t) => t.schoolId && t.schoolId !== effectiveTenantId);
-              const tenantTeachers = bundleTeachers.map((t: any) => ({ ...t, schoolId: effectiveTenantId }));
-              return [...otherSchools, ...tenantTeachers];
+              const otherSchools = prev.filter((t) => !isSchoolMatch(t.schoolId, effectiveTenantId));
+              const currentTenantTeachers = prev.filter((t) => isSchoolMatch(t.schoolId, effectiveTenantId));
+              const localMap = new Map(currentTenantTeachers.map((t) => [t.id, t]));
+              bundleTeachers.forEach((bt: any) => {
+                const tObj = { ...bt, schoolId: bt.schoolId || effectiveTenantId };
+                if (!localMap.has(tObj.id)) {
+                  localMap.set(tObj.id, tObj);
+                } else {
+                  const existing = localMap.get(tObj.id)!;
+                  localMap.set(tObj.id, { ...tObj, ...existing, schoolId: effectiveTenantId });
+                }
+              });
+              return [...otherSchools, ...Array.from(localMap.values())];
             });
           }
           const bundleAssessments = serverBundle.assessments;
-          if (Array.isArray(bundleAssessments)) {
+          if (Array.isArray(bundleAssessments) && bundleAssessments.length > 0) {
             setAssessments((prev) => {
-              const otherSchools = prev.filter((a) => a.schoolId && a.schoolId !== effectiveTenantId);
-              const tenantAssessments = bundleAssessments.map((a: any) => ({ ...a, schoolId: effectiveTenantId }));
-              return [...otherSchools, ...tenantAssessments];
+              const otherSchools = prev.filter((a) => !isSchoolMatch(a.schoolId, effectiveTenantId));
+              const currentTenantAssessments = prev.filter((a) => isSchoolMatch(a.schoolId, effectiveTenantId));
+              const localMap = new Map(currentTenantAssessments.map((a) => [a.id, a]));
+              bundleAssessments.forEach((ba: any) => {
+                const aObj = { ...ba, schoolId: ba.schoolId || effectiveTenantId };
+                if (!localMap.has(aObj.id)) {
+                  localMap.set(aObj.id, aObj);
+                } else {
+                  const existing = localMap.get(aObj.id)!;
+                  localMap.set(aObj.id, { ...aObj, ...existing, schoolId: effectiveTenantId });
+                }
+              });
+              return [...otherSchools, ...Array.from(localMap.values())];
             });
           }
           const bundleTimetables = serverBundle.timetables;
@@ -2155,9 +2230,9 @@ export function App() {
       if (effectiveTenantId) {
         localStorage.setItem(`jjsak_tenant_data_${effectiveTenantId}`, JSON.stringify({
           tenantId: effectiveTenantId,
-          students: students.filter((s) => s.schoolId === effectiveTenantId),
-          teachers: teachers.filter((t) => t.schoolId === effectiveTenantId),
-          assessments: assessments.filter((a) => a.schoolId === effectiveTenantId),
+          students: students.filter((s) => isSchoolMatch(s.schoolId, effectiveTenantId)),
+          teachers: teachers.filter((t) => isSchoolMatch(t.schoolId, effectiveTenantId)),
+          assessments: assessments.filter((a) => isSchoolMatch(a.schoolId, effectiveTenantId)),
           schoolInfo,
           schoolProfile,
         }));
@@ -2264,27 +2339,57 @@ export function App() {
         const freshBundle = await tenantDataSyncService.fetchTenantData(tenant.schoolId);
         if (freshBundle) {
           const fStudents = freshBundle.students;
-          if (Array.isArray(fStudents)) {
+          if (Array.isArray(fStudents) && fStudents.length > 0) {
             setStudents((prev) => {
-              const otherSchools = prev.filter((s) => s.schoolId && s.schoolId !== tenant.schoolId);
-              const tenantStudents = fStudents.map((s: any) => ({ ...s, schoolId: tenant.schoolId }));
-              return [...otherSchools, ...tenantStudents];
+              const otherSchools = prev.filter((s) => !isSchoolMatch(s.schoolId, tenant.schoolId));
+              const currentTenantStudents = prev.filter((s) => isSchoolMatch(s.schoolId, tenant.schoolId));
+              const localMap = new Map(currentTenantStudents.map((s) => [s.id, s]));
+              fStudents.forEach((fs: any) => {
+                const sObj = { ...fs, schoolId: fs.schoolId || tenant.schoolId };
+                if (!localMap.has(sObj.id)) {
+                  localMap.set(sObj.id, sObj);
+                } else {
+                  const existing = localMap.get(sObj.id)!;
+                  localMap.set(sObj.id, { ...sObj, ...existing, schoolId: tenant.schoolId });
+                }
+              });
+              return [...otherSchools, ...Array.from(localMap.values())];
             });
           }
           const fTeachers = freshBundle.teachers;
-          if (Array.isArray(fTeachers)) {
+          if (Array.isArray(fTeachers) && fTeachers.length > 0) {
             setTeachers((prev) => {
-              const otherSchools = prev.filter((t) => t.schoolId && t.schoolId !== tenant.schoolId);
-              const tenantTeachers = fTeachers.map((t: any) => ({ ...t, schoolId: tenant.schoolId }));
-              return [...otherSchools, ...tenantTeachers];
+              const otherSchools = prev.filter((t) => !isSchoolMatch(t.schoolId, tenant.schoolId));
+              const currentTenantTeachers = prev.filter((t) => isSchoolMatch(t.schoolId, tenant.schoolId));
+              const localMap = new Map(currentTenantTeachers.map((t) => [t.id, t]));
+              fTeachers.forEach((ft: any) => {
+                const tObj = { ...ft, schoolId: ft.schoolId || tenant.schoolId };
+                if (!localMap.has(tObj.id)) {
+                  localMap.set(tObj.id, tObj);
+                } else {
+                  const existing = localMap.get(tObj.id)!;
+                  localMap.set(tObj.id, { ...tObj, ...existing, schoolId: tenant.schoolId });
+                }
+              });
+              return [...otherSchools, ...Array.from(localMap.values())];
             });
           }
           const fAssessments = freshBundle.assessments;
-          if (Array.isArray(fAssessments)) {
+          if (Array.isArray(fAssessments) && fAssessments.length > 0) {
             setAssessments((prev) => {
-              const otherSchools = prev.filter((a) => a.schoolId && a.schoolId !== tenant.schoolId);
-              const tenantAssessments = fAssessments.map((a: any) => ({ ...a, schoolId: tenant.schoolId }));
-              return [...otherSchools, ...tenantAssessments];
+              const otherSchools = prev.filter((a) => !isSchoolMatch(a.schoolId, tenant.schoolId));
+              const currentTenantAssessments = prev.filter((a) => isSchoolMatch(a.schoolId, tenant.schoolId));
+              const localMap = new Map(currentTenantAssessments.map((a) => [a.id, a]));
+              fAssessments.forEach((fa: any) => {
+                const aObj = { ...fa, schoolId: fa.schoolId || tenant.schoolId };
+                if (!localMap.has(aObj.id)) {
+                  localMap.set(aObj.id, aObj);
+                } else {
+                  const existing = localMap.get(aObj.id)!;
+                  localMap.set(aObj.id, { ...aObj, ...existing, schoolId: tenant.schoolId });
+                }
+              });
+              return [...otherSchools, ...Array.from(localMap.values())];
             });
           }
           const fTimetables = freshBundle.timetables;
@@ -2811,14 +2916,22 @@ export function App() {
       } else {
         finalAssessments = [assessment, ...prev];
       }
+      try {
+        localStorage.setItem('jjsak_assessments', JSON.stringify(finalAssessments));
+      } catch {}
       return finalAssessments;
     });
 
     // 2. Update students and recompute overall rankings and statistics
     const ranked = calculateStudentRankings(updatedStudents);
+    let allMergedStudents: Student[] = [];
     setStudents((prev) => {
-      const otherSchools = prev.filter((s) => s.schoolId && s.schoolId !== effectiveTenantId);
-      return [...otherSchools, ...ranked];
+      const otherSchools = prev.filter((s) => !isSchoolMatch(s.schoolId, effectiveTenantId));
+      allMergedStudents = [...otherSchools, ...ranked];
+      try {
+        localStorage.setItem('jjsak_students', JSON.stringify(allMergedStudents));
+      } catch {}
+      return allMergedStudents;
     });
 
     // 3. Keep selected student updated
@@ -2832,8 +2945,8 @@ export function App() {
     if (effectiveTenantId) {
       tenantDataSyncService.saveAssessmentMarks(effectiveTenantId, assessment, ranked);
       tenantDataSyncService.saveTenantData(effectiveTenantId, {
-        assessments: finalAssessments.filter((a) => a.schoolId === effectiveTenantId),
-        students: ranked.filter((s) => s.schoolId === effectiveTenantId),
+        assessments: finalAssessments.filter((a) => isSchoolMatch(a.schoolId, effectiveTenantId)),
+        students: ranked.filter((s) => isSchoolMatch(s.schoolId, effectiveTenantId)),
       });
       triggerSaveNotification(`✓ Assessment marks and student rankings securely saved to database`);
     }
@@ -2851,11 +2964,15 @@ export function App() {
     };
     let rankedResult: Student[] = [];
     setStudents((prev) => {
-      const merged = [studentWithSchool, ...prev];
+      const otherStudents = prev.filter((s) => s.id !== studentWithSchool.id);
+      const merged = [studentWithSchool, ...otherStudents];
       const ranked = calculateStudentRankings(merged);
       rankedResult = ranked;
       const updatedCurrent = ranked.find((s) => s.id === studentWithSchool.id) || studentWithSchool;
       setSelectedStudent(updatedCurrent);
+      try {
+        localStorage.setItem('jjsak_students', JSON.stringify(ranked));
+      } catch {}
       return ranked;
     });
     setSchoolInfo((prev) => ({
@@ -2866,7 +2983,7 @@ export function App() {
     if (targetSchoolId) {
       tenantDataSyncService.saveStudent(targetSchoolId, studentWithSchool);
       tenantDataSyncService.saveTenantData(targetSchoolId, {
-        students: rankedResult.filter((s) => s.schoolId === targetSchoolId),
+        students: rankedResult.filter((s) => isSchoolMatch(s.schoolId, targetSchoolId)),
         schoolInfo: { ...schoolInfo, totalStudents: schoolInfo.totalStudents + 1 },
       });
       triggerSaveNotification(`✓ Learner ${studentWithSchool.name} registered and saved to database`);
@@ -2888,13 +3005,16 @@ export function App() {
       if (selectedStudent.id === studentWithSchool.id) {
         setSelectedStudent(updatedCurrent);
       }
+      try {
+        localStorage.setItem('jjsak_students', JSON.stringify(ranked));
+      } catch {}
       return ranked;
     });
 
     if (targetSchoolId) {
       tenantDataSyncService.saveStudent(targetSchoolId, studentWithSchool);
       tenantDataSyncService.saveTenantData(targetSchoolId, {
-        students: rankedResult.filter((s) => s.schoolId === targetSchoolId),
+        students: rankedResult.filter((s) => isSchoolMatch(s.schoolId, targetSchoolId)),
       });
       triggerSaveNotification(`✓ Learner ${studentWithSchool.name} updated and saved to database`);
     }
@@ -2910,12 +3030,15 @@ export function App() {
       if (updatedCurrent) {
         setSelectedStudent(updatedCurrent);
       }
+      try {
+        localStorage.setItem('jjsak_students', JSON.stringify(ranked));
+      } catch {}
       return ranked;
     });
 
     if (effectiveTenantId) {
       tenantDataSyncService.saveTenantData(effectiveTenantId, {
-        students: rankedResult.filter((s) => s.schoolId === effectiveTenantId),
+        students: rankedResult.filter((s) => isSchoolMatch(s.schoolId, effectiveTenantId)),
       });
       triggerSaveNotification(`✓ Batch learner updates saved to institutional database`);
     }
@@ -3002,10 +3125,13 @@ export function App() {
     setTeachers((prev) => {
       const filtered = prev.filter((t) => t.id !== finalTeacher.id && (t.email ? t.email !== finalTeacher.email : true));
       const updatedList = [finalTeacher, ...filtered];
+      try {
+        localStorage.setItem('jjsak_teachers', JSON.stringify(updatedList));
+      } catch {}
       if (targetSchoolId) {
         tenantDataSyncService.saveTeacher(targetSchoolId, finalTeacher);
         tenantDataSyncService.saveTenantData(targetSchoolId, {
-          teachers: updatedList.filter((t) => t.schoolId === targetSchoolId),
+          teachers: updatedList.filter((t) => isSchoolMatch(t.schoolId, targetSchoolId)),
         });
       }
       return updatedList;
@@ -3158,13 +3284,16 @@ export function App() {
     setTeachers((prev) => {
       const next = prev.map((t) => (t.id === finalTeacher.id ? finalTeacher : t));
       updatedTeachersList = next;
+      try {
+        localStorage.setItem('jjsak_teachers', JSON.stringify(next));
+      } catch {}
       return next;
     });
 
     if (targetSchoolId) {
       tenantDataSyncService.saveTeacher(targetSchoolId, finalTeacher);
       tenantDataSyncService.saveTenantData(targetSchoolId, {
-        teachers: updatedTeachersList.filter((t) => t.schoolId === targetSchoolId),
+        teachers: updatedTeachersList.filter((t) => isSchoolMatch(t.schoolId, targetSchoolId)),
       });
     }
 
@@ -3211,11 +3340,14 @@ export function App() {
         setTeachers((prev) => {
           const next = prev.filter((t) => t.id !== id);
           remainingTeachers = next;
+          try {
+            localStorage.setItem('jjsak_teachers', JSON.stringify(next));
+          } catch {}
           return next;
         });
         if (effectiveTenantId) {
           tenantDataSyncService.saveTenantData(effectiveTenantId, {
-            teachers: remainingTeachers.filter((t) => t.schoolId === effectiveTenantId),
+            teachers: remainingTeachers.filter((t) => isSchoolMatch(t.schoolId, effectiveTenantId)),
           });
         }
       },
@@ -4530,11 +4662,14 @@ export function App() {
           }));
           setStudents((prev) => {
             const others = effectiveTenantId
-              ? prev.filter((s) => s.schoolId && s.schoolId !== effectiveTenantId)
+              ? prev.filter((s) => !isSchoolMatch(s.schoolId, effectiveTenantId))
               : [];
             const merged = [...others, ...stampedUploaded];
-            localStorage.setItem('jjsak_students_v3', JSON.stringify(merged));
-            return merged;
+            const ranked = calculateStudentRankings(merged);
+            try {
+              localStorage.setItem('jjsak_students', JSON.stringify(ranked));
+            } catch {}
+            return ranked;
           });
           setSchoolInfo((prev) => ({
             ...prev,
@@ -4542,6 +4677,13 @@ export function App() {
           }));
           if (stampedUploaded.length > 0) {
             setSelectedStudent(stampedUploaded[0]);
+          }
+          if (effectiveTenantId) {
+            tenantDataSyncService.saveTenantData(effectiveTenantId, {
+              students: stampedUploaded,
+              schoolInfo: { ...schoolInfo, totalStudents: stampedUploaded.length },
+            });
+            triggerSaveNotification(`✓ ${stampedUploaded.length} learners successfully uploaded and persisted to school portal`);
           }
         }}
       />
