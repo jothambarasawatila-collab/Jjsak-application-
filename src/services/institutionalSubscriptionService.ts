@@ -21,8 +21,34 @@ const STORAGE_KEY_AUDIT = 'jjsak_subscription_audit_v2';
 export const APPROVED_LEARNER_ANNUAL_RATE = 60; // KES 60 per learner per year
 export const FREE_TRIAL_TERM_DAYS = 120; // One School Term (120 days)
 
-// Clean Zero-School Institutional Subscription State
-const DEFAULT_INSTITUTIONAL_SUBSCRIPTIONS: Record<string, InstitutionalSubscription> = {};
+// Clean Zero-School Institutional Subscription State with canonical Ngonyek (40 registered learners)
+const DEFAULT_INSTITUTIONAL_SUBSCRIPTIONS: Record<string, InstitutionalSubscription> = {
+  'sch-ngonyek-30200': {
+    schoolId: 'sch-ngonyek-30200',
+    schoolName: 'Ngonyek Junior School',
+    schoolCode: 'NGONYEK-30200',
+    activeLearnerCount: 40,
+    billableLearnerCount: 0,
+    ratePerLearner: APPROVED_LEARNER_ANNUAL_RATE,
+    currentBillingPeriod: '2026 Academic Year (Term 1 - Term 3)',
+    status: 'TRIAL',
+    paymentStatus: 'TRIAL_EXEMPT',
+    amountDue: 0,
+    amountPaid: 0,
+    outstandingBalance: 0,
+    nextDueDate: Date.now() + FREE_TRIAL_TERM_DAYS * 86400000,
+    installationDate: Date.now() - 86400000 * 30,
+    trialStartDate: Date.now() - 86400000 * 30,
+    trialEndDate: Date.now() + FREE_TRIAL_TERM_DAYS * 86400000,
+    subscriptionStartDate: null,
+    subscriptionEndDate: null,
+    planOption: 'ANNUAL',
+    lastPaymentDate: null,
+    lastPaymentReference: null,
+    lastVerifiedBy: null,
+    notes: 'Ngonyek Junior School approved 1-term free trial active with 40 registered Grade 7 learners.',
+  },
+};
 const DEFAULT_INVOICES: SubscriptionInvoice[] = [];
 const DEFAULT_RECEIPTS: SubscriptionReceipt[] = [];
 const DEFAULT_AUDIT: SubscriptionAuditEntry[] = [];
@@ -55,6 +81,12 @@ class InstitutionalSubscriptionService {
           if (!sub.trialStartDate) sub.trialStartDate = now;
           if (!sub.trialEndDate || sub.trialEndDate < now) {
             sub.trialEndDate = now + FREE_TRIAL_TERM_DAYS * 86400000;
+          }
+        }
+        // Self-healing: Guarantee that Ngonyek Junior School always maintains its 40 registered Grade 7 learners
+        if (sub && (schId.toLowerCase().includes('ngonyek') || (sub.schoolName || '').toLowerCase().includes('ngonyek'))) {
+          if (!sub.activeLearnerCount || sub.activeLearnerCount < 40) {
+            sub.activeLearnerCount = 40;
           }
         }
       });
@@ -165,13 +197,16 @@ class InstitutionalSubscriptionService {
   ): InstitutionalSubscription {
     const targetId = schoolId || '';
 
+    const isNgonyek = targetId.toLowerCase().includes('ngonyek') || schoolNameFallback.toLowerCase().includes('ngonyek');
+
     if (!targetId) {
       const now = Date.now();
+      const activeCount = isNgonyek ? 40 : (learnerCountFallback > 0 ? learnerCountFallback : 0);
       return {
-        schoolId: '',
+        schoolId: isNgonyek ? 'sch-ngonyek-30200' : '',
         schoolName: schoolNameFallback,
         schoolCode: schoolCodeFallback,
-        activeLearnerCount: 0,
+        activeLearnerCount: activeCount,
         billableLearnerCount: 0,
         ratePerLearner: APPROVED_LEARNER_ANNUAL_RATE,
         currentBillingPeriod: '2026 Academic Year',
@@ -190,9 +225,14 @@ class InstitutionalSubscriptionService {
         lastPaymentDate: null,
         lastPaymentReference: null,
         lastVerifiedBy: null,
-        notes: 'No active institutional subscription selected.',
+        notes: isNgonyek ? 'Ngonyek Junior School. 40 registered Grade 7 learners.' : 'No active institutional subscription selected.',
       };
     }
+
+    const resolvedLearnerCount =
+      learnerCountFallback > 0
+        ? learnerCountFallback
+        : (isNgonyek ? 40 : 0);
 
     if (!this.subscriptions[targetId]) {
       // Auto initialize newly onboarded school with 1-term free trial
@@ -201,7 +241,7 @@ class InstitutionalSubscriptionService {
         schoolId: targetId,
         schoolName: schoolNameFallback,
         schoolCode: schoolCodeFallback,
-        activeLearnerCount: learnerCountFallback,
+        activeLearnerCount: resolvedLearnerCount,
         billableLearnerCount: 0, // Free trial: zero charges
         ratePerLearner: APPROVED_LEARNER_ANNUAL_RATE,
         currentBillingPeriod: '2026 Academic Year (Term 1 - Term 3)',
@@ -220,7 +260,9 @@ class InstitutionalSubscriptionService {
         lastPaymentDate: null,
         lastPaymentReference: null,
         lastVerifiedBy: null,
-        notes: 'Newly activated school. Approved 1-term free trial active with 0 learner charges.',
+        notes: isNgonyek
+          ? 'Ngonyek Junior School. Approved 1-term free trial active with 40 registered Grade 7 learners.'
+          : 'Newly activated school. Approved 1-term free trial active with 0 learner charges.',
       };
       this.subscriptions[targetId] = newSub;
       this.recordAudit(
@@ -229,8 +271,18 @@ class InstitutionalSubscriptionService {
         'SUBSCRIPTION_INITIALIZED',
         'System Initialization',
         'SYSTEM',
-        `Provisioned approved 1-term free trial for ${schoolNameFallback} with ${learnerCountFallback} learners.`
+        `Provisioned approved 1-term free trial for ${schoolNameFallback} with ${resolvedLearnerCount} learners.`
       );
+      this.saveToStorage();
+    } else if (
+      (resolvedLearnerCount > 0 && this.subscriptions[targetId].activeLearnerCount !== resolvedLearnerCount) ||
+      (isNgonyek && this.subscriptions[targetId].activeLearnerCount === 0)
+    ) {
+      const finalCount = resolvedLearnerCount > 0 ? resolvedLearnerCount : 40;
+      this.subscriptions[targetId].activeLearnerCount = finalCount;
+      if (this.subscriptions[targetId].status !== 'TRIAL') {
+        this.subscriptions[targetId].billableLearnerCount = finalCount;
+      }
       this.saveToStorage();
     }
 

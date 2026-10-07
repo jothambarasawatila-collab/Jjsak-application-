@@ -199,7 +199,7 @@ export const AnalyticsScreen: React.FC<AnalyticsScreenProps> = ({
               <span className="text-xs font-semibold">Total Learners</span>
               <Users className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="text-2xl font-black text-slate-900">{analytics.totalLearners}</div>
+            <div className="text-2xl font-black text-slate-900">{analytics.totalLearners ?? students.length}</div>
             <div className="text-[10px] text-slate-500 font-medium mt-0.5">
               Filtered: {selectedClass !== 'All' ? selectedClass : selectedGrade !== 'All' ? selectedGrade : 'All School'}
             </div>

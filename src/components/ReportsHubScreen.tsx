@@ -25,7 +25,7 @@ import {
   AVAILABLE_SUBJECTS,
   calculateStudentRankings,
 } from '../data/mockData';
-import { computeAnalytics } from '../data/analyticsUtils';
+import { computeAnalytics, isGradeMatch, isClassMatch } from '../data/analyticsUtils';
 import { isDirectorOfAcademics } from '../utils/securityEngine';
 import {
   getInitialApprovalRecord,
@@ -76,7 +76,7 @@ export const ReportsHubScreen: React.FC<ReportsHubScreenProps> = ({
   const [activeMainTab, setActiveMainTab] = useState<MainReportTab>('report_cards');
   const [activeTemplate, setActiveTemplate] = useState<ReportTemplateType>('standard_cbc_report');
   const [selectedGrade, setSelectedGrade] = useState<string>('All');
-  const [selectedClass, setSelectedClass] = useState<string>('G8 S');
+  const [selectedClass, setSelectedClass] = useState<string>('All');
   const [selectedTerm] = useState<string>(schoolInfo.term || 'Term 2, 2026');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || '');
@@ -98,11 +98,16 @@ export const ReportsHubScreen: React.FC<ReportsHubScreenProps> = ({
     return calculateStudentRankings(students);
   }, [students]);
 
+  // Available class arms
+  const availableClassArms = useMemo(() => {
+    return Array.from(new Set(students.map((s) => s.classArm).filter(Boolean))).sort();
+  }, [students]);
+
   // Filtered students
   const filteredStudents = useMemo(() => {
     return rankedStudents.filter((s) => {
-      if (selectedGrade !== 'All' && s.grade !== selectedGrade) return false;
-      if (selectedClass !== 'All' && s.classArm !== selectedClass) return false;
+      if (selectedGrade !== 'All' && !isGradeMatch(s.grade, selectedGrade)) return false;
+      if (selectedClass !== 'All' && !isClassMatch(s.classArm, selectedClass)) return false;
       if (searchTerm) {
         const query = searchTerm.toLowerCase();
         return (
@@ -136,18 +141,14 @@ export const ReportsHubScreen: React.FC<ReportsHubScreenProps> = ({
 
   // Class analytics
   const classAnalytics = useMemo(() => {
-    const targetClass = selectedClass === 'All' ? 'G8 S' : selectedClass;
+    const targetClass = selectedClass === 'All' ? (availableClassArms[0] || 'Grade 7 North') : selectedClass;
     return computeAnalytics(students, teachers, targetClass, selectedGrade);
-  }, [students, teachers, selectedClass, selectedGrade]);
+  }, [students, teachers, selectedClass, selectedGrade, availableClassArms]);
 
   // School-wide analytics
   const schoolAnalytics = useMemo(() => {
     return computeAnalytics(students, teachers, 'All', 'All');
   }, [students, teachers]);
-
-  const availableClassArms = useMemo(() => {
-    return Array.from(new Set(students.map((s) => s.classArm))).sort();
-  }, [students]);
 
   // Export CSV Handler
   const handleExportCSV = () => {

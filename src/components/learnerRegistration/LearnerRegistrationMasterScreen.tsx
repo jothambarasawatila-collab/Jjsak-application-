@@ -25,6 +25,7 @@ import { LearnerDocumentsTab } from './LearnerDocumentsTab';
 import {
   MOCK_LEARNER_DOSSIERS,
   INITIAL_ADMISSION_CONFIG,
+  convertStudentToMasterDossier,
 } from '../../data/learnerRegistrationData';
 import { AdmissionNumberGenerationConfig } from '../../types/learnerRegistration';
 
@@ -44,9 +45,12 @@ export type Phase9SubTab =
 
 export const LearnerRegistrationMasterScreen: React.FC<
   LearnerRegistrationMasterScreenProps
-> = ({ onLogAudit }) => {
+> = ({ students, onLogAudit }) => {
   const [dossiers, setDossiers] = useState<LearnerMasterDossier[]>(() => {
     try {
+      if (Array.isArray(students) && students.length > 0) {
+        return students.map((s) => convertStudentToMasterDossier(s));
+      }
       const saved = localStorage.getItem('jjsak_learner_dossiers');
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -55,6 +59,21 @@ export const LearnerRegistrationMasterScreen: React.FC<
     } catch {}
     return MOCK_LEARNER_DOSSIERS;
   });
+
+  useEffect(() => {
+    if (Array.isArray(students) && students.length > 0) {
+      setDossiers((prev) => {
+        const currentIds = new Set(prev.map((d) => d.id));
+        const missing = students
+          .filter((s) => !currentIds.has(s.id))
+          .map((s) => convertStudentToMasterDossier(s));
+        if (missing.length > 0) {
+          return [...prev, ...missing];
+        }
+        return prev;
+      });
+    }
+  }, [students]);
 
   useEffect(() => {
     try {

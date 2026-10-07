@@ -635,8 +635,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <div className="bg-white rounded-2xl p-3.5 shadow-xs border border-slate-200 grid grid-cols-3 gap-2 text-center divide-x divide-slate-100">
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Learners</span>
-                <div className="text-xl font-black text-slate-900 mt-0.5">{analytics.totalLearners}</div>
-                <span className="text-[10px] text-emerald-600 font-semibold">100% Enrolled</span>
+                <div className="text-xl font-black text-slate-900 mt-0.5">{analytics.totalLearners ?? students.length}</div>
+                <span className="text-[10px] text-emerald-600 font-semibold">{students.length > 0 ? `${students.length} Enrolled` : '100% Enrolled'}</span>
               </div>
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">School Mean</span>

@@ -36,6 +36,8 @@ interface SchoolProfileScreenProps {
   schoolProfile: SchoolProfile;
   activeTenant?: SchoolTenant;
   currentUser: User;
+  totalStudents?: number;
+  schoolInfo?: any;
   onNavigateToSubscriptions?: () => void;
   onSave?: (updatedProfile: SchoolProfile) => void;
   onSaveTenantBranding?: (updatedTenant: SchoolTenant) => void;
@@ -47,6 +49,8 @@ export const SchoolProfileScreen: React.FC<SchoolProfileScreenProps> = ({
   schoolProfile,
   activeTenant,
   currentUser,
+  totalStudents,
+  schoolInfo,
   onNavigateToSubscriptions,
   onSave,
   onSaveTenantBranding,
@@ -1216,7 +1220,9 @@ export const SchoolProfileScreen: React.FC<SchoolProfileScreenProps> = ({
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
                       <span className="text-[10px] font-bold text-slate-500">Learners Enrolled</span>
-                      <span className="text-base font-black text-slate-900 block">256</span>
+                      <span className="text-base font-black text-slate-900 block">
+                        {totalStudents ?? schoolInfo?.totalStudents ?? (activeTenant as any)?.totalStudents ?? 40}
+                      </span>
                       <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full" style={previewTheme.badgeStyle}>
                         Grade 7, 8, 9
                       </span>

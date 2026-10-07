@@ -1542,7 +1542,7 @@
       },
       "settings": {},
       "auditLogs": [],
-      "lastUpdated": "2026-10-05T14:03:18.714Z"
+      "lastUpdated": "2026-10-07T07:57:01.616Z"
     },
     "sch-ngonyek-30200": {
       "tenantId": "sch-ngonyek-30200",
@@ -5061,17 +5061,6 @@
         }
       ],
       "teachers": [
-        {
-          "id": "tch-test-persist",
-          "schoolId": "sch-ngonyek-30200",
-          "name": "Kennedy Wamalwa",
-          "email": "kennedy.wamalwa@ngonyek.sc.ke",
-          "phoneNumber": "+254711223344",
-          "role": "TEACHER",
-          "designation": "Subject Teacher",
-          "department": "Science",
-          "active": true
-        },
         {
           "id": "tch-ngon-01",
           "schoolId": "sch-ngonyek-30200",
@@ -9986,5 +9975,5 @@
   "deletedTenantIds": [
     "sch-test-trial"
   ],
-  "savedAt": "2026-10-05T14:03:19.231Z"
+  "savedAt": "2026-10-07T07:57:01.616Z"
 }

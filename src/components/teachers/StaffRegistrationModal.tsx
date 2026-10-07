@@ -581,7 +581,9 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
       schoolId: targetSchool || currentSchoolId || editingTeacher?.schoolId,
       name: fullName.trim(),
       email: generatedEmail,
-      role: isClassTeacher && !designation.includes('Class Teacher') ? `Class Teacher (${department})` : `${designation} (${department})`,
+      role: isClassTeacher
+        ? (!designation.includes('Class Teacher') ? `Class Teacher (${department})` : `${designation} (${department})`)
+        : `${designation === 'Class Teacher' ? 'Teacher' : designation} (${department})`,
       classes: finalClasses,
       subjects: allSubjects,
       allocations: finalAllocations,
@@ -602,7 +604,9 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
         relationship: emergencyRelation.trim(),
       },
       dateOfEmployment,
-      designation: isClassTeacher && (designation === 'Teacher' || !designation) ? 'Class Teacher' : designation,
+      designation: isClassTeacher
+        ? (designation === 'Teacher' || !designation ? 'Class Teacher' : designation)
+        : (designation === 'Class Teacher' ? 'Teacher' : designation),
       department,
       employmentStatus,
       reportingOfficer,
@@ -1550,8 +1554,18 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
                         onChange={(e) => {
                           const val = e.target.checked;
                           setIsClassTeacher(val);
-                          if (val && designation === 'Teacher') {
-                            setDesignation('Class Teacher');
+                          if (val) {
+                            if (designation === 'Teacher' || !designation) {
+                              setDesignation('Class Teacher');
+                            }
+                            if (!assignedClass && classesList.length > 0) {
+                              setAssignedClass(classesList[0]);
+                            }
+                          } else {
+                            if (designation === 'Class Teacher') {
+                              setDesignation('Teacher');
+                            }
+                            setAssignedClass('');
                           }
                         }}
                         className="sr-only peer"
@@ -1560,7 +1574,7 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
                     </label>
                   </div>
 
-                  {isClassTeacher && (
+                  {isClassTeacher ? (
                     <div className="pt-3 border-t border-indigo-200 flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex-1">
                         <label className="block text-xs font-bold text-indigo-950 uppercase tracking-wider mb-1">
@@ -1593,6 +1607,21 @@ export const StaffRegistrationModal: React.FC<StaffRegistrationModalProps> = ({
                       <div className="sm:w-72 text-xs text-indigo-900 bg-white/90 p-2.5 rounded-lg border border-indigo-200">
                         <span className="font-bold">Official Class:</span> Designated as primary Class Teacher for <strong className="text-indigo-700">{assignedClass}</strong>.
                       </div>
+                    </div>
+                  ) : (
+                    <div className="pt-3 border-t border-indigo-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white/80 rounded-xl border border-indigo-100">
+                      <div className="flex items-center gap-2.5">
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-1 shrink-0">
+                          <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+                          Not a Class Teacher
+                        </span>
+                        <p className="text-xs text-slate-600">
+                          Designated as <strong>Subject Teacher / Specialist</strong>. Responsible for teaching learning areas across allocated grades and streams without pastoral stream roll-call administration.
+                        </p>
+                      </div>
+                      <span className="text-[11px] text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 shrink-0">
+                        Subject Allocations in Step 3
+                      </span>
                     </div>
                   )}
                 </div>

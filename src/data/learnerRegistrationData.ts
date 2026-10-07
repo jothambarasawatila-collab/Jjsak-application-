@@ -882,3 +882,4 @@ export function syncStudentToDossier(student: Student, existingDossier?: Learner
 }
 
 export const MOCK_LEARNER_DOSSIERS = INITIAL_LEARNER_DOSSIERS;
+export const convertStudentToMasterDossier = syncStudentToDossier;

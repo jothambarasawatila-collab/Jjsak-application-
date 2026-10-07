@@ -88,6 +88,46 @@ export interface FullSchoolAnalytics {
   };
 }
 
+export function normalizeGrade(grade?: string): string {
+  if (!grade) return '';
+  const clean = grade.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (clean === 'g7' || clean === 'grade7') return 'Grade 7';
+  if (clean === 'g8' || clean === 'grade8') return 'Grade 8';
+  if (clean === 'g9' || clean === 'grade9') return 'Grade 9';
+  return grade.trim();
+}
+
+export function isGradeMatch(g1?: string, g2?: string): boolean {
+  if (!g1 || !g2) return false;
+  if (g1 === 'All' || g2 === 'All') return true;
+  if (g1.trim().toLowerCase() === g2.trim().toLowerCase()) return true;
+  return normalizeGrade(g1) === normalizeGrade(g2);
+}
+
+export function normalizeClassArm(classArm?: string): string {
+  if (!classArm) return '';
+  const clean = classArm.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (clean === 'g7 n' || clean === 'g7 north' || clean === 'grade 7 n' || clean === 'grade 7 north') return 'Grade 7 North';
+  if (clean === 'g7 s' || clean === 'g7 south' || clean === 'grade 7 s' || clean === 'grade 7 south') return 'Grade 7 South';
+  if (clean === 'g8 n' || clean === 'g8 north' || clean === 'grade 8 n' || clean === 'grade 8 north') return 'Grade 8 North';
+  if (clean === 'g8 s' || clean === 'g8 south' || clean === 'grade 8 s' || clean === 'grade 8 south') return 'Grade 8 South';
+  if (clean === 'g9 n' || clean === 'g9 north' || clean === 'grade 9 n' || clean === 'grade 9 north') return 'Grade 9 North';
+  if (clean === 'g9 s' || clean === 'g9 south' || clean === 'grade 9 s' || clean === 'grade 9 south') return 'Grade 9 South';
+  return classArm.trim();
+}
+
+export function isClassMatch(c1?: string, c2?: string): boolean {
+  if (!c1 || !c2) return false;
+  if (c1 === 'All' || c2 === 'All') return true;
+  if (c1.trim().toLowerCase() === c2.trim().toLowerCase()) return true;
+  const n1 = normalizeClassArm(c1);
+  const n2 = normalizeClassArm(c2);
+  if (n1 && n2 && n1 === n2) return true;
+  const clean1 = c1.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const clean2 = c2.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return clean1 === clean2 || clean1.includes(clean2) || clean2.includes(clean1);
+}
+
 export function computeAnalytics(
   students: Student[],
   teachers: Teacher[] = [],
@@ -97,18 +137,17 @@ export function computeAnalytics(
   // Apply filtering if specified
   let filtered = students;
   if (filterClass !== 'All') {
-    const fClass = (filterClass || '').toLowerCase().trim();
-    filtered = filtered.filter((s) => (s.classArm || '').toLowerCase().trim() === fClass);
+    filtered = filtered.filter((s) => isClassMatch(s.classArm, filterClass));
   } else if (filterGrade !== 'All') {
-    const fGrade = (filterGrade || '').toLowerCase().trim();
-    filtered = filtered.filter((s) => (s.grade || '').toLowerCase().trim() === fGrade);
+    filtered = filtered.filter((s) => isGradeMatch(s.grade, filterGrade) || isGradeMatch(s.classArm, filterGrade));
   }
 
-  const validScoredStudents = filtered.filter((s) => s.avgScore !== null);
-  const totalLearners = validScoredStudents.length;
+  const validScoredStudents = filtered.filter((s) => s.avgScore !== null && s.avgScore !== undefined);
+  const totalLearners = filtered.length;
+  const scoredCount = validScoredStudents.length;
 
   const totalSum = validScoredStudents.reduce((acc, curr) => acc + (curr.avgScore || 0), 0);
-  const schoolMean = totalLearners > 0 ? Math.round((totalSum / totalLearners) * 10) / 10 : 0;
+  const schoolMean = scoredCount > 0 ? Math.round((totalSum / scoredCount) * 10) / 10 : 0;
 
   const getGradeForScore = (s: number): string => {
     if (s >= 90) return 'EE1';
@@ -236,19 +275,21 @@ export function computeAnalytics(
 
   const classStreamStats: ClassStreamAnalytics[] = allClasses.map((cls) => {
     const clsNorm = (cls || '').toLowerCase().trim();
-    const classLearners = students.filter((s) => (s.classArm || '').toLowerCase().trim() === clsNorm && s.avgScore !== null);
-    const count = classLearners.length;
-    const mean = count > 0 ? Math.round((classLearners.reduce((a, b) => a + (b.avgScore || 0), 0) / count) * 10) / 10 : 0;
+    const allClassLearners = students.filter((s) => (s.classArm || '').toLowerCase().trim() === clsNorm);
+    const scoredClassLearners = allClassLearners.filter((s) => s.avgScore !== null && s.avgScore !== undefined);
+    const count = allClassLearners.length;
+    const scoredCount = scoredClassLearners.length;
+    const mean = scoredCount > 0 ? Math.round((scoredClassLearners.reduce((a, b) => a + (b.avgScore || 0), 0) / scoredCount) * 10) / 10 : 0;
 
     let ee = 0;
     let me = 0;
     let ae = 0;
     let be = 0;
 
-    let topLearnerName = '-';
+    let topLearnerName = allClassLearners[0]?.name || '-';
     let topLearnerScore = 0;
 
-    classLearners.forEach((st) => {
+    scoredClassLearners.forEach((st) => {
       const s = st.avgScore || 0;
       if (s > topLearnerScore) {
         topLearnerScore = s;
@@ -260,7 +301,7 @@ export function computeAnalytics(
       else be++;
     });
 
-    const passRate = count > 0 ? Math.round(((ee + me) / count) * 100) : 0;
+    const passRate = scoredCount > 0 ? Math.round(((ee + me) / scoredCount) * 100) : 0;
 
     return {
       className: cls,
@@ -301,7 +342,7 @@ export function computeAnalytics(
       code: sl.code,
       range: sl.range,
       count,
-      percent: totalLearners > 0 ? Math.round((count / totalLearners) * 100) : 0,
+      percent: scoredCount > 0 ? Math.round((count / scoredCount) * 100) : 0,
       color: sl.color,
     };
   });
@@ -311,7 +352,7 @@ export function computeAnalytics(
   const aeCount = validScoredStudents.filter((s) => (s.avgScore || 0) >= 21 && (s.avgScore || 0) < 41).length;
   const beCount = validScoredStudents.filter((s) => (s.avgScore || 0) < 21).length;
 
-  const passRate = totalLearners > 0 ? Math.round(((eeCount + meCount) / totalLearners) * 100) : 0;
+  const passRate = scoredCount > 0 ? Math.round(((eeCount + meCount) / scoredCount) * 100) : 0;
 
   return {
     totalLearners,
@@ -325,13 +366,13 @@ export function computeAnalytics(
     cbeSublevelDistribution,
     cbeBroadDistribution: {
       eeCount,
-      eePercent: totalLearners > 0 ? Math.round((eeCount / totalLearners) * 100) : 0,
+      eePercent: scoredCount > 0 ? Math.round((eeCount / scoredCount) * 100) : 0,
       meCount,
-      mePercent: totalLearners > 0 ? Math.round((meCount / totalLearners) * 100) : 0,
+      mePercent: scoredCount > 0 ? Math.round((meCount / scoredCount) * 100) : 0,
       aeCount,
-      aePercent: totalLearners > 0 ? Math.round((aeCount / totalLearners) * 100) : 0,
+      aePercent: scoredCount > 0 ? Math.round((aeCount / scoredCount) * 100) : 0,
       beCount,
-      bePercent: totalLearners > 0 ? Math.round((beCount / totalLearners) * 100) : 0,
+      bePercent: scoredCount > 0 ? Math.round((beCount / scoredCount) * 100) : 0,
     },
   };
 }

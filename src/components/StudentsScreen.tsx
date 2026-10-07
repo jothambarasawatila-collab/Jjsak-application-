@@ -33,6 +33,7 @@ import {
   parseScoreString,
   getRankSuffix,
 } from '../data/mockData';
+import { isClassMatch, isGradeMatch } from '../data/analyticsUtils';
 import { ScoreConverterModal } from './ScoreConverterModal';
 import { BatchReportGeneratorModal } from './BatchReportGeneratorModal';
 
@@ -566,16 +567,24 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
     onLogAudit?.('STUDENT_DELETE', `Deleted student record: ${studentToDelete?.name || id}`);
   };
 
+  const dynamicClasses = useMemo(() => {
+    const studentClasses = Array.from(new Set(students.map((s) => s.classArm).filter(Boolean)));
+    const all = [...studentClasses];
+    AVAILABLE_CLASSES.forEach((c) => {
+      if (!all.some((existing) => isClassMatch(existing, c))) {
+        all.push(c);
+      }
+    });
+    return all.sort();
+  }, [students]);
+
   const streamCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    AVAILABLE_CLASSES.forEach((c) => {
-      counts[c] = 0;
-    });
-    students.forEach((s) => {
-      counts[s.classArm] = (counts[s.classArm] || 0) + 1;
+    dynamicClasses.forEach((c) => {
+      counts[c] = students.filter((s) => isClassMatch(s.classArm, c)).length;
     });
     return counts;
-  }, [students]);
+  }, [students, dynamicClasses]);
 
   const filteredStudents = students
     .filter((s) => {
@@ -588,13 +597,12 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
 
       const matchesClass =
         selectedClassFilter === 'All' ||
-        s.classArm === selectedClassFilter ||
-        s.classArm.includes(selectedClassFilter);
+        isClassMatch(s.classArm, selectedClassFilter);
 
       const matchesGrade =
         selectedGradeFilter === 'All' ||
-        s.grade === selectedGradeFilter ||
-        s.classArm.startsWith(selectedGradeFilter);
+        isGradeMatch(s.grade, selectedGradeFilter) ||
+        isClassMatch(s.classArm, selectedGradeFilter);
 
       const matchesPerformance =
         selectedPerformanceFilter === 'All' ||
@@ -735,7 +743,7 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
               </span>
             </button>
 
-            {AVAILABLE_CLASSES.map((cls) => {
+            {dynamicClasses.map((cls) => {
               const count = streamCounts[cls] || 0;
               const isSelected = selectedClassFilter === cls;
               return (
@@ -780,10 +788,10 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
               onChange={(e) => setSelectedGradeFilter(e.target.value)}
               className="w-full py-2 px-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#C51E28]"
             >
-              <option value="All">All Grades (G7-G9)</option>
-              {AVAILABLE_GRADES.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
+              <option value="All">All Grades (Grade 7 - 9)</option>
+              <option value="Grade 7">Grade 7 (G7)</option>
+              <option value="Grade 8">Grade 8 (G8)</option>
+              <option value="Grade 9">Grade 9 (G9)</option>
             </select>
 
             <select
@@ -791,8 +799,8 @@ export const StudentsScreen: React.FC<StudentsScreenProps> = ({
               onChange={(e) => setSelectedClassFilter(e.target.value)}
               className="w-full py-2 px-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#C51E28]"
             >
-              <option value="All">All Streams (N & S)</option>
-              {AVAILABLE_CLASSES.map((c) => (
+              <option value="All">All Streams</option>
+              {dynamicClasses.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
